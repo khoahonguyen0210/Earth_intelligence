@@ -1,0 +1,25 @@
+[project]
+name = "ai-earth-intelligence-and-forecasting-engine"
+version = "0.1.0"
+description = "A Python project for learning"
+requires-python = ">=3.12"
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
