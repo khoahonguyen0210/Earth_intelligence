@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.5
+    container_name: ai-earth-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_earth
+      POSTGRES_USER: ai_earth
+      POSTGRES_PASSWORD: ai_earth_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_earth -d ai_earth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
