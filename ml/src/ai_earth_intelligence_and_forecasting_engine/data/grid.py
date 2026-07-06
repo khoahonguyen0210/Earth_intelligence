@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -88,6 +89,32 @@ def build_california_grid(
             )
 
     return cells
+
+
+def locate_tile(
+    latitude: float,
+    longitude: float,
+    bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
+    resolution_deg: float = GRID_RESOLUTION_DEG,
+) -> str | None:
+    west, south, east, north = bbox
+
+    if not (west <= longitude < east and south <= latitude < north):
+        return None
+
+    width = round((east - west) / resolution_deg)
+    height = round((north - south) / resolution_deg)
+
+    # A small epsilon guards against float division landing just under an
+    # exact integer boundary (e.g. 104.99999999997 instead of 105).
+    lon_index = min(
+        int(math.floor((longitude - west) / resolution_deg + 1e-9)), width - 1
+    )
+    lat_index = min(
+        int(math.floor((latitude - south) / resolution_deg + 1e-9)), height - 1
+    )
+
+    return build_tile_id(lat_index, lon_index)
 
 
 def is_valid_polygon(geometry: dict[str, Any]) -> bool:

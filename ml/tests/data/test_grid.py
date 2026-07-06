@@ -10,6 +10,7 @@ from ai_earth_intelligence_and_forecasting_engine.data.grid import (
     build_tile_id,
     cells_to_geojson,
     is_valid_polygon,
+    locate_tile,
     save_grid_geojson,
     save_grid_metadata,
 )
@@ -168,3 +169,53 @@ def test_save_grid_metadata_roundtrip(tmp_path):
     saved = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert saved["grid_version"] == "v1"
+
+
+def test_locate_tile_outside_bbox_returns_none():
+    assert locate_tile(50.0, -119.5) is None
+    assert locate_tile(37.5, -100.0) is None
+
+
+def test_locate_tile_sw_corner_is_first_cell():
+    west, south, _, _ = CALIFORNIA_BBOX
+
+    assert locate_tile(south, west) == build_tile_id(0, 0)
+
+
+def test_locate_tile_ne_corner_excluded():
+    _, _, east, north = CALIFORNIA_BBOX
+
+    assert locate_tile(north, east) is None
+
+
+def test_locate_tile_just_inside_ne_corner_is_last_cell():
+    _, _, east, north = CALIFORNIA_BBOX
+
+    assert locate_tile(north - 0.01, east - 0.01) == build_tile_id(94, 104)
+
+
+def test_locate_tile_matches_brute_force_grid_lookup():
+    cells = build_california_grid(
+        bbox=(-120.0, 37.0, -119.5, 37.5), resolution_deg=0.1
+    )
+
+    sample_points = [
+        (37.05, -119.95),
+        (37.34, -119.72),
+        (37.49, -119.51),
+    ]
+
+    for latitude, longitude in sample_points:
+        expected = next(
+            cell.tile_id
+            for cell in cells
+            if cell.min_lon <= longitude < cell.max_lon
+            and cell.min_lat <= latitude < cell.max_lat
+        )
+
+        assert (
+            locate_tile(
+                latitude, longitude, bbox=(-120.0, 37.0, -119.5, 37.5)
+            )
+            == expected
+        )
