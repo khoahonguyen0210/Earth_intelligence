@@ -37,7 +37,7 @@ def build_tile_id(lat_index: int, lon_index: int) -> str:
     return f"CA_{lat_index:04d}_{lon_index:04d}"
 
 
-def _cell_polygon(
+def bbox_polygon(
     min_lon: float, min_lat: float, max_lon: float, max_lat: float
 ) -> dict[str, Any]:
     return {
@@ -84,19 +84,19 @@ def build_california_grid(
                     max_lat=max_lat,
                     centroid_lon=round((min_lon + max_lon) / 2, 6),
                     centroid_lat=round((min_lat + max_lat) / 2, 6),
-                    geometry=_cell_polygon(min_lon, min_lat, max_lon, max_lat),
+                    geometry=bbox_polygon(min_lon, min_lat, max_lon, max_lat),
                 )
             )
 
     return cells
 
 
-def locate_tile(
+def locate_cell(
     latitude: float,
     longitude: float,
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
     resolution_deg: float = GRID_RESOLUTION_DEG,
-) -> str | None:
+) -> GridCell | None:
     west, south, east, north = bbox
 
     if not (west <= longitude < east and south <= latitude < north):
@@ -114,7 +114,34 @@ def locate_tile(
         int(math.floor((latitude - south) / resolution_deg + 1e-9)), height - 1
     )
 
-    return build_tile_id(lat_index, lon_index)
+    min_lon = round(west + lon_index * resolution_deg, 6)
+    max_lon = round(min_lon + resolution_deg, 6)
+    min_lat = round(south + lat_index * resolution_deg, 6)
+    max_lat = round(min_lat + resolution_deg, 6)
+
+    return GridCell(
+        tile_id=build_tile_id(lat_index, lon_index),
+        lat_index=lat_index,
+        lon_index=lon_index,
+        min_lon=min_lon,
+        min_lat=min_lat,
+        max_lon=max_lon,
+        max_lat=max_lat,
+        centroid_lon=round((min_lon + max_lon) / 2, 6),
+        centroid_lat=round((min_lat + max_lat) / 2, 6),
+        geometry=bbox_polygon(min_lon, min_lat, max_lon, max_lat),
+    )
+
+
+def locate_tile(
+    latitude: float,
+    longitude: float,
+    bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
+    resolution_deg: float = GRID_RESOLUTION_DEG,
+) -> str | None:
+    cell = locate_cell(latitude, longitude, bbox, resolution_deg)
+
+    return cell.tile_id if cell else None
 
 
 def is_valid_polygon(geometry: dict[str, Any]) -> bool:

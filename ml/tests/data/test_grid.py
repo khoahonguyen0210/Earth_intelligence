@@ -5,11 +5,13 @@ from ai_earth_intelligence_and_forecasting_engine.data.grid import (
     CALIFORNIA_BBOX,
     GRID_RESOLUTION_DEG,
     GridConfig,
+    bbox_polygon,
     build_california_grid,
     build_grid_metadata,
     build_tile_id,
     cells_to_geojson,
     is_valid_polygon,
+    locate_cell,
     locate_tile,
     save_grid_geojson,
     save_grid_metadata,
@@ -219,3 +221,33 @@ def test_locate_tile_matches_brute_force_grid_lookup():
             )
             == expected
         )
+
+
+def test_locate_cell_outside_bbox_returns_none():
+    assert locate_cell(50.0, -119.5) is None
+
+
+def test_locate_cell_returns_matching_bounds_and_geometry():
+    west, south, _, _ = CALIFORNIA_BBOX
+
+    cell = locate_cell(south + 0.05, west + 0.05)
+
+    assert cell is not None
+    assert cell.tile_id == build_tile_id(0, 0)
+    assert cell.min_lon == west
+    assert cell.min_lat == south
+    assert cell.max_lon == round(west + GRID_RESOLUTION_DEG, 6)
+    assert cell.max_lat == round(south + GRID_RESOLUTION_DEG, 6)
+    assert cell.geometry == bbox_polygon(
+        cell.min_lon, cell.min_lat, cell.max_lon, cell.max_lat
+    )
+
+
+def test_locate_tile_delegates_to_locate_cell():
+    latitude, longitude = 37.55, -119.95
+
+    cell = locate_cell(latitude, longitude)
+    tile_id = locate_tile(latitude, longitude)
+
+    assert cell is not None
+    assert tile_id == cell.tile_id
