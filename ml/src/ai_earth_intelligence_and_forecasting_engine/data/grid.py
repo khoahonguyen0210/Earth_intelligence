@@ -144,6 +144,37 @@ def locate_tile(
     return cell.tile_id if cell else None
 
 
+def neighbor_tile_ids(
+    lat_index: int,
+    lon_index: int,
+    bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
+    resolution_deg: float = GRID_RESOLUTION_DEG,
+) -> list[str]:
+    """The up-to-8 Moore-neighborhood tile IDs around (lat_index, lon_index).
+
+    Fewer than 8 at the grid's edge/corners -- out-of-bounds neighbors are
+    not included rather than wrapping or producing invalid indices.
+    """
+    west, south, east, north = bbox
+    width = round((east - west) / resolution_deg)
+    height = round((north - south) / resolution_deg)
+
+    neighbors: list[str] = []
+
+    for d_lat in (-1, 0, 1):
+        for d_lon in (-1, 0, 1):
+            if d_lat == 0 and d_lon == 0:
+                continue
+
+            n_lat = lat_index + d_lat
+            n_lon = lon_index + d_lon
+
+            if 0 <= n_lat < height and 0 <= n_lon < width:
+                neighbors.append(build_tile_id(n_lat, n_lon))
+
+    return neighbors
+
+
 def is_valid_polygon(geometry: dict[str, Any]) -> bool:
     if geometry.get("type") != "Polygon":
         return False

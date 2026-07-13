@@ -13,6 +13,7 @@ from ai_earth_intelligence_and_forecasting_engine.data.grid import (
     is_valid_polygon,
     locate_cell,
     locate_tile,
+    neighbor_tile_ids,
     save_grid_geojson,
     save_grid_metadata,
 )
@@ -251,3 +252,38 @@ def test_locate_tile_delegates_to_locate_cell():
 
     assert cell is not None
     assert tile_id == cell.tile_id
+
+
+def test_neighbor_tile_ids_interior_cell_has_eight_neighbors():
+    neighbors = neighbor_tile_ids(50, 50, bbox=CALIFORNIA_BBOX)
+
+    assert len(neighbors) == 8
+    assert build_tile_id(50, 50) not in neighbors
+    assert build_tile_id(49, 49) in neighbors
+    assert build_tile_id(51, 51) in neighbors
+    assert build_tile_id(49, 51) in neighbors
+    assert build_tile_id(51, 49) in neighbors
+
+
+def test_neighbor_tile_ids_corner_cell_has_three_neighbors():
+    neighbors = neighbor_tile_ids(0, 0, bbox=CALIFORNIA_BBOX)
+
+    assert len(neighbors) == 3
+    assert build_tile_id(0, 1) in neighbors
+    assert build_tile_id(1, 0) in neighbors
+    assert build_tile_id(1, 1) in neighbors
+
+
+def test_neighbor_tile_ids_edge_cell_has_five_neighbors():
+    west, south, east, north = CALIFORNIA_BBOX
+    width = round((east - west) / GRID_RESOLUTION_DEG)
+
+    neighbors = neighbor_tile_ids(0, width // 2, bbox=CALIFORNIA_BBOX)
+
+    assert len(neighbors) == 5
+
+
+def test_neighbor_tile_ids_never_produces_negative_indices():
+    neighbors = neighbor_tile_ids(0, 0, bbox=CALIFORNIA_BBOX)
+
+    assert all("-" not in tile_id for tile_id in neighbors)
