@@ -37,4 +37,33 @@ describe("RegionMap", () => {
     expect(Number(regionRect?.getAttribute("width"))).toBeGreaterThan(0);
     expect(Number(regionRect?.getAttribute("height"))).toBeGreaterThan(0);
   });
+
+  it("renders lat/lon graticule lines so it reads as a map, not a flat block", () => {
+    const { container } = render(
+      <RegionMap bbox={[-124.5, 32.5, -114.0, 42.0]} label="california" />,
+    );
+
+    const lines = container.querySelectorAll("line");
+
+    expect(lines.length).toBeGreaterThan(0);
+  });
+
+  it("renders axis tick labels for scale reference", () => {
+    render(<RegionMap bbox={[-124.5, 32.5, -114.0, 42.0]} label="california" />);
+
+    // A longitude gridline at -120 should have a corresponding tick label.
+    expect(screen.getByText("-120")).toBeInTheDocument();
+  });
+
+  it("keeps the reference outline visible even when the region fills the entire frame", () => {
+    const { container } = render(
+      <RegionMap bbox={[-124.5, 32.5, -114.0, 42.0]} label="california" />,
+    );
+
+    const strokeOnlyRects = Array.from(
+      container.querySelectorAll("rect"),
+    ).filter((rect) => rect.getAttribute("fill") === "none");
+
+    expect(strokeOnlyRects.length).toBeGreaterThan(0);
+  });
 });
