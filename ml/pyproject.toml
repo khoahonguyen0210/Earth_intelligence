@@ -14,7 +14,9 @@ dev = [
     "cdsapi",
     "xarray",
     "netCDF4",
-    "rasterio"
+    "rasterio",
+    "scikit-learn",
+    "numpy"
 ]
 
 [tool.ruff]
@@ -32,6 +34,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "rasterio.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "sklearn.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

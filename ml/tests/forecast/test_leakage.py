@@ -12,13 +12,14 @@ Handbook checklist and where each item is verified:
 [x] feature windows stop at cutoff
     -- test_fire_history_windows_never_extend_past_cutoff
     -- test_environmental_feature_never_uses_record_after_cutoff
-[ ] learned preprocessing uses training data only
-    -- NOT YET TESTABLE. No preprocessing/model-fitting code exists in the
-    repository yet (Phase 4, Task 4.2, is where preprocessing is first
-    fit). Marking this item done now would mean testing code that does
-    not exist. A real regression test for this rule belongs in Task 4.2's
-    test suite, once there is a `fit` step to test against training data
-    only.
+[x] learned preprocessing uses training data only
+    -- Task 4.2 added the first preprocessing/fitting code
+    (models/preprocessing.py). The regression test lives in that task's
+    own suite: ml/tests/models/test_preprocessing.py::
+    test_transform_uses_train_statistics_not_the_input_rows_own_distribution.
+    This item was left unchecked here until that code existed; it is not
+    duplicated in this file since ml/tests/models/test_preprocessing.py
+    is the authoritative test for it.
 """
 
 import random
