@@ -16,7 +16,9 @@ dev = [
     "netCDF4",
     "rasterio",
     "scikit-learn",
-    "numpy"
+    "numpy",
+    "xgboost",
+    "matplotlib"
 ]
 
 [tool.ruff]
