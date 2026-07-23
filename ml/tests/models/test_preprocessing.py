@@ -155,3 +155,47 @@ def test_feature_names_length_matches_transform_width():
     transformed = transform(preprocessor, rows)
 
     assert transformed.shape[1] == len(feature_names())
+
+
+def test_fit_preprocessor_with_restricted_feature_subset():
+    """Task 5.1's weather ablation needs to fit against a deliberate
+    subset of features while keeping the rest of the pipeline identical."""
+    subset = ("previous_24h_count", "previous_72h_count")
+    rows = [
+        _row("A", 0, previous_24h_count=10),
+        _row("B", 1, previous_24h_count=20),
+    ]
+
+    preprocessor = fit_preprocessor(rows, feature_columns=subset)
+    transformed = transform(preprocessor, rows)
+
+    assert preprocessor.feature_columns == subset
+    assert transformed.shape[1] == len(subset) + len(LAND_COVER_CLASSES)
+
+
+def test_fit_preprocessor_can_exclude_land_cover_entirely():
+    subset = ("previous_24h_count",)
+    rows = [_row("A", 0, previous_24h_count=10), _row("B", 1, previous_24h_count=20)]
+
+    preprocessor = fit_preprocessor(
+        rows, feature_columns=subset, include_land_cover=False
+    )
+    transformed = transform(preprocessor, rows)
+
+    assert transformed.shape[1] == 1
+    assert feature_names(subset, include_land_cover=False) == list(subset)
+
+
+def test_default_behavior_is_unchanged_by_the_new_parameters():
+    rows = [_row("A", 0), _row("B", 1)]
+
+    default_preprocessor = fit_preprocessor(rows)
+    explicit_preprocessor = fit_preprocessor(
+        rows, feature_columns=NUMERIC_FEATURE_COLUMNS, include_land_cover=True
+    )
+
+    default_transformed = transform(default_preprocessor, rows)
+    explicit_transformed = transform(explicit_preprocessor, rows)
+
+    assert default_transformed.shape == explicit_transformed.shape
+    assert (default_transformed == explicit_transformed).all()

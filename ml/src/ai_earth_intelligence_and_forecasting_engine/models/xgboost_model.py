@@ -13,6 +13,7 @@ from ai_earth_intelligence_and_forecasting_engine.models.metrics import (
     compute_metrics,
 )
 from ai_earth_intelligence_and_forecasting_engine.models.preprocessing import (
+    NUMERIC_FEATURE_COLUMNS,
     Preprocessor,
     extract_targets,
     fit_preprocessor,
@@ -51,8 +52,16 @@ class XGBoostResult:
 
 
 def fit_xgboost(
-    train_rows: list[DatasetRow], validation_rows: list[DatasetRow]
+    train_rows: list[DatasetRow],
+    validation_rows: list[DatasetRow],
+    feature_columns: tuple[str, ...] = NUMERIC_FEATURE_COLUMNS,
+    include_land_cover: bool = True,
 ) -> XGBoostResult:
+    """`feature_columns`/`include_land_cover` let a caller (e.g. Task 5.1's
+    weather ablation, Task 5.2's geography ablation) fit against a
+    deliberate feature subset while keeping the model config/protocol
+    identical -- defaults preserve the original full-feature-set
+    behavior exactly."""
     y_train = extract_targets(train_rows)
     train_classes = sorted(set(y_train.tolist()))
 
@@ -75,7 +84,7 @@ def fit_xgboost(
             "present in validation to measure meaningful progress."
         )
 
-    preprocessor = fit_preprocessor(train_rows)
+    preprocessor = fit_preprocessor(train_rows, feature_columns, include_land_cover)
     x_train = transform(preprocessor, train_rows)
     x_validation = transform(preprocessor, validation_rows)
 
@@ -111,8 +120,12 @@ def evaluate_xgboost(
     train_rows: list[DatasetRow],
     validation_rows: list[DatasetRow],
     test_rows: list[DatasetRow],
+    feature_columns: tuple[str, ...] = NUMERIC_FEATURE_COLUMNS,
+    include_land_cover: bool = True,
 ) -> tuple[XGBoostResult, list[float], ClassificationMetrics]:
-    result = fit_xgboost(train_rows, validation_rows)
+    result = fit_xgboost(
+        train_rows, validation_rows, feature_columns, include_land_cover
+    )
     predictions = predict_xgboost(result, test_rows)
     y_true = [row.target for row in test_rows]
     metrics = compute_metrics(y_true, predictions)
