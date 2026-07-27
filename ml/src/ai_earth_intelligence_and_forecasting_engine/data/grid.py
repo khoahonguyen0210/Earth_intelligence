@@ -175,6 +175,22 @@ def neighbor_tile_ids(
     return neighbors
 
 
+def cells_within_bbox(
+    cells: list[GridCell], bbox: tuple[float, float, float, float]
+) -> list[GridCell]:
+    """Selects the cells whose centroid falls within bbox, using the same
+    half-open [west, east) x [south, north) convention as the grid itself
+    (see docs/california-grid-contract.md) so a cell is never counted as
+    inside two adjacent bboxes."""
+    west, south, east, north = bbox
+
+    return [
+        cell
+        for cell in cells
+        if west <= cell.centroid_lon < east and south <= cell.centroid_lat < north
+    ]
+
+
 def is_valid_polygon(geometry: dict[str, Any]) -> bool:
     if geometry.get("type") != "Polygon":
         return False

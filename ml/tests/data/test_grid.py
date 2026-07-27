@@ -10,6 +10,7 @@ from ai_earth_intelligence_and_forecasting_engine.data.grid import (
     build_grid_metadata,
     build_tile_id,
     cells_to_geojson,
+    cells_within_bbox,
     is_valid_polygon,
     locate_cell,
     locate_tile,
@@ -85,6 +86,41 @@ def test_build_california_grid_centroid_is_cell_midpoint():
 
     assert cell.centroid_lon == (cell.min_lon + cell.max_lon) / 2
     assert cell.centroid_lat == (cell.min_lat + cell.max_lat) / 2
+
+
+def test_cells_within_bbox_selects_only_matching_centroids():
+    cells = build_california_grid(bbox=(-120.0, 37.0, -119.8, 37.2))
+
+    selected = cells_within_bbox(cells, (-120.0, 37.0, -119.9, 37.1))
+
+    assert 0 < len(selected) < len(cells)
+    assert all(
+        -120.0 <= cell.centroid_lon < -119.9 and 37.0 <= cell.centroid_lat < 37.1
+        for cell in selected
+    )
+
+
+def test_cells_within_bbox_full_grid_bbox_returns_every_cell():
+    cells = build_california_grid()
+
+    assert cells_within_bbox(cells, CALIFORNIA_BBOX) == cells
+
+
+def test_cells_within_bbox_excludes_cell_on_the_exclusive_edge():
+    cells = build_california_grid(bbox=(-120.0, 37.0, -119.8, 37.2))
+
+    # A bbox exactly one cell wide/tall starting at the grid's origin
+    # contains only that single cell's centroid, per the half-open rule.
+    selected = cells_within_bbox(cells, (-120.0, 37.0, -119.9, 37.1))
+
+    assert len(selected) == 1
+    assert selected[0].tile_id == cells[0].tile_id
+
+
+def test_cells_within_bbox_no_match_returns_empty_list():
+    cells = build_california_grid(bbox=(-120.0, 37.0, -119.8, 37.2))
+
+    assert cells_within_bbox(cells, (0.0, 0.0, 1.0, 1.0)) == []
 
 
 def test_is_valid_polygon_rejects_unclosed_ring():
