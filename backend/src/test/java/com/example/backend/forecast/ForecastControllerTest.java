@@ -3,11 +3,17 @@ package com.example.backend.forecast;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import tools.jackson.databind.ObjectMapper;
 
 class ForecastControllerTest {
 
@@ -28,11 +34,30 @@ class ForecastControllerTest {
         }
     }
 
+    /**
+     * ForecastStore is now Postgres-backed (Task 6.3); these tests stay
+     * DB-free by faking the JpaRepository with an in-memory map behind a
+     * Mockito mock, exercising the store's real JSON conversion logic.
+     */
+    private static ForecastStore newStore() {
+        ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
+        Map<String, ForecastEntity> backing = new HashMap<>();
+
+        when(repository.save(any())).thenAnswer(invocation -> {
+            ForecastEntity entity = invocation.getArgument(0);
+            backing.put(entity.getId(), entity);
+            return entity;
+        });
+        when(repository.findById(any())).thenAnswer(
+                invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
+
+        return new ForecastStore(repository, new ObjectMapper());
+    }
+
     @Test
     void createForecastReturnsCreatedWithSucceededStatus() {
         StubRunner runner = new StubRunner(ForecastOutcome.success(Map.of("model_version", "v1")));
-        ForecastStore store = new ForecastStore();
-        ForecastController controller = new ForecastController(runner, store);
+        ForecastController controller = new ForecastController(runner, newStore());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.createForecast(VALID_REQUEST);
 
@@ -45,8 +70,7 @@ class ForecastControllerTest {
     @Test
     void createForecastReturnsFailedStatusOnRunnerError() {
         StubRunner runner = new StubRunner(ForecastOutcome.failure("cannot fit XGBoost: only one class"));
-        ForecastStore store = new ForecastStore();
-        ForecastController controller = new ForecastController(runner, store);
+        ForecastController controller = new ForecastController(runner, newStore());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.createForecast(VALID_REQUEST);
 
@@ -57,8 +81,7 @@ class ForecastControllerTest {
     @Test
     void getForecastReturnsStoredStatusById() {
         StubRunner runner = new StubRunner(ForecastOutcome.success(Map.of("model_version", "v1")));
-        ForecastStore store = new ForecastStore();
-        ForecastController controller = new ForecastController(runner, store);
+        ForecastController controller = new ForecastController(runner, newStore());
 
         String id = controller.createForecast(VALID_REQUEST).getBody().forecastId();
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.getForecast(id);
@@ -70,8 +93,7 @@ class ForecastControllerTest {
 
     @Test
     void getForecastReturnsNotFoundForUnknownId() {
-        ForecastStore store = new ForecastStore();
-        ForecastController controller = new ForecastController(new StubRunner(ForecastOutcome.success(null)), store);
+        ForecastController controller = new ForecastController(new StubRunner(ForecastOutcome.success(null)), newStore());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.getForecast("does-not-exist");
 
@@ -82,8 +104,7 @@ class ForecastControllerTest {
     void getForecastResultReturnsResultOnSuccess() {
         Map<String, Object> result = Map.of("model_version", "v1", "evidence", Map.of("dataset", "wildfire_forecast:v1"));
         StubRunner runner = new StubRunner(ForecastOutcome.success(result));
-        ForecastStore store = new ForecastStore();
-        ForecastController controller = new ForecastController(runner, store);
+        ForecastController controller = new ForecastController(runner, newStore());
 
         String id = controller.createForecast(VALID_REQUEST).getBody().forecastId();
         ResponseEntity<?> response = controller.getForecastResult(id);
@@ -96,8 +117,7 @@ class ForecastControllerTest {
     @Test
     void getForecastResultReturnsErrorPayloadOnFailure() {
         StubRunner runner = new StubRunner(ForecastOutcome.failure("boom"));
-        ForecastStore store = new ForecastStore();
-        ForecastController controller = new ForecastController(runner, store);
+        ForecastController controller = new ForecastController(runner, newStore());
 
         String id = controller.createForecast(VALID_REQUEST).getBody().forecastId();
         ResponseEntity<?> response = controller.getForecastResult(id);
@@ -109,8 +129,7 @@ class ForecastControllerTest {
 
     @Test
     void getForecastResultReturnsNotFoundForUnknownId() {
-        ForecastStore store = new ForecastStore();
-        ForecastController controller = new ForecastController(new StubRunner(ForecastOutcome.success(null)), store);
+        ForecastController controller = new ForecastController(new StubRunner(ForecastOutcome.success(null)), newStore());
 
         ResponseEntity<?> response = controller.getForecastResult("does-not-exist");
 
@@ -119,7 +138,7 @@ class ForecastControllerTest {
 
     @Test
     void forecastStoreRoundTripsSavedForecast() {
-        ForecastStore store = new ForecastStore();
+        ForecastStore store = newStore();
         Forecast forecast = Forecast.from(
                 "test-id",
                 VALID_REQUEST,

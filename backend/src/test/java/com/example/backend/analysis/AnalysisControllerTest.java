@@ -3,11 +3,17 @@ package com.example.backend.analysis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import tools.jackson.databind.ObjectMapper;
 
 class AnalysisControllerTest {
 
@@ -31,11 +37,30 @@ class AnalysisControllerTest {
         }
     }
 
+    /**
+     * AnalysisStore is now Postgres-backed (Task 6.3); these tests stay
+     * DB-free by faking the JpaRepository with an in-memory map behind a
+     * Mockito mock, exercising the store's real JSON conversion logic.
+     */
+    private static AnalysisStore newStore() {
+        AnalysisJpaRepository repository = mock(AnalysisJpaRepository.class);
+        Map<String, AnalysisEntity> backing = new HashMap<>();
+
+        when(repository.save(any())).thenAnswer(invocation -> {
+            AnalysisEntity entity = invocation.getArgument(0);
+            backing.put(entity.getId(), entity);
+            return entity;
+        });
+        when(repository.findById(any())).thenAnswer(
+                invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
+
+        return new AnalysisStore(repository, new ObjectMapper());
+    }
+
     @Test
     void createAnalysisReturnsCreatedWithSucceededStatus() {
         StubRunner runner = new StubRunner(AnalysisOutcome.success(Map.of("count", 42), Map.of("dataset", "NASA_FIRMS")));
-        AnalysisStore store = new AnalysisStore();
-        AnalysisController controller = new AnalysisController(runner, store);
+        AnalysisController controller = new AnalysisController(runner, newStore());
 
         ResponseEntity<AnalysisController.AnalysisSummaryResponse> response = controller.createAnalysis(VALID_REQUEST);
 
@@ -48,8 +73,7 @@ class AnalysisControllerTest {
     @Test
     void createAnalysisReturnsFailedStatusOnRunnerError() {
         StubRunner runner = new StubRunner(AnalysisOutcome.failure("Unsupported operation: 'forecast'"));
-        AnalysisStore store = new AnalysisStore();
-        AnalysisController controller = new AnalysisController(runner, store);
+        AnalysisController controller = new AnalysisController(runner, newStore());
 
         ResponseEntity<AnalysisController.AnalysisSummaryResponse> response = controller.createAnalysis(VALID_REQUEST);
 
@@ -60,8 +84,7 @@ class AnalysisControllerTest {
     @Test
     void getAnalysisReturnsStoredStatusById() {
         StubRunner runner = new StubRunner(AnalysisOutcome.success(Map.of("count", 42), Map.of()));
-        AnalysisStore store = new AnalysisStore();
-        AnalysisController controller = new AnalysisController(runner, store);
+        AnalysisController controller = new AnalysisController(runner, newStore());
 
         String id = controller.createAnalysis(VALID_REQUEST).getBody().id();
         ResponseEntity<AnalysisController.AnalysisSummaryResponse> response = controller.getAnalysis(id);
@@ -73,8 +96,7 @@ class AnalysisControllerTest {
 
     @Test
     void getAnalysisReturnsNotFoundForUnknownId() {
-        AnalysisStore store = new AnalysisStore();
-        AnalysisController controller = new AnalysisController(new StubRunner(AnalysisOutcome.success(null, null)), store);
+        AnalysisController controller = new AnalysisController(new StubRunner(AnalysisOutcome.success(null, null)), newStore());
 
         ResponseEntity<AnalysisController.AnalysisSummaryResponse> response = controller.getAnalysis("does-not-exist");
 
@@ -86,8 +108,7 @@ class AnalysisControllerTest {
         Map<String, Object> result = Map.of("count", 42);
         Map<String, Object> evidence = Map.of("dataset", "NASA_FIRMS");
         StubRunner runner = new StubRunner(AnalysisOutcome.success(result, evidence));
-        AnalysisStore store = new AnalysisStore();
-        AnalysisController controller = new AnalysisController(runner, store);
+        AnalysisController controller = new AnalysisController(runner, newStore());
 
         String id = controller.createAnalysis(VALID_REQUEST).getBody().id();
         ResponseEntity<?> response = controller.getResult(id);
@@ -101,8 +122,7 @@ class AnalysisControllerTest {
     @Test
     void getResultReturnsErrorPayloadOnFailure() {
         StubRunner runner = new StubRunner(AnalysisOutcome.failure("boom"));
-        AnalysisStore store = new AnalysisStore();
-        AnalysisController controller = new AnalysisController(runner, store);
+        AnalysisController controller = new AnalysisController(runner, newStore());
 
         String id = controller.createAnalysis(VALID_REQUEST).getBody().id();
         ResponseEntity<?> response = controller.getResult(id);
@@ -114,8 +134,7 @@ class AnalysisControllerTest {
 
     @Test
     void getResultReturnsNotFoundForUnknownId() {
-        AnalysisStore store = new AnalysisStore();
-        AnalysisController controller = new AnalysisController(new StubRunner(AnalysisOutcome.success(null, null)), store);
+        AnalysisController controller = new AnalysisController(new StubRunner(AnalysisOutcome.success(null, null)), newStore());
 
         ResponseEntity<?> response = controller.getResult("does-not-exist");
 
@@ -124,7 +143,7 @@ class AnalysisControllerTest {
 
     @Test
     void analysisStoreRoundTripsSavedAnalysis() {
-        AnalysisStore store = new AnalysisStore();
+        AnalysisStore store = newStore();
         Analysis analysis = Analysis.from(
                 "test-id",
                 VALID_REQUEST,

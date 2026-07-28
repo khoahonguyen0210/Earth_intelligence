@@ -1,24 +1,53 @@
 package com.example.backend.analysis;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Repository;
+import tools.jackson.databind.ObjectMapper;
 
 /**
- * In-memory store. Phase 2 has no database yet (PostgreSQL/PostGIS
- * persistence is Task 6.3); this is intentionally not durable.
+ * Task 6.3: durable Postgres-backed storage, replacing the earlier
+ * in-memory ConcurrentHashMap. save/find keep the exact same shape as
+ * before, so AnalysisController is unchanged -- only this class's
+ * internals moved from a Map to a real jsonb-backed table.
  */
 @Repository
 public class AnalysisStore {
 
-    private final Map<String, Analysis> analyses = new ConcurrentHashMap<>();
+    private final AnalysisJpaRepository repository;
+    private final ObjectMapper objectMapper;
+
+    public AnalysisStore(AnalysisJpaRepository repository, ObjectMapper objectMapper) {
+        this.repository = repository;
+        this.objectMapper = objectMapper;
+    }
 
     public void save(Analysis analysis) {
-        analyses.put(analysis.id(), analysis);
+        repository.save(toEntity(analysis));
     }
 
     public Optional<Analysis> find(String id) {
-        return Optional.ofNullable(analyses.get(id));
+        return repository.findById(id).map(this::toDomain);
+    }
+
+    private AnalysisEntity toEntity(Analysis analysis) {
+        return new AnalysisEntity(
+                analysis.id(),
+                objectMapper.writeValueAsString(analysis.request()),
+                analysis.status().name(),
+                analysis.result() == null ? null : objectMapper.writeValueAsString(analysis.result()),
+                analysis.evidence() == null ? null : objectMapper.writeValueAsString(analysis.evidence()),
+                analysis.error(),
+                analysis.createdAt());
+    }
+
+    private Analysis toDomain(AnalysisEntity entity) {
+        return new Analysis(
+                entity.getId(),
+                objectMapper.readValue(entity.getRequest(), AnalysisRequest.class),
+                entity.getCreatedAt(),
+                Analysis.Status.valueOf(entity.getStatus()),
+                entity.getResult() == null ? null : objectMapper.readValue(entity.getResult(), Object.class),
+                entity.getEvidence() == null ? null : objectMapper.readValue(entity.getEvidence(), Object.class),
+                entity.getError());
     }
 }

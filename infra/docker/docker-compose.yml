@@ -17,5 +17,25 @@ services:
       timeout: 5s
       retries: 10
 
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: ai-earth-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ai_earth
+      MINIO_ROOT_PASSWORD: ai_earth_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
+  minio_data:
