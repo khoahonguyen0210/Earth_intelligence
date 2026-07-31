@@ -20,7 +20,8 @@ dev = [
     "xgboost",
     "matplotlib",
     "jsonschema",
-    "types-jsonschema"
+    "types-jsonschema",
+    "anthropic"
 ]
 
 [tool.ruff]
