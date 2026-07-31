@@ -18,7 +18,9 @@ dev = [
     "scikit-learn",
     "numpy",
     "xgboost",
-    "matplotlib"
+    "matplotlib",
+    "jsonschema",
+    "types-jsonschema"
 ]
 
 [tool.ruff]
