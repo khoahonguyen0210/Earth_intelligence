@@ -3,45 +3,45 @@ import json
 import pytest
 
 from ai_earth_intelligence_and_forecasting_engine.planner.generate_plan import (
+    _GEMINI_PLAN_SCHEMA,
     _SYSTEM_PROMPT,
     PLAN_OUTPUT_SCHEMA,
+    _to_gemini_schema,
     generate_plan,
     parse_plan,
 )
 from ai_earth_intelligence_and_forecasting_engine.planner.tools import TOOL_NAMES
 
 
-class _FakeTextBlock:
-    def __init__(self, text):
-        self.type = "text"
-        self.text = text
-
-
 class _FakeResponse:
-    def __init__(self, content, stop_reason="end_turn", stop_details=None):
-        self.content = content
-        self.stop_reason = stop_reason
-        self.stop_details = stop_details
+    def __init__(self, text=None, raises=None):
+        self._text = text
+        self._raises = raises
+
+    @property
+    def text(self):
+        # Mirrors the real google-genai SDK: accessing `.text` itself
+        # raises ValueError when the response has no text part (e.g. a
+        # safety-blocked response), rather than exposing a separate
+        # refusal field to check first.
+        if self._raises is not None:
+            raise self._raises
+        return self._text
 
 
-class _FakeMessages:
+class _FakeModels:
     def __init__(self, response):
         self._response = response
         self.last_kwargs = None
 
-    def create(self, **kwargs):
+    def generate_content(self, **kwargs):
         self.last_kwargs = kwargs
         return self._response
 
 
-class _FakeBeta:
-    def __init__(self, response):
-        self.messages = _FakeMessages(response)
-
-
 class _FakeClient:
     def __init__(self, response):
-        self.beta = _FakeBeta(response)
+        self.models = _FakeModels(response)
 
 
 def _valid_plan_payload():
@@ -97,8 +97,8 @@ def test_parse_plan_builds_the_expected_plan():
 
 
 def test_generate_plan_returns_a_validated_plan_on_success():
-    text_block = _FakeTextBlock(json.dumps(_valid_plan_payload()))
-    client = _FakeClient(_FakeResponse(content=[text_block]))
+    text = json.dumps(_valid_plan_payload())
+    client = _FakeClient(_FakeResponse(text=text))
 
     plan = generate_plan("how many fires in California?", client)
 
@@ -108,39 +108,57 @@ def test_generate_plan_returns_a_validated_plan_on_success():
 
 
 def test_generate_plan_sends_the_question_and_the_plan_schema():
-    text_block = _FakeTextBlock(json.dumps(_valid_plan_payload()))
-    client = _FakeClient(_FakeResponse(content=[text_block]))
+    text = json.dumps(_valid_plan_payload())
+    client = _FakeClient(_FakeResponse(text=text))
 
     generate_plan("what is the fire count?", client)
 
-    sent = client.beta.messages.last_kwargs
-    assert sent["model"] == "claude-opus-5"
-    assert sent["messages"] == [{"role": "user", "content": "what is the fire count?"}]
-    assert sent["output_config"]["format"]["schema"] == PLAN_OUTPUT_SCHEMA
+    sent = client.models.last_kwargs
+    assert sent["model"] == "gemini-3.1-flash-lite"
+    assert sent["contents"] == "what is the fire count?"
+    assert sent["config"]["system_instruction"] == _SYSTEM_PROMPT
+    assert sent["config"]["response_schema"] == _GEMINI_PLAN_SCHEMA
+
+
+def test_to_gemini_schema_strips_additional_properties_recursively():
+    schema = _to_gemini_schema(PLAN_OUTPUT_SCHEMA)
+
+    assert "additionalProperties" not in schema
+    assert "additionalProperties" not in schema["properties"]["steps"]["items"]
+
+
+def test_gemini_plan_schema_gives_input_a_real_per_tool_union_schema():
+    input_schema = _GEMINI_PLAN_SCHEMA["properties"]["steps"]["items"]["properties"][
+        "input"
+    ]
+
+    assert set(input_schema.keys()) == {"anyOf"}
+    assert len(input_schema["anyOf"]) == len(TOOL_NAMES)
+    assert all(
+        "additionalProperties" not in variant for variant in input_schema["anyOf"]
+    )
 
 
 def test_generate_plan_raises_when_the_llm_produces_an_invalid_plan():
     invalid_step = {
         "step_id": "s1", "tool": "execute_python", "input": {}, "depends_on": []
     }
-    text_block = _FakeTextBlock(json.dumps({"steps": [invalid_step]}))
-    client = _FakeClient(_FakeResponse(content=[text_block]))
+    text = json.dumps({"steps": [invalid_step]})
+    client = _FakeClient(_FakeResponse(text=text))
 
     with pytest.raises(ValueError, match="unknown tool"):
         generate_plan("do something unsupported", client)
 
 
 def test_generate_plan_raises_on_refusal():
-    response = _FakeResponse(content=[], stop_reason="refusal", stop_details="blocked")
-    client = _FakeClient(response)
+    client = _FakeClient(_FakeResponse(raises=ValueError("blocked by safety filter")))
 
     with pytest.raises(ValueError, match="refused"):
         generate_plan("a disallowed question", client)
 
 
 def test_generate_plan_raises_when_no_text_block_is_present():
-    response = _FakeResponse(content=[])
-    client = _FakeClient(response)
+    client = _FakeClient(_FakeResponse(text=""))
 
     with pytest.raises(ValueError, match="no text"):
         generate_plan("q", client)

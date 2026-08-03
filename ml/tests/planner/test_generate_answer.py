@@ -26,52 +26,46 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
 )
 
 
-class _FakeTextBlock:
-    def __init__(self, text):
-        self.type = "text"
-        self.text = text
-
-
 class _FakeResponse:
-    def __init__(self, content, stop_reason="end_turn", stop_details=None):
-        self.content = content
-        self.stop_reason = stop_reason
-        self.stop_details = stop_details
+    def __init__(self, text=None, raises=None):
+        self._text = text
+        self._raises = raises
+
+    @property
+    def text(self):
+        # Mirrors the real google-genai SDK: accessing `.text` itself
+        # raises ValueError when the response has no text part (e.g. a
+        # safety-blocked response), rather than exposing a separate
+        # refusal field to check first.
+        if self._raises is not None:
+            raise self._raises
+        return self._text
 
 
-class _FakeMessages:
+class _FakeModels:
     def __init__(self, response):
         self._response = response
         self.last_kwargs = None
 
-    def create(self, **kwargs):
+    def generate_content(self, **kwargs):
         self.last_kwargs = kwargs
         return self._response
 
 
-class _FakeBeta:
-    def __init__(self, response):
-        self.messages = _FakeMessages(response)
-
-
 class _FakeClient:
     def __init__(self, response):
-        self.beta = _FakeBeta(response)
+        self.models = _FakeModels(response)
 
 
 class _MustNotBeCalledClient:
     """Fails the test if the model is ever actually invoked."""
 
-    class _Messages:
-        def create(self, **kwargs):
+    class _Models:
+        def generate_content(self, **kwargs):
             raise AssertionError("the model must not be called when there are no facts")
 
-    class _Beta:
-        def __init__(self):
-            self.messages = _MustNotBeCalledClient._Messages()
-
     def __init__(self):
-        self.beta = _MustNotBeCalledClient._Beta()
+        self.models = _MustNotBeCalledClient._Models()
 
 
 def _real_count_fact():
@@ -181,8 +175,7 @@ def test_generate_answer_returns_the_no_facts_summary_without_calling_the_model(
 def test_generate_answer_produces_a_grounded_answer_with_real_computed_facts():
     step, result = _real_count_fact()
     plan = Plan(question="how many fires in California last week?", steps=(step,))
-    text_block = _FakeTextBlock("0 fires occurred (computed).")
-    client = _FakeClient(_FakeResponse(content=[text_block]))
+    client = _FakeClient(_FakeResponse(text="0 fires occurred (computed)."))
 
     answer = generate_answer(plan, {"s1": result}, client)
 
@@ -191,15 +184,14 @@ def test_generate_answer_produces_a_grounded_answer_with_real_computed_facts():
     assert answer.facts[0].category == "computed"
     assert answer.summary == "0 fires occurred (computed)."
 
-    sent = client.beta.messages.last_kwargs
-    assert sent["model"] == "claude-opus-5"
+    sent = client.models.last_kwargs
+    assert sent["model"] == "gemini-3.1-flash-lite"
 
 
 def test_generate_answer_raises_on_refusal():
     step, result = _real_count_fact()
     plan = Plan(question="q", steps=(step,))
-    response = _FakeResponse(content=[], stop_reason="refusal", stop_details="blocked")
-    client = _FakeClient(response)
+    client = _FakeClient(_FakeResponse(raises=ValueError("blocked by safety filter")))
 
     with pytest.raises(ValueError, match="refused"):
         generate_answer(plan, {"s1": result}, client)
@@ -208,7 +200,7 @@ def test_generate_answer_raises_on_refusal():
 def test_generate_answer_raises_when_no_text_block_is_present():
     step, result = _real_count_fact()
     plan = Plan(question="q", steps=(step,))
-    client = _FakeClient(_FakeResponse(content=[]))
+    client = _FakeClient(_FakeResponse(text=""))
 
     with pytest.raises(ValueError, match="no text"):
         generate_answer(plan, {"s1": result}, client)

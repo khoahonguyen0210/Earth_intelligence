@@ -8,17 +8,24 @@ Execution Handbook. It is not a brainstorming document. It builds on
 ## Provider
 
 The locked project contract does not fix an LLM provider (unlike every
-other stack choice). This implementation uses Anthropic's Claude API
-(`claude-opus-5`, per the claude-api skill's current default) --
-`.env.example`'s placeholder was renamed from the generic `LLM_API_KEY`
-to `ANTHROPIC_API_KEY`, the actual variable the `anthropic` SDK reads.
+other stack choice). This implementation went through three providers
+before landing: Anthropic's Claude API, then OpenAI's API, then Google's
+Gemini API (`gemini-3.1-flash-lite`, via the `google-genai` SDK's
+`client.models.generate_content`) -- the final choice, made for cost
+reasons (Gemini's free tier needs no payment method, unlike either
+paid-only alternative). `.env.example`'s placeholder is `GEMINI_API_KEY`,
+the variable the `google-genai` SDK reads. Nothing about the flow below
+(LLM -> structured plan -> validator -> workflow) is provider-specific:
+swapping providers only touched `generate_plan`/`generate_answer`'s API
+call and response parsing, not the validator, the tool surface, or the
+plan shape.
 
 ## The flow, concretely
 
 ```text
 natural language (a plain question string)
   -> generate_plan(question, client)
-  -> client.beta.messages.create(... output_config={"format": {"type": "json_schema", "schema": PLAN_OUTPUT_SCHEMA}})
+  -> client.models.generate_content(... config={"response_mime_type": "application/json", "response_schema": PLAN_OUTPUT_SCHEMA})
   -> one structured-output JSON document: {"steps": [{step_id, tool, input, depends_on}, ...]}
   -> parse_plan(question, payload) -> a Plan (Task 7.2's dataclass)
   -> validate_plan_or_raise(plan)  -- Task 7.2, unmodified
@@ -72,18 +79,24 @@ it.
 
 ## Testing without spending real API calls
 
-`generate_plan` takes `client: anthropic.Anthropic` as a parameter
-rather than constructing one internally, so `tests/planner/test_generate_plan.py`
+`generate_plan` takes `client: genai.Client` as a parameter rather than
+constructing one internally, so `tests/planner/test_generate_plan.py`
 exercises the real orchestration logic (prompt sent, response parsed,
 validator invoked, refusal/no-text-block handling) against a small fake
 client/response -- no network call, no API key, no cost -- while still
 proving the "cannot bypass the validator" property with a concrete test
 (a fake response containing an unknown tool name raises `ValueError`).
+The fake mirrors a real, documented `google-genai` behavior: accessing a
+response's `.text` property itself raises `ValueError` when there is no
+text part (e.g. a safety-blocked response), rather than exposing a
+separate refusal field to check first -- that is what `generate_plan`
+catches and re-raises as its own "refused" `ValueError`.
 `scripts/query/run_planner_cli.py` is the actual live entry point,
-constructing a real `anthropic.Anthropic()` client (credentials
-auto-resolved) for anyone who wants to try a real question end to end;
-it is intentionally not unit-tested itself, the same treatment every
-other real-caller script under `scripts/` already gets.
+constructing a real `genai.Client()` (`GEMINI_API_KEY` auto-resolved
+from `.env` or the real environment) for anyone who wants to try a real
+question end to end; it is intentionally not unit-tested itself, the
+same treatment every other real-caller script under `scripts/` already
+gets.
 
 ## What this document does not define
 

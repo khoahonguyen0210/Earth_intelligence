@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Any
 from ai_earth_intelligence_and_forecasting_engine.planner.validator import Plan
 
 if TYPE_CHECKING:
-    import anthropic
+    from google import genai
 
-MODEL = "claude-opus-5"
+MODEL = "gemini-3.1-flash-lite"
 
 # Which of the six locked tools (Task 7.1) contributes a fact to a final
 # answer, and how that fact must be labeled (the handbook's
@@ -113,7 +113,7 @@ def _build_answer_prompt(question: str, facts: tuple[GroundedFact, ...]) -> str:
 
 
 def generate_answer(
-    plan: Plan, results: dict[str, StepResult], client: anthropic.Anthropic
+    plan: Plan, results: dict[str, StepResult], client: genai.Client
 ) -> GroundedAnswer:
     """Execution results + evidence -> a grounded final answer (Task
     7.4). Only steps whose tool is in RESULT_CATEGORY_BY_TOOL and which
@@ -129,26 +129,21 @@ def generate_answer(
             question=plan.question, facts=(), summary=_NO_FACTS_SUMMARY
         )
 
-    response = client.beta.messages.create(
+    response = client.models.generate_content(
         model=MODEL,
-        max_tokens=2048,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        thinking={"type": "adaptive"},
-        system=_SYSTEM_PROMPT,
-        messages=[
-            {"role": "user", "content": _build_answer_prompt(plan.question, facts)}
-        ],
+        contents=_build_answer_prompt(plan.question, facts),
+        config={"system_instruction": _SYSTEM_PROMPT},
     )
 
-    if response.stop_reason == "refusal":
-        raise ValueError(
-            f"the answer generator refused to answer: {response.stop_details}"
-        )
+    try:
+        text = response.text
+    except ValueError as exc:
+        # See generate_plan.generate_plan: `.text` itself raises when
+        # there is no text part (e.g. safety-blocked), rather than
+        # exposing a separate refusal field to check first.
+        raise ValueError(f"the answer generator refused to answer: {exc}") from exc
 
-    text_blocks = [block.text for block in response.content if block.type == "text"]
-
-    if not text_blocks:
+    if not text:
         raise ValueError("answer generator response contained no text output")
 
-    return GroundedAnswer(question=plan.question, facts=facts, summary=text_blocks[0])
+    return GroundedAnswer(question=plan.question, facts=facts, summary=text)

@@ -2,11 +2,16 @@ import json
 import sys
 from dataclasses import asdict
 
-import anthropic
-
 from ai_earth_intelligence_and_forecasting_engine.planner.generate_plan import (
     generate_plan,
 )
+from dotenv import load_dotenv
+from google import genai
+
+# Same pattern data/firms.py and data/era5.py already use: reads
+# GEMINI_API_KEY from a local .env (gitignored, copy .env.example) if
+# one exists, without requiring a real machine-wide environment variable.
+load_dotenv()
 
 
 def main() -> None:
@@ -17,8 +22,8 @@ def main() -> None:
         raise SystemExit(2)
 
     question = sys.argv[1]
-    # Resolves ANTHROPIC_API_KEY / `ant auth login` automatically.
-    client = anthropic.Anthropic()
+    # Resolves GEMINI_API_KEY from .env or the real environment.
+    client = genai.Client()
 
     plan = generate_plan(question, client)
 

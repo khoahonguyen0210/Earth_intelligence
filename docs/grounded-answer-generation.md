@@ -57,7 +57,9 @@ nothing to the answer -- silently excluded, not guessed at.
 
 ## How grounding actually works
 
-`generate_answer` calls Claude once, with a system prompt that states
+`generate_answer` calls the LLM (Google's Gemini API, per
+`docs/natural-language-planner.md`'s provider note) once, with a system
+prompt that states
 the boundary directly (never invent data, tag every claim with its
 given category, say so plainly if the facts don't answer the question)
 and a user message listing only the real facts assembled by
