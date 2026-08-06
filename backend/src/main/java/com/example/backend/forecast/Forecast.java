@@ -8,26 +8,55 @@ public record Forecast(
         Instant createdAt,
         Status status,
         Object result,
-        String error) {
+        String error,
+        int attempts,
+        String idempotencyKey) {
 
     /**
-     * Only SUCCEEDED/FAILED are reachable while Task 6.2's synchronous
-     * subprocess bridge is in place. PENDING/RUNNING/RETRYING/CANCELLED
-     * are owned by Task 6.5's async worker/queue (see
-     * docs/forecast-api-contract.md).
+     * CANCELLED completes the state space the Execution Handbook's Task
+     * 6.5 lists, but is not reachable yet: there is no cancel endpoint
+     * (docs/forecast-api-contract.md locks the three existing routes).
+     * RETRYING is real as of Task 6.6 -- see
+     * docs/forecast-retry-and-idempotency.md.
      */
     public enum Status {
+        PENDING,
+        RUNNING,
         SUCCEEDED,
-        FAILED
+        FAILED,
+        RETRYING,
+        CANCELLED
+    }
+
+    public static Forecast pending(String id, ForecastRequest request, Instant createdAt, String idempotencyKey) {
+        return new Forecast(id, request, createdAt, Status.PENDING, null, null, 0, idempotencyKey);
+    }
+
+    public static Forecast pending(String id, ForecastRequest request, Instant createdAt) {
+        return pending(id, request, createdAt, null);
     }
 
     public static Forecast from(String id, ForecastRequest request, Instant createdAt, ForecastOutcome outcome) {
+        return pending(id, request, createdAt).withOutcome(outcome);
+    }
+
+    public Forecast withStatus(Status status) {
+        return new Forecast(id, request, createdAt, status, result, error, attempts, idempotencyKey);
+    }
+
+    public Forecast withAttempts(int attempts) {
+        return new Forecast(id, request, createdAt, status, result, error, attempts, idempotencyKey);
+    }
+
+    public Forecast withOutcome(ForecastOutcome outcome) {
         return new Forecast(
                 id,
                 request,
                 createdAt,
                 outcome.success() ? Status.SUCCEEDED : Status.FAILED,
                 outcome.result(),
-                outcome.error());
+                outcome.error(),
+                attempts,
+                idempotencyKey);
     }
 }

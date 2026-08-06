@@ -1,9 +1,15 @@
 package com.example.backend.forecast;
 
+import jakarta.annotation.PreDestroy;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
@@ -12,10 +18,18 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Task 6.2 bridge to the Python forecast pipeline: a synchronous
- * subprocess call per request, the same interim pattern
- * PythonAnalysisRunner already uses for analysis. The proper async
- * worker/queue architecture (Task 6.5, Redis-backed) replaces this once
- * it exists.
+ * subprocess call per job, the same interim pattern PythonAnalysisRunner
+ * already uses for analysis. Task 6.5 moved the caller off the request
+ * thread into ForecastWorker; Task 6.6 added the timeout/classification
+ * below (see docs/forecast-retry-and-idempotency.md).
+ *
+ * stdout/stderr are drained on background threads while the main thread
+ * waits on the process with a timeout, rather than reading them
+ * sequentially after waiting: a process whose combined output exceeds
+ * the OS pipe buffer will block on its own write call until something
+ * reads, so waiting for exit before reading would deadlock on any
+ * sufficiently large forecast payload (a full California grid
+ * FeatureCollection easily can be).
  */
 @Service
 public class PythonForecastRunner implements ForecastRunner {
@@ -24,16 +38,20 @@ public class PythonForecastRunner implements ForecastRunner {
     private final String pythonExecutable;
     private final String scriptPath;
     private final String workingDirectory;
+    private final long timeoutSeconds;
+    private final ExecutorService ioExecutor = Executors.newFixedThreadPool(2, PythonForecastRunner::newDaemonThread);
 
     public PythonForecastRunner(
             ObjectMapper objectMapper,
             @Value("${forecast.python.executable}") String pythonExecutable,
             @Value("${forecast.python.script-path}") String scriptPath,
-            @Value("${forecast.python.working-directory}") String workingDirectory) {
+            @Value("${forecast.python.working-directory}") String workingDirectory,
+            @Value("${forecast.python.timeout-seconds}") long timeoutSeconds) {
         this.objectMapper = objectMapper;
         this.pythonExecutable = pythonExecutable;
         this.scriptPath = scriptPath;
         this.workingDirectory = workingDirectory;
+        this.timeoutSeconds = timeoutSeconds;
     }
 
     @Override
@@ -48,10 +66,20 @@ public class PythonForecastRunner implements ForecastRunner {
                 stdin.write(objectMapper.writeValueAsBytes(request));
             }
 
-            String stdout = readAll(process.getInputStream());
-            String stderr = readAll(process.getErrorStream());
+            Future<String> stdoutFuture = ioExecutor.submit(() -> readAll(process.getInputStream()));
+            Future<String> stderrFuture = ioExecutor.submit(() -> readAll(process.getErrorStream()));
 
-            int exitCode = process.waitFor();
+            if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                stdoutFuture.cancel(true);
+                stderrFuture.cancel(true);
+                return ForecastOutcome.transientFailure(
+                        "Python forecast timed out after " + timeoutSeconds + "s and was terminated");
+            }
+
+            String stdout = stdoutFuture.get();
+            String stderr = stderrFuture.get();
+            int exitCode = process.exitValue();
 
             if (exitCode != 0) {
                 return ForecastOutcome.failure(extractErrorMessage(stdout, stderr, exitCode));
@@ -62,12 +90,17 @@ public class PythonForecastRunner implements ForecastRunner {
 
             return ForecastOutcome.success(payload.get("result"));
         } catch (IOException e) {
-            return ForecastOutcome.failure("Failed to run Python forecast: " + e.getMessage());
+            // Couldn't even start/write to the process -- a dependency
+            // problem (missing interpreter, exhausted resources), not
+            // something about this particular request.
+            return ForecastOutcome.transientFailure("Failed to run Python forecast: " + e.getMessage());
         } catch (JacksonException e) {
             return ForecastOutcome.failure("Failed to parse Python forecast output: " + e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return ForecastOutcome.failure("Python forecast was interrupted: " + e.getMessage());
+            return ForecastOutcome.transientFailure("Python forecast was interrupted: " + e.getMessage());
+        } catch (ExecutionException e) {
+            return ForecastOutcome.failure("Failed to read Python forecast output: " + e.getCause());
         }
     }
 
@@ -89,5 +122,16 @@ public class PythonForecastRunner implements ForecastRunner {
 
     private String readAll(java.io.InputStream stream) throws IOException {
         return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    private static Thread newDaemonThread(Runnable task) {
+        Thread thread = new Thread(task, "python-forecast-runner-io");
+        thread.setDaemon(true);
+        return thread;
+    }
+
+    @PreDestroy
+    void shutdown() {
+        ioExecutor.shutdownNow();
     }
 }

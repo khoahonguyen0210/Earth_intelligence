@@ -29,6 +29,11 @@ public class ForecastStore {
         return repository.findById(id).map(this::toDomain);
     }
 
+    /** Task 6.6: backs the "same idempotency key -> one logical job" rule. */
+    public Optional<Forecast> findByIdempotencyKey(String idempotencyKey) {
+        return repository.findByIdempotencyKey(idempotencyKey).map(this::toDomain);
+    }
+
     private ForecastEntity toEntity(Forecast forecast) {
         return new ForecastEntity(
                 forecast.id(),
@@ -36,7 +41,9 @@ public class ForecastStore {
                 forecast.status().name(),
                 forecast.result() == null ? null : objectMapper.writeValueAsString(forecast.result()),
                 forecast.error(),
-                forecast.createdAt());
+                forecast.createdAt(),
+                forecast.attempts(),
+                forecast.idempotencyKey());
     }
 
     private Forecast toDomain(ForecastEntity entity) {
@@ -46,6 +53,8 @@ public class ForecastStore {
                 entity.getCreatedAt(),
                 Forecast.Status.valueOf(entity.getStatus()),
                 entity.getResult() == null ? null : objectMapper.readValue(entity.getResult(), Object.class),
-                entity.getError());
+                entity.getError(),
+                entity.getAttempts(),
+                entity.getIdempotencyKey());
     }
 }

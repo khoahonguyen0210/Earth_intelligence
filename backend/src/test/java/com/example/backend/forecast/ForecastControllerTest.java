@@ -1,16 +1,21 @@
 package com.example.backend.forecast;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import tools.jackson.databind.ObjectMapper;
@@ -21,16 +26,22 @@ class ForecastControllerTest {
             new ForecastRequest.RegionSpec("named", "california"),
             "2024-08-15T10:00:00Z");
 
-    private static class StubRunner implements ForecastRunner {
-        private final ForecastOutcome outcome;
+    /**
+     * Task 6.5: the controller now only enqueues -- ForecastWorkerTest
+     * covers what happens to a queued job. This fake just records what
+     * was enqueued, the same role StubRunner played before this task.
+     */
+    private static class FakeQueue implements ForecastQueue {
+        private final Deque<String> queued = new ArrayDeque<>();
 
-        StubRunner(ForecastOutcome outcome) {
-            this.outcome = outcome;
+        @Override
+        public void enqueue(String forecastId) {
+            queued.add(forecastId);
         }
 
         @Override
-        public ForecastOutcome run(ForecastRequest request) {
-            return outcome;
+        public Optional<String> dequeue() {
+            return Optional.ofNullable(queued.poll());
         }
     }
 
@@ -38,6 +49,8 @@ class ForecastControllerTest {
      * ForecastStore is now Postgres-backed (Task 6.3); these tests stay
      * DB-free by faking the JpaRepository with an in-memory map behind a
      * Mockito mock, exercising the store's real JSON conversion logic.
+     * Task 6.6: save() also mimics the real unique-index-on-idempotency-key
+     * behavior, throwing on a key collision between two different ids.
      */
     private static ForecastStore newStore() {
         ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
@@ -45,55 +58,59 @@ class ForecastControllerTest {
 
         when(repository.save(any())).thenAnswer(invocation -> {
             ForecastEntity entity = invocation.getArgument(0);
+            boolean keyTakenByAnotherRow = entity.getIdempotencyKey() != null
+                    && backing.values().stream().anyMatch(existing -> !existing.getId().equals(entity.getId())
+                            && entity.getIdempotencyKey().equals(existing.getIdempotencyKey()));
+
+            if (keyTakenByAnotherRow) {
+                throw new DataIntegrityViolationException("duplicate idempotency key");
+            }
+
             backing.put(entity.getId(), entity);
             return entity;
         });
         when(repository.findById(any())).thenAnswer(
                 invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
+        when(repository.findByIdempotencyKey(any())).thenAnswer(invocation -> {
+            String key = invocation.getArgument(0);
+            return backing.values().stream()
+                    .filter(entity -> key.equals(entity.getIdempotencyKey()))
+                    .findFirst();
+        });
 
         return new ForecastStore(repository, new ObjectMapper());
     }
 
     @Test
-    void createForecastReturnsCreatedWithSucceededStatus() {
-        StubRunner runner = new StubRunner(ForecastOutcome.success(Map.of("model_version", "v1")));
-        ForecastController controller = new ForecastController(runner, newStore());
+    void createForecastReturnsCreatedWithPendingStatusAndEnqueuesTheJob() {
+        FakeQueue queue = new FakeQueue();
+        ForecastController controller = new ForecastController(queue, newStore());
 
-        ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.createForecast(VALID_REQUEST);
+        ResponseEntity<ForecastController.ForecastSummaryResponse> response =
+                controller.createForecast(VALID_REQUEST, null);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("SUCCEEDED", response.getBody().status());
+        assertEquals("PENDING", response.getBody().status());
         assertNotNull(response.getBody().forecastId());
-    }
-
-    @Test
-    void createForecastReturnsFailedStatusOnRunnerError() {
-        StubRunner runner = new StubRunner(ForecastOutcome.failure("cannot fit XGBoost: only one class"));
-        ForecastController controller = new ForecastController(runner, newStore());
-
-        ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.createForecast(VALID_REQUEST);
-
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals("FAILED", response.getBody().status());
+        assertEquals(response.getBody().forecastId(), queue.dequeue().orElseThrow());
     }
 
     @Test
     void getForecastReturnsStoredStatusById() {
-        StubRunner runner = new StubRunner(ForecastOutcome.success(Map.of("model_version", "v1")));
-        ForecastController controller = new ForecastController(runner, newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
 
-        String id = controller.createForecast(VALID_REQUEST).getBody().forecastId();
+        String id = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.getForecast(id);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(id, response.getBody().forecastId());
-        assertEquals("SUCCEEDED", response.getBody().status());
+        assertEquals("PENDING", response.getBody().status());
     }
 
     @Test
     void getForecastReturnsNotFoundForUnknownId() {
-        ForecastController controller = new ForecastController(new StubRunner(ForecastOutcome.success(null)), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.getForecast("does-not-exist");
 
@@ -102,12 +119,13 @@ class ForecastControllerTest {
 
     @Test
     void getForecastResultReturnsResultOnSuccess() {
+        ForecastStore store = newStore();
         Map<String, Object> result = Map.of("model_version", "v1", "evidence", Map.of("dataset", "wildfire_forecast:v1"));
-        StubRunner runner = new StubRunner(ForecastOutcome.success(result));
-        ForecastController controller = new ForecastController(runner, newStore());
+        Forecast forecast = Forecast.from("test-id", VALID_REQUEST, Instant.now(), ForecastOutcome.success(result));
+        store.save(forecast);
+        ForecastController controller = new ForecastController(new FakeQueue(), store);
 
-        String id = controller.createForecast(VALID_REQUEST).getBody().forecastId();
-        ResponseEntity<?> response = controller.getForecastResult(id);
+        ResponseEntity<?> response = controller.getForecastResult("test-id");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         ForecastController.ForecastResultResponse body = (ForecastController.ForecastResultResponse) response.getBody();
@@ -116,11 +134,12 @@ class ForecastControllerTest {
 
     @Test
     void getForecastResultReturnsErrorPayloadOnFailure() {
-        StubRunner runner = new StubRunner(ForecastOutcome.failure("boom"));
-        ForecastController controller = new ForecastController(runner, newStore());
+        ForecastStore store = newStore();
+        Forecast forecast = Forecast.from("test-id", VALID_REQUEST, Instant.now(), ForecastOutcome.failure("boom"));
+        store.save(forecast);
+        ForecastController controller = new ForecastController(new FakeQueue(), store);
 
-        String id = controller.createForecast(VALID_REQUEST).getBody().forecastId();
-        ResponseEntity<?> response = controller.getForecastResult(id);
+        ResponseEntity<?> response = controller.getForecastResult("test-id");
 
         assertEquals(422, response.getStatusCode().value());
         ForecastController.ErrorResponse body = (ForecastController.ErrorResponse) response.getBody();
@@ -128,8 +147,20 @@ class ForecastControllerTest {
     }
 
     @Test
+    void getForecastResultReturnsConflictWhileNotYetFinished() {
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+
+        String id = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
+        ResponseEntity<?> response = controller.getForecastResult(id);
+
+        assertEquals(409, response.getStatusCode().value());
+        ForecastController.ErrorResponse body = (ForecastController.ErrorResponse) response.getBody();
+        assertTrue(body.error().contains("PENDING"));
+    }
+
+    @Test
     void getForecastResultReturnsNotFoundForUnknownId() {
-        ForecastController controller = new ForecastController(new StubRunner(ForecastOutcome.success(null)), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
 
         ResponseEntity<?> response = controller.getForecastResult("does-not-exist");
 
@@ -140,15 +171,77 @@ class ForecastControllerTest {
     void forecastStoreRoundTripsSavedForecast() {
         ForecastStore store = newStore();
         Forecast forecast = Forecast.from(
-                "test-id",
-                VALID_REQUEST,
-                java.time.Instant.now(),
-                ForecastOutcome.success(Map.of("model_version", "v1")));
+                "test-id", VALID_REQUEST, Instant.now(), ForecastOutcome.success(Map.of("model_version", "v1")));
 
         store.save(forecast);
 
         assertTrue(store.find("test-id").isPresent());
         assertEquals("test-id", store.find("test-id").get().id());
         assertTrue(store.find("missing").isEmpty());
+    }
+
+    @Test
+    void createForecastWithSameIdempotencyKeyReturnsTheExistingJobWithoutEnqueueingAgain() {
+        FakeQueue queue = new FakeQueue();
+        ForecastController controller = new ForecastController(queue, newStore());
+
+        ResponseEntity<ForecastController.ForecastSummaryResponse> first =
+                controller.createForecast(VALID_REQUEST, "dup-key");
+        ResponseEntity<ForecastController.ForecastSummaryResponse> second =
+                controller.createForecast(VALID_REQUEST, "dup-key");
+
+        assertEquals(HttpStatus.CREATED, first.getStatusCode());
+        assertEquals(HttpStatus.OK, second.getStatusCode());
+        assertEquals(first.getBody().forecastId(), second.getBody().forecastId());
+        assertNotNull(queue.dequeue().orElse(null));
+        assertTrue(queue.dequeue().isEmpty(), "the second call must not enqueue a second job");
+    }
+
+    @Test
+    void createForecastWithDifferentIdempotencyKeysCreatesSeparateJobs() {
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+
+        String firstId = controller.createForecast(VALID_REQUEST, "key-a").getBody().forecastId();
+        String secondId = controller.createForecast(VALID_REQUEST, "key-b").getBody().forecastId();
+
+        assertNotEquals(firstId, secondId);
+    }
+
+    @Test
+    void createForecastWithoutAnIdempotencyKeyAlwaysCreatesASeparateJob() {
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+
+        String firstId = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
+        String secondId = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
+
+        assertNotEquals(firstId, secondId);
+    }
+
+    @Test
+    void createForecastRecoversFromALostIdempotencyRace() {
+        ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        ForecastEntity winnerEntity = new ForecastEntity(
+                "winner-id",
+                objectMapper.writeValueAsString(VALID_REQUEST),
+                "PENDING",
+                null,
+                null,
+                Instant.now(),
+                0,
+                "race-key");
+
+        when(repository.findByIdempotencyKey("race-key"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winnerEntity));
+        when(repository.save(any())).thenThrow(new DataIntegrityViolationException("duplicate idempotency key"));
+
+        ForecastController controller = new ForecastController(new FakeQueue(), new ForecastStore(repository, objectMapper));
+
+        ResponseEntity<ForecastController.ForecastSummaryResponse> response =
+                controller.createForecast(VALID_REQUEST, "race-key");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("winner-id", response.getBody().forecastId());
     }
 }
