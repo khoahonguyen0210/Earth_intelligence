@@ -85,7 +85,7 @@ def profile_input_files(paths: dict[str, Path]) -> list[InputFileProfile]:
     ]
 
 
-def _synthetic_timing_rows(n: int, split: str) -> list[DatasetRow]:
+def synthetic_timing_rows(n: int, split: str) -> list[DatasetRow]:
     """Realistically-shaped, deterministic rows used only to measure
     training/inference wall-time and memory when the real split cannot
     support a fit (see harness.py's documented single-class data gap:
@@ -161,7 +161,7 @@ def profile_model(
     harness.py's already-tested fit/predict dispatch and timing capture
     entirely -- this function only adds memory measurement and, when the
     real split cannot support a fit, a synthetic-shaped-data fallback so
-    computational cost can still be measured (see _synthetic_timing_rows
+    computational cost can still be measured (see synthetic_timing_rows
     for why that is not the same thing as fabricating an accuracy
     result)."""
     succeeded, error, config_path, peak_memory_mb = _run_and_measure_memory(
@@ -194,9 +194,9 @@ def profile_model(
     ) = _run_and_measure_memory(
         model_name,
         f"{experiment_prefix}_{model_name}_synthetic_timing",
-        _synthetic_timing_rows(max(len(train_rows), 2), "train"),
-        _synthetic_timing_rows(max(len(validation_rows), 2), "validation"),
-        _synthetic_timing_rows(max(len(test_rows), 2), "test"),
+        synthetic_timing_rows(max(len(train_rows), 2), "train"),
+        synthetic_timing_rows(max(len(validation_rows), 2), "validation"),
+        synthetic_timing_rows(max(len(test_rows), 2), "test"),
         artifacts_root,
     )
 
