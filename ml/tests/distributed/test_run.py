@@ -6,7 +6,7 @@ import pytest
 from ai_earth_intelligence_and_forecasting_engine.distributed.run import (
     DistributedRunResult,
     RunContext,
-    _chunk_tile_ids,
+    chunk_tile_ids,
     fit_baseline_model,
     prepare_run_context,
     run_distributed_inference,
@@ -59,14 +59,14 @@ def test_chunk_tile_ids_splits_into_near_equal_contiguous_chunks(
 ):
     tile_ids = ("a", "b", "c")
 
-    chunks = _chunk_tile_ids(tile_ids, num_workers)
+    chunks = chunk_tile_ids(tile_ids, num_workers)
 
     assert [len(chunk) for chunk in chunks] == expected_chunks
     assert tuple(tile_id for chunk in chunks for tile_id in chunk) == tile_ids
 
 
 def test_chunk_tile_ids_never_returns_an_empty_chunk_with_more_workers_than_tiles():
-    chunks = _chunk_tile_ids(("a", "b"), num_workers=5)
+    chunks = chunk_tile_ids(("a", "b"), num_workers=5)
 
     assert len(chunks) == 2
     assert all(len(chunk) > 0 for chunk in chunks)
@@ -74,7 +74,7 @@ def test_chunk_tile_ids_never_returns_an_empty_chunk_with_more_workers_than_tile
 
 def test_chunk_tile_ids_rejects_fewer_than_one_worker():
     with pytest.raises(ValueError, match="num_workers"):
-        _chunk_tile_ids(("a",), num_workers=0)
+        chunk_tile_ids(("a",), num_workers=0)
 
 
 def _all_single_class(rows, target: int):
