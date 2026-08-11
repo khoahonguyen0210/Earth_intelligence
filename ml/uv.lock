@@ -31,7 +31,7 @@ wheels = [
 [[package]]
 name = "ai-earth-intelligence-and-forecasting-engine"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 
 [package.dev-dependencies]
 dev = [

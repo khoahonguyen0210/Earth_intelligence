@@ -1,0 +1,22 @@
+# Task 10.1: keeps the Docker build context small -- both Dockerfiles
+# build from the repository root, so without this file every `docker
+# build`/`docker compose build` would send the entire monorepo
+# (venvs, node_modules, .git, build output) to the daemon first.
+
+.git/
+**/__pycache__/
+**/*.pyc
+
+.venv/
+ml/.venv/
+ml/artifacts/
+
+**/node_modules/
+frontend/dist/
+
+backend/target/
+
+data/processed/
+
+.idea/
+.vscode/

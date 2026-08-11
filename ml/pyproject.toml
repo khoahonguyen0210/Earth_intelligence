@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ai-earth-intelligence-and-forecasting-engine"
 version = "0.1.0"
@@ -51,3 +55,16 @@ pythonpath = ["src"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Without this, `uv.lock` marks the root project `source = { virtual =
+# "." }` (dependencies-only, never actually built/installed) whenever no
+# [build-system] is declared -- confirmed live inside a genuinely clean
+# container (Task 10.3): `uv sync --frozen` there raised
+# ModuleNotFoundError for this very package, even though it imports fine
+# on a local machine that happens to carry a leftover editable install
+# from some earlier, uv-sync-independent `pip install -e .`. Declaring
+# both the build system above and this flag explicitly makes `uv sync`
+# actually install the local package everywhere, not just wherever that
+# leftover install happens to already exist.
+[tool.uv]
+package = true

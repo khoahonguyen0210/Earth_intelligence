@@ -50,6 +50,56 @@ services:
       timeout: 5s
       retries: 10
 
+  # Task 10.1/10.2: one image plays the handbook's "backend" and
+  # "python-worker" roles -- Task 6.2's PythonForecastRunner/
+  # PythonAnalysisRunner bridge to Python via a same-machine
+  # ProcessBuilder subprocess call, not a network call, so there is no
+  # separate networked worker service to containerize on its own. See
+  # docs/docker-images.md.
+  backend:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    container_name: ai-earth-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    # FIRMS_MAP_KEY (data.firms's real NASA FIRMS credential, Task 1.2) --
+    # the same local, gitignored .env every scripts/*.py already reads via
+    # python-dotenv. ProcessBuilder (Task 6.2) inherits the JVM's own
+    # environment by default, so setting it here is what actually reaches
+    # the Python subprocess the backend shells out to.
+    env_file:
+      - ../../.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ai_earth
+      REDIS_HOST: redis
+      OBJECT_STORE_ENDPOINT: http://minio:9000
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: frontend/Dockerfile
+    container_name: ai-earth-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
 volumes:
   postgres_data:
   minio_data:
