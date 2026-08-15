@@ -152,6 +152,9 @@ env/
 venv/
 ENV/
 env.bak/
+
+# Kubernetes secrets (Task 11.1) -- real values, same treatment as .env
+infra/k8s/secret.yaml
 venv.bak/
 
 # Spyder project settings

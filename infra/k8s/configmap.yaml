@@ -1,0 +1,18 @@
+# Non-secret configuration only. Real credentials go in secret.yaml
+# (gitignored, see secret.example.yaml) -- Task 11.1's own "use
+# ConfigMaps/Secrets correctly" split, mirrored from the project's
+# existing .env/.env.example convention.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-earth-config
+data:
+  POSTGRES_DB: ai_earth
+  POSTGRES_USER: ai_earth
+  # Service DNS names below resolve via Kubernetes' own in-cluster DNS,
+  # the same role Docker Compose's internal DNS plays for
+  # infra/docker/docker-compose.yml (docs/docker-compose-stack.md).
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ai_earth
+  REDIS_HOST: redis
+  OBJECT_STORE_ENDPOINT: http://minio:9000
+  OBJECT_STORE_BUCKET: ai-earth-artifacts

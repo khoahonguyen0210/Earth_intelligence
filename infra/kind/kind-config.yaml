@@ -1,0 +1,23 @@
+# kind (Kubernetes-in-Docker) cluster config for Task 11.2's local
+# deployment -- chosen over minikube because it runs as a single
+# container on the Docker daemon already installed for Phase 10,
+# nothing extra (a VM driver, a hypervisor) to install or take disk
+# space.
+#
+# extraPortMappings routes host ports straight to the node's NodePort
+# services (backend.yaml/frontend.yaml, infra/k8s/), the same numeric
+# ports infra/docker/docker-compose.yml already publishes -- this is
+# what lets frontend/Dockerfile's hardcoded http://localhost:8080
+# resolve correctly against this cluster with no kubectl port-forward
+# kept running, see docs/local-kubernetes-deployment.md.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 30173
+        hostPort: 5173
+        protocol: TCP
