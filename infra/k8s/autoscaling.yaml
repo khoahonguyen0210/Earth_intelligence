@@ -1,0 +1,62 @@
+# Task 11.4: KEDA (installed separately, see docs/autoscaling.md) reads
+# the real Redis list forecast.python jobs live in
+# (RedisForecastQueue.java's opsForList, key "forecast-jobs" --
+# application.properties' forecast.queue.key default, Task 6.5) directly
+# via its built-in `redis` scaler, no Prometheus/custom-metrics pipeline
+# needed for this one signal.
+#
+# minReplicaCount is 1, not 0: backend also serves the HTTP API
+# (docs/kubernetes-manifests.md already established there is no separate
+# worker deployment), so scaling to zero on an empty queue -- normal
+# scale-to-zero for a pure worker -- would take the whole API down.
+#
+# maxReplicaCount is 2, not higher: Task 11.3 (docs/worker-replica-
+# scaling.md) measured this exact cluster directly and found throughput
+# peaks at 2 replicas then gets *worse* than 1 replica by 8 -- kind runs
+# as a single container on one physical machine, so replicas here
+# contend for one real, fixed CPU/RAM pool rather than getting
+# independent hardware. Configuring a higher ceiling than the data
+# itself supports would not be a real decision, just an untested guess.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: backend-forecast-queue
+spec:
+  scaleTargetRef:
+    name: backend
+  minReplicaCount: 1
+  maxReplicaCount: 2
+  # KEDA polls Redis for LLEN every pollingInterval; cooldownPeriod is
+  # how long the queue must stay below threshold before scaling back
+  # down to minReplicaCount -- the real "scale-down behavior" the
+  # handbook asks for, kept well above pollingInterval so a single empty
+  # poll right after a burst does not immediately undo a scale-up.
+  pollingInterval: 10
+  cooldownPeriod: 60
+  triggers:
+    - type: redis
+      metadata:
+        # Fully qualified, not bare "redis": the KEDA operator polling
+        # this trigger runs in the keda namespace, not default, and a
+        # bare Service name only resolves within the caller's own
+        # namespace by Kubernetes' default DNS search order -- a bare
+        # "redis" here resolved to the nonexistent redis.keda.svc and
+        # every poll failed with a real, observed DNS timeout before
+        # this fix.
+        address: redis.default.svc.cluster.local:6379
+        listName: forecast-jobs
+        # Scale-up threshold: target at most 1 queued job per replica,
+        # so any job waiting (not yet picked up) drives a scale-up
+        # towards maxReplicaCount immediately rather than waiting for a
+        # backlog to build first.
+        listLength: "1"
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          # Standard HPA v2 stabilization window (independent of KEDA's
+          # own cooldownPeriod above): the HPA waits for the max
+          # recommended replica count over this trailing window before
+          # actually scaling down, preventing flapping if queue depth
+          # oscillates around the threshold.
+          stabilizationWindowSeconds: 60

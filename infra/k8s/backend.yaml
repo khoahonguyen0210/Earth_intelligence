@@ -96,12 +96,22 @@ spec:
               port: 8080
             initialDelaySeconds: 20
             periodSeconds: 10
+          # Task 11.3 found this too aggressive under real concurrent
+          # scale-up: with 4+ replicas booting at once, JVM start +
+          # Flyway + JPA + Redis/MinIO connect contends for the same
+          # host CPU and regularly took longer than
+          # 30s + 3*15s = 75s, so the liveness probe killed pods that
+          # were still starting, not stuck -- see
+          # docs/worker-replica-scaling.md. failureThreshold raised (K8s
+          # default is 3) rather than just initialDelaySeconds, since
+          # the slowdown is real contention, not a fixed one-time delay.
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 15
+            failureThreshold: 10
 ---
 apiVersion: v1
 kind: Service
