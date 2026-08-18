@@ -1,6 +1,9 @@
 import json
 
 from ai_earth_intelligence_and_forecasting_engine.kubernetes.replica_scaling import (
+    ReplicaScalingTrialResult,
+    compute_speedup_efficiency,
+    replica_scaling_point_to_dict,
     replica_scaling_trial_to_dict,
     run_replica_scaling_trial,
     save_replica_scaling_results,
@@ -112,6 +115,51 @@ def test_replica_scaling_trial_to_dict_is_json_serializable():
 
     assert payload["replicas"] == 1
     assert payload["job_count"] == 1
+
+
+def _trial(replicas: int, total_wall_seconds: float) -> ReplicaScalingTrialResult:
+    return ReplicaScalingTrialResult(
+        replicas=replicas,
+        job_count=8,
+        total_wall_seconds=total_wall_seconds,
+        throughput_jobs_per_second=8 / total_wall_seconds,
+        per_job_seconds=(),
+        status_counts={"FAILED": 8},
+    )
+
+
+def test_compute_speedup_efficiency_perfect_linear_scaling():
+    trials = [_trial(1, 100.0), _trial(2, 50.0), _trial(4, 25.0)]
+
+    points = compute_speedup_efficiency(trials)
+
+    assert [p.speedup for p in points] == [1.0, 2.0, 4.0]
+    assert [p.efficiency for p in points] == [1.0, 1.0, 1.0]
+
+
+def test_compute_speedup_efficiency_no_benefit_from_more_replicas():
+    trials = [_trial(1, 64.29), _trial(2, 51.33), _trial(4, 56.76), _trial(8, 111.94)]
+
+    points = compute_speedup_efficiency(trials)
+
+    assert points[0].speedup == 1.0
+    assert points[1].speedup > 1.0
+    # 4 and 8 replicas measured slower than the 1-replica baseline here
+    assert points[2].speedup < points[1].speedup
+    assert points[3].speedup < 1.0
+    # efficiency strictly falls as replicas grow past the best point
+    assert points[3].efficiency < points[2].efficiency < points[1].efficiency
+
+
+def test_replica_scaling_point_to_dict_includes_speedup_and_efficiency():
+    trials = [_trial(1, 10.0), _trial(2, 5.0)]
+
+    payload = replica_scaling_point_to_dict(compute_speedup_efficiency(trials)[1])
+    json.dumps(payload)
+
+    assert payload["replicas"] == 2
+    assert payload["speedup"] == 2.0
+    assert payload["efficiency"] == 1.0
 
 
 def test_save_replica_scaling_results_roundtrip(tmp_path):

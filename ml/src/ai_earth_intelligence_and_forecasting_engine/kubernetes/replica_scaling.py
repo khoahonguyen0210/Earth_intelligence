@@ -83,6 +83,45 @@ def run_replica_scaling_trial(
     )
 
 
+@dataclass(frozen=True)
+class ReplicaScalingPoint:
+    trial: ReplicaScalingTrialResult
+    speedup: float
+    efficiency: float
+
+
+def compute_speedup_efficiency(
+    trials: list[ReplicaScalingTrialResult],
+) -> list[ReplicaScalingPoint]:
+    """The handbook's own formulas (also used for the Task 9.3
+    multi-worker benchmark, ml/.../distributed/scaling.py):
+    speedup(n) = T1 / Tn, efficiency(n) = speedup(n) / n, against the
+    first trial's (replicas=1) wall time as T1. `trials` is expected
+    sorted by replica count ascending, replicas=1 first."""
+    baseline_seconds = trials[0].total_wall_seconds
+
+    points = []
+    for trial in trials:
+        speedup = (
+            baseline_seconds / trial.total_wall_seconds
+            if trial.total_wall_seconds > 0
+            else 0.0
+        )
+        efficiency = speedup / trial.replicas if trial.replicas > 0 else 0.0
+        points.append(
+            ReplicaScalingPoint(trial=trial, speedup=speedup, efficiency=efficiency)
+        )
+    return points
+
+
+def replica_scaling_point_to_dict(point: ReplicaScalingPoint) -> dict:
+    return {
+        **replica_scaling_trial_to_dict(point.trial),
+        "speedup": point.speedup,
+        "efficiency": point.efficiency,
+    }
+
+
 def replica_scaling_trial_to_dict(result: ReplicaScalingTrialResult) -> dict:
     return asdict(result)
 
