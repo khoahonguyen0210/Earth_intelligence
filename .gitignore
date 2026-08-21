@@ -155,6 +155,14 @@ env.bak/
 
 # Kubernetes secrets (Task 11.1) -- real values, same treatment as .env
 infra/k8s/secret.yaml
+
+# Terraform (Task 12.2) -- provider cache, local state, and the per-account
+# backend config. .terraform.lock.hcl is deliberately NOT ignored.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+infra/terraform/environments/*/backend.hcl
 venv.bak/
 
 # Spyder project settings

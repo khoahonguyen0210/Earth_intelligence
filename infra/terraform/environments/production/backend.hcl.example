@@ -1,0 +1,3 @@
+# Copy to backend.hcl (gitignored) and fill in the state bucket created by
+# hand before the first `terraform init` -- see docs/terraform-layout.md.
+bucket = "ai-earth-tfstate-<account-id>"
