@@ -5,6 +5,8 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +28,8 @@ public class ForecastController {
     public record ErrorResponse(String error) {
     }
 
+    private static final Logger log = LoggerFactory.getLogger(ForecastController.class);
+
     private final ForecastQueue queue;
     private final ForecastStore store;
 
@@ -43,6 +47,7 @@ public class ForecastController {
         if (key != null) {
             Optional<Forecast> existing = store.findByIdempotencyKey(key);
             if (existing.isPresent()) {
+                logDeduplicated(existing.get());
                 return existingForecastResponse(existing.get());
             }
         }
@@ -57,14 +62,32 @@ public class ForecastController {
             // idempotency key (Task 6.6: "same idempotency key -> one
             // logical job") -- the other request's row won; return it.
             return store.findByIdempotencyKey(key)
-                    .map(this::existingForecastResponse)
+                    .map(winner -> {
+                        logDeduplicated(winner);
+                        return existingForecastResponse(winner);
+                    })
                     .orElseThrow(() -> e);
         }
 
         queue.enqueue(id);
+        // job_id links this request's log line (and its request_id) to
+        // every later ForecastWorker line for the same job.
+        log.atInfo()
+                .addKeyValue("event", "job_enqueued")
+                .addKeyValue(ForecastWorker.MDC_JOB_ID, id)
+                .addKeyValue("idempotency_key_present", key != null)
+                .log("forecast job enqueued");
 
         return ResponseEntity.created(URI.create("/forecasts/" + id))
                 .body(new ForecastSummaryResponse(forecast.id(), forecast.status().name()));
+    }
+
+    private void logDeduplicated(Forecast existing) {
+        log.atInfo()
+                .addKeyValue("event", "job_deduplicated")
+                .addKeyValue(ForecastWorker.MDC_JOB_ID, existing.id())
+                .addKeyValue("status", existing.status().name())
+                .log("idempotency key matched an existing forecast; nothing enqueued");
     }
 
     private ResponseEntity<ForecastSummaryResponse> existingForecastResponse(Forecast forecast) {

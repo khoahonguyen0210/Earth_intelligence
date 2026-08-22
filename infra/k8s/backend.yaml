@@ -20,6 +20,14 @@ spec:
     metadata:
       labels:
         app: backend
+      # Task 13.2: the conventional discovery hints Prometheus-compatible
+      # scrapers (Prometheus' kubernetes_sd relabeling, the CloudWatch
+      # agent's Prometheus mode) use to find /actuator/prometheus --
+      # docs/metrics.md.
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
     spec:
       # Kubernetes auto-injects a Docker-links-style env var per Service
       # in the namespace (e.g. REDIS_PORT=tcp://<cluster-ip>:6379 for the

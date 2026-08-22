@@ -148,6 +148,39 @@ def test_compute_forecast_grid_features_are_keyed_to_correct_tile_ids():
     assert tile_ids_in_grid == {cell.tile_id for cell in SELECTED_CELLS}
 
 
+def test_compute_forecast_reports_model_stage_timings_when_asked():
+    timings_ms: dict[str, float] = {}
+
+    compute_forecast(
+        TRAIN_ROWS,
+        VALIDATION_ROWS,
+        INFERENCE_ROWS,
+        SELECTED_CELLS,
+        REGION,
+        INFERENCE_CUTOFF,
+        timings_ms,
+    )
+
+    assert set(timings_ms) == {"model_fit", "model_inference"}
+    assert all(value >= 0 for value in timings_ms.values())
+    # Scoring 20 rows with an already-fitted model is far cheaper than
+    # fitting XGBoost plus calibration -- the split the metric exists for.
+    assert timings_ms["model_inference"] < timings_ms["model_fit"]
+
+
+def test_compute_forecast_result_is_unchanged_by_timing():
+    args = (
+        TRAIN_ROWS,
+        VALIDATION_ROWS,
+        INFERENCE_ROWS,
+        SELECTED_CELLS,
+        REGION,
+        INFERENCE_CUTOFF,
+    )
+
+    assert compute_forecast(*args) == compute_forecast(*args, {})
+
+
 def test_compute_forecast_raises_on_single_class_training_data():
     single_class_train = [_row(SELECTED_CELLS[0].tile_id, 0, 0, TRAIN_DEMO_CUTOFF)]
 

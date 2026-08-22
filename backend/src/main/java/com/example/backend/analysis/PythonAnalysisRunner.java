@@ -1,5 +1,6 @@
 package com.example.backend.analysis;
 
+import com.example.backend.logging.ErrorCode;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -53,7 +54,7 @@ public class PythonAnalysisRunner implements AnalysisRunner {
             int exitCode = process.waitFor();
 
             if (exitCode != 0) {
-                return AnalysisOutcome.failure(extractErrorMessage(stdout, stderr, exitCode));
+                return AnalysisOutcome.failure(ErrorCode.PYTHON_FAILED, extractErrorMessage(stdout, stderr, exitCode));
             }
 
             Map<String, Object> payload = objectMapper.readValue(stdout, new TypeReference<>() {
@@ -61,12 +62,12 @@ public class PythonAnalysisRunner implements AnalysisRunner {
 
             return AnalysisOutcome.success(payload.get("result"), payload.get("evidence"));
         } catch (IOException e) {
-            return AnalysisOutcome.failure("Failed to run Python analysis: " + e.getMessage());
+            return AnalysisOutcome.failure(ErrorCode.PYTHON_START_FAILED, "Failed to run Python analysis: " + e.getMessage());
         } catch (JacksonException e) {
-            return AnalysisOutcome.failure("Failed to parse Python analysis output: " + e.getMessage());
+            return AnalysisOutcome.failure(ErrorCode.OUTPUT_PARSE_FAILED, "Failed to parse Python analysis output: " + e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return AnalysisOutcome.failure("Python analysis was interrupted: " + e.getMessage());
+            return AnalysisOutcome.failure(ErrorCode.PYTHON_INTERRUPTED, "Python analysis was interrupted: " + e.getMessage());
         }
     }
 

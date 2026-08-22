@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.example.backend.logging.ErrorCode;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -48,6 +49,7 @@ class PythonForecastRunnerTest {
         assertFalse(outcome.success());
         assertFalse(outcome.transientFailure(), "a request-specific failure must not be retried");
         assertEquals("synthetic failure", outcome.error());
+        assertEquals(ErrorCode.PYTHON_FAILED, outcome.errorCode());
     }
 
     @Test
@@ -61,6 +63,7 @@ class PythonForecastRunnerTest {
         assertFalse(outcome.success());
         assertTrue(outcome.transientFailure(), "a timeout must be retryable");
         assertTrue(elapsed.getSeconds() < 15, "the process should be killed near the timeout, not run to completion");
+        assertEquals(ErrorCode.PYTHON_TIMEOUT, outcome.errorCode());
     }
 
     @Test
@@ -76,5 +79,23 @@ class PythonForecastRunnerTest {
 
         assertFalse(outcome.success());
         assertTrue(outcome.transientFailure(), "an unavailable interpreter is a dependency problem, not a request problem");
+        assertEquals(ErrorCode.PYTHON_START_FAILED, outcome.errorCode());
+    }
+
+    @Test
+    void carriesThePipelinesNumericStageTimingsAndDropsMalformedOnes() {
+        ForecastOutcome outcome = runner("timed_forecast_stub.py", 30).run(REQUEST);
+
+        assertTrue(outcome.success());
+        assertEquals(Map.of("ok", true), outcome.result(), "timings must not leak into the result");
+        assertEquals(Map.of("data_load", 120.5, "model_fit", 800.0, "model_inference", 4.25, "total", 930.0),
+                outcome.timingsMs());
+    }
+
+    @Test
+    void aScriptThatReportsNoTimingsStillSucceedsWithNone() {
+        ForecastOutcome outcome = runner("well_behaved_forecast_stub.py", 30).run(REQUEST);
+
+        assertTrue(outcome.timingsMs().isEmpty());
     }
 }

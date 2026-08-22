@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.example.backend.logging.ErrorCode;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -42,6 +43,11 @@ class ForecastControllerTest {
         @Override
         public Optional<String> dequeue() {
             return Optional.ofNullable(queued.poll());
+        }
+
+        @Override
+        public long size() {
+            return queued.size();
         }
     }
 
@@ -135,7 +141,7 @@ class ForecastControllerTest {
     @Test
     void getForecastResultReturnsErrorPayloadOnFailure() {
         ForecastStore store = newStore();
-        Forecast forecast = Forecast.from("test-id", VALID_REQUEST, Instant.now(), ForecastOutcome.failure("boom"));
+        Forecast forecast = Forecast.from("test-id", VALID_REQUEST, Instant.now(), ForecastOutcome.failure(ErrorCode.PYTHON_FAILED, "boom"));
         store.save(forecast);
         ForecastController controller = new ForecastController(new FakeQueue(), store);
 

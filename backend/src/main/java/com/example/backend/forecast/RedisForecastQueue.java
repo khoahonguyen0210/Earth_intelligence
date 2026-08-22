@@ -38,4 +38,11 @@ public class RedisForecastQueue implements ForecastQueue {
     public Optional<String> dequeue() {
         return Optional.ofNullable(redisTemplate.opsForList().rightPop(queueKey, pollTimeout));
     }
+
+    /** LLEN -- the same number KEDA's redis trigger reads to scale (infra/k8s/autoscaling.yaml). */
+    @Override
+    public long size() {
+        Long length = redisTemplate.opsForList().size(queueKey);
+        return length == null ? 0 : length;
+    }
 }

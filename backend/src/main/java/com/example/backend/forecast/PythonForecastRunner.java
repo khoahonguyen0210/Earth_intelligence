@@ -1,9 +1,11 @@
 package com.example.backend.forecast;
 
+import com.example.backend.logging.ErrorCode;
 import jakarta.annotation.PreDestroy;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -73,7 +75,7 @@ public class PythonForecastRunner implements ForecastRunner {
                 process.destroyForcibly();
                 stdoutFuture.cancel(true);
                 stderrFuture.cancel(true);
-                return ForecastOutcome.transientFailure(
+                return ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT,
                         "Python forecast timed out after " + timeoutSeconds + "s and was terminated");
             }
 
@@ -82,26 +84,46 @@ public class PythonForecastRunner implements ForecastRunner {
             int exitCode = process.exitValue();
 
             if (exitCode != 0) {
-                return ForecastOutcome.failure(extractErrorMessage(stdout, stderr, exitCode));
+                return ForecastOutcome.failure(ErrorCode.PYTHON_FAILED, extractErrorMessage(stdout, stderr, exitCode));
             }
 
             Map<String, Object> payload = objectMapper.readValue(stdout, new TypeReference<>() {
             });
 
-            return ForecastOutcome.success(payload.get("result"));
+            return ForecastOutcome.success(payload.get("result"), timings(payload.get("timings_ms")));
         } catch (IOException e) {
             // Couldn't even start/write to the process -- a dependency
             // problem (missing interpreter, exhausted resources), not
             // something about this particular request.
-            return ForecastOutcome.transientFailure("Failed to run Python forecast: " + e.getMessage());
+            return ForecastOutcome.transientFailure(ErrorCode.PYTHON_START_FAILED, "Failed to run Python forecast: " + e.getMessage());
         } catch (JacksonException e) {
-            return ForecastOutcome.failure("Failed to parse Python forecast output: " + e.getMessage());
+            return ForecastOutcome.failure(ErrorCode.OUTPUT_PARSE_FAILED, "Failed to parse Python forecast output: " + e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return ForecastOutcome.transientFailure("Python forecast was interrupted: " + e.getMessage());
+            return ForecastOutcome.transientFailure(ErrorCode.PYTHON_INTERRUPTED, "Python forecast was interrupted: " + e.getMessage());
         } catch (ExecutionException e) {
-            return ForecastOutcome.failure("Failed to read Python forecast output: " + e.getCause());
+            return ForecastOutcome.failure(ErrorCode.OUTPUT_READ_FAILED, "Failed to read Python forecast output: " + e.getCause());
         }
+    }
+
+    /**
+     * Task 13.2: the Python side's optional `timings_ms` object
+     * (query/run_forecast.py). Anything missing or non-numeric is
+     * dropped rather than failing a forecast that otherwise succeeded --
+     * timings are observability, not part of the result.
+     */
+    private static Map<String, Double> timings(Object raw) {
+        if (!(raw instanceof Map<?, ?> entries)) {
+            return Map.of();
+        }
+
+        Map<String, Double> timings = new HashMap<>();
+        entries.forEach((key, value) -> {
+            if (key instanceof String stage && value instanceof Number millis) {
+                timings.put(stage, millis.doubleValue());
+            }
+        });
+        return timings;
     }
 
     private String extractErrorMessage(String stdout, String stderr, int exitCode) {

@@ -7,6 +7,10 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.slf4j.event.Level;
 
 /**
  * Task 8.3: walks a Workflow's nodes to completion in dependency order,
@@ -27,8 +31,17 @@ import java.util.Map;
  * A node whose dependency did not succeed is marked CANCELLED (not
  * FAILED): it was never itself attempted, so it never actually failed --
  * the real failure already lives on the dependency's own node.
+ *
+ * Task 13.1: every log line written during execute() carries
+ * `workflow_id` (MDC); each node attempt that ends logs one
+ * workflow_node_succeeded / workflow_node_retry_scheduled /
+ * workflow_node_failed event, and the run ends with workflow_finished.
  */
 public class WorkflowExecutor {
+
+    public static final String MDC_WORKFLOW_ID = "workflow_id";
+
+    private static final Logger log = LoggerFactory.getLogger(WorkflowExecutor.class);
 
     private final WorkflowTaskDispatcher dispatcher;
     private final Clock clock;
@@ -51,6 +64,27 @@ public class WorkflowExecutor {
             throw new IllegalArgumentException("cannot execute an invalid workflow: " + structuralErrors);
         }
 
+        MDC.put(MDC_WORKFLOW_ID, workflow.id());
+        try {
+            Workflow finished = run(workflow);
+            log.atInfo()
+                    .addKeyValue("event", "workflow_finished")
+                    .addKeyValue("node_count", finished.nodes().size())
+                    .addKeyValue("succeeded", count(finished, Status.SUCCEEDED))
+                    .addKeyValue("failed", count(finished, Status.FAILED))
+                    .addKeyValue("cancelled", count(finished, Status.CANCELLED))
+                    .log("workflow finished");
+            return finished;
+        } finally {
+            MDC.remove(MDC_WORKFLOW_ID);
+        }
+    }
+
+    private static long count(Workflow workflow, Status status) {
+        return workflow.nodes().stream().filter(node -> node.status() == status).count();
+    }
+
+    private Workflow run(Workflow workflow) {
         Map<String, WorkflowNode> nodesByTaskId = new LinkedHashMap<>();
         for (WorkflowNode node : workflow.nodes()) {
             nodesByTaskId.put(node.taskId(), node);
@@ -118,18 +152,33 @@ public class WorkflowExecutor {
 
     private WorkflowNode runNode(WorkflowNode readyOrRetrying) {
         WorkflowNode running = WorkflowStateMachine.transition(readyOrRetrying, Status.RUNNING, clock.instant());
+        long startNanos = System.nanoTime();
         DispatchOutcome outcome = dispatcher.dispatch(running);
+        long durationMs = (System.nanoTime() - startNanos) / 1_000_000;
         WorkflowNode attempted = running.withAttempt(running.attempt() + 1, clock.instant());
 
         if (outcome.success()) {
+            logNode(attempted, Level.INFO, "workflow_node_succeeded", durationMs, null);
             return applyOutcome(attempted, Status.SUCCEEDED, outcome.outputRef(), null);
         }
 
         if (outcome.transientFailure() && attempted.attempt() < maxAttempts) {
+            logNode(attempted, Level.WARN, "workflow_node_retry_scheduled", durationMs, outcome.error());
             return WorkflowStateMachine.transition(attempted, Status.RETRYING, clock.instant());
         }
 
+        logNode(attempted, Level.ERROR, "workflow_node_failed", durationMs, outcome.error());
         return applyOutcome(attempted, Status.FAILED, null, outcome.error());
+    }
+
+    private void logNode(WorkflowNode node, Level level, String event, long durationMs, String error) {
+        log.atLevel(level)
+                .addKeyValue("event", event)
+                .addKeyValue("task_id", node.taskId())
+                .addKeyValue("task_type", node.taskType())
+                .addKeyValue("attempt", node.attempt())
+                .addKeyValue("duration_ms", durationMs)
+                .log(error == null ? "workflow node succeeded" : "workflow node failed: {}", error);
     }
 
     /** Validates the transition (Task 8.2) before recording an outcome that carries more than just status. */

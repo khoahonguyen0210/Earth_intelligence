@@ -1,5 +1,9 @@
 package com.example.backend.forecast;
 
+import com.example.backend.logging.SecretRedactor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -21,24 +25,44 @@ import org.springframework.stereotype.Component;
  * through RETRYING in between. A permanent outcome (the request/data
  * itself is the problem) goes straight to FAILED on the first attempt,
  * never retried. See docs/forecast-retry-and-idempotency.md.
+ *
+ * Task 13.1: every log line written while a job is processed carries
+ * `job_id` (MDC), and each attempt ends in exactly one of the
+ * job_succeeded / job_retry_scheduled / job_failed events, with the
+ * attempt number, duration and, on failure, the error code and the
+ * redacted error text.
+ *
+ * Task 13.2: the same outcomes feed ForecastMetrics -- attempt duration
+ * by outcome, failures by error code, the Python stage timings, and the
+ * busy gauge around each attempt (docs/metrics.md).
  */
 @Component
 public class ForecastWorker {
+
+    public static final String MDC_JOB_ID = "job_id";
+
+    private static final Logger log = LoggerFactory.getLogger(ForecastWorker.class);
 
     private final ForecastQueue queue;
     private final ForecastStore store;
     private final ForecastRunner runner;
     private final int maxAttempts;
+    private final SecretRedactor redactor;
+    private final ForecastMetrics metrics;
 
     public ForecastWorker(
             ForecastQueue queue,
             ForecastStore store,
             ForecastRunner runner,
-            @Value("${forecast.worker.max-attempts}") int maxAttempts) {
+            @Value("${forecast.worker.max-attempts}") int maxAttempts,
+            SecretRedactor redactor,
+            ForecastMetrics metrics) {
         this.queue = queue;
         this.store = store;
         this.runner = runner;
         this.maxAttempts = maxAttempts;
+        this.redactor = redactor;
+        this.metrics = metrics;
     }
 
     @Scheduled(fixedDelay = 100)
@@ -47,21 +71,71 @@ public class ForecastWorker {
     }
 
     private void process(String forecastId) {
-        store.find(forecastId)
-                .filter(forecast -> forecast.status() == Forecast.Status.PENDING
-                        || forecast.status() == Forecast.Status.RETRYING)
-                .ifPresent(forecast -> {
-                    store.save(forecast.withStatus(Forecast.Status.RUNNING));
+        MDC.put(MDC_JOB_ID, forecastId);
+        try {
+            store.find(forecastId)
+                    .filter(forecast -> forecast.status() == Forecast.Status.PENDING
+                            || forecast.status() == Forecast.Status.RETRYING)
+                    .ifPresentOrElse(this::attempt, () -> log.atInfo()
+                            .addKeyValue("event", "job_skipped")
+                            .log("dequeued forecast is missing or not runnable; skipped"));
+        } finally {
+            MDC.remove(MDC_JOB_ID);
+        }
+    }
 
-                    ForecastOutcome outcome = runner.run(forecast.request());
-                    Forecast attempted = forecast.withAttempts(forecast.attempts() + 1);
+    private void attempt(Forecast forecast) {
+        int attemptNumber = forecast.attempts() + 1;
+        store.save(forecast.withStatus(Forecast.Status.RUNNING));
+        log.atInfo()
+                .addKeyValue("event", "job_started")
+                .addKeyValue("attempt", attemptNumber)
+                .log("forecast job started");
 
-                    if (!outcome.success() && outcome.transientFailure() && attempted.attempts() < maxAttempts) {
-                        store.save(attempted.withStatus(Forecast.Status.RETRYING));
-                        queue.enqueue(forecastId);
-                    } else {
-                        store.save(attempted.withOutcome(outcome));
-                    }
-                });
+        long startNanos = System.nanoTime();
+        ForecastOutcome outcome;
+        metrics.workerBusy(true);
+        try {
+            outcome = runner.run(forecast.request());
+        } finally {
+            metrics.workerBusy(false);
+        }
+        long durationNanos = System.nanoTime() - startNanos;
+        long durationMs = durationNanos / 1_000_000;
+        Forecast attempted = forecast.withAttempts(attemptNumber);
+
+        if (outcome.success()) {
+            store.save(attempted.withOutcome(outcome));
+            metrics.recordAttempt("succeeded", durationNanos);
+            metrics.recordStageTimings(outcome.timingsMs());
+            log.atInfo()
+                    .addKeyValue("event", "job_succeeded")
+                    .addKeyValue("attempt", attemptNumber)
+                    .addKeyValue("duration_ms", durationMs)
+                    .log("forecast job succeeded");
+        } else if (outcome.transientFailure() && attempted.attempts() < maxAttempts) {
+            store.save(attempted.withStatus(Forecast.Status.RETRYING));
+            queue.enqueue(forecast.id());
+            metrics.recordAttempt("retry_scheduled", durationNanos);
+            metrics.recordFailure(outcome.errorCode(), false);
+            log.atWarn()
+                    .addKeyValue("event", "job_retry_scheduled")
+                    .addKeyValue("attempt", attemptNumber)
+                    .addKeyValue("max_attempts", maxAttempts)
+                    .addKeyValue("duration_ms", durationMs)
+                    .addKeyValue("error_code", outcome.errorCode())
+                    .log("forecast job failed transiently, re-enqueued: {}", redactor.redact(outcome.error()));
+        } else {
+            store.save(attempted.withOutcome(outcome));
+            metrics.recordAttempt("failed", durationNanos);
+            metrics.recordFailure(outcome.errorCode(), true);
+            log.atError()
+                    .addKeyValue("event", "job_failed")
+                    .addKeyValue("attempt", attemptNumber)
+                    .addKeyValue("duration_ms", durationMs)
+                    .addKeyValue("error_code", outcome.errorCode())
+                    .addKeyValue("transient", outcome.transientFailure())
+                    .log("forecast job failed: {}", redactor.redact(outcome.error()));
+        }
     }
 }

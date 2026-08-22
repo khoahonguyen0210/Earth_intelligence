@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -67,12 +68,20 @@ def compute_forecast(
     target_cells: list[GridCell],
     region: NormalizedRegion,
     cutoff: datetime,
+    timings_ms: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """The pure model-fitting core: always the locked calibrated-XGBoost
     pipeline (Task 5.3 froze the full feature set; Task 6.1's contract
     makes calibration metadata a mandatory part of every result), fit
     fresh from train_rows/validation_rows and scored on inference_rows.
+
+    Task 13.2: if `timings_ms` is given, the wall-clock milliseconds of
+    the two model stages are written into it -- `model_fit` (XGBoost fit,
+    calibration fit, validation scoring for the calibration table) and
+    `model_inference` (scoring the inference rows only, the handbook's
+    "model inference time").
     """
+    fit_start = time.perf_counter()
     base_result = fit_xgboost(train_rows, validation_rows)
     calibrated = fit_calibration(base_result, validation_rows)
 
@@ -81,7 +90,13 @@ def compute_forecast(
         [row.target for row in validation_rows], validation_predictions
     )
 
+    inference_start = time.perf_counter()
     inference_predictions = predict_calibrated(calibrated, inference_rows)
+    inference_end = time.perf_counter()
+
+    if timings_ms is not None:
+        timings_ms["model_fit"] = (inference_start - fit_start) * 1000
+        timings_ms["model_inference"] = (inference_end - inference_start) * 1000
     cell_by_tile_id = {cell.tile_id: cell for cell in target_cells}
     cells = [
         CellForecast(cell=cell_by_tile_id[row.tile_id], probability=probability)
@@ -106,7 +121,13 @@ def run_forecast(
     """The real-file orchestrator scripts/query/run_forecast_cli.py calls:
     parses/validates the request, loads the real Phase 1 sample data (the
     same files every scripts/models/run_*.py demo already reads), and
-    delegates the actual fitting/prediction to compute_forecast."""
+    delegates the actual fitting/prediction to compute_forecast.
+
+    Returns {"result": ..., "timings_ms": {...}}. `timings_ms` sits beside
+    the result, not inside it, so docs/forecast-api-contract.md's result
+    shape is unchanged; the backend turns it into metrics (Task 13.2,
+    docs/metrics.md) and never returns it to API clients."""
+    total_start = time.perf_counter()
     request = parse_forecast_payload(payload)
     errors = validate_forecast_request(request)
 
@@ -123,6 +144,7 @@ def run_forecast(
             f"No grid cells fall within the requested region: {region.bbox}"
         )
 
+    load_start = time.perf_counter()
     observations = load_firms_observations(raw_firms_path)
     era5_records = parse_era5_records(raw_era5_path)
     geography_cells = build_geography_grid(
@@ -140,9 +162,19 @@ def run_forecast(
     train_rows = [row for row in rows if row.cutoff == TRAIN_DEMO_CUTOFF]
     validation_rows = [row for row in rows if row.cutoff == VALIDATION_DEMO_CUTOFF]
     inference_rows = [row for row in rows if row.cutoff == cutoff]
+    timings_ms: dict[str, float] = {
+        "data_load": (time.perf_counter() - load_start) * 1000
+    }
 
     result = compute_forecast(
-        train_rows, validation_rows, inference_rows, target_cells, region, cutoff
+        train_rows,
+        validation_rows,
+        inference_rows,
+        target_cells,
+        region,
+        cutoff,
+        timings_ms,
     )
+    timings_ms["total"] = (time.perf_counter() - total_start) * 1000
 
-    return {"result": result}
+    return {"result": result, "timings_ms": timings_ms}

@@ -13,4 +13,7 @@ public interface ForecastQueue {
     void enqueue(String forecastId);
 
     Optional<String> dequeue();
+
+    /** Task 13.2: ids currently waiting (not yet dequeued) -- the queue-depth metric. */
+    long size();
 }
