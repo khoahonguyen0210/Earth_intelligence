@@ -206,3 +206,32 @@ def test_save_dataset_manifest_roundtrip(tmp_path):
 
     assert saved["dataset_version"] == bd.DATASET_VERSION
     assert saved["row_counts"]["total"] == 3
+
+
+def test_save_then_load_dataset_round_trips_every_row_exactly(tmp_path):
+    rows = _rows()
+    # A row with missing features, so "None" -> None is exercised too.
+    rows.append(
+        bd.DatasetRow(
+            tile_id=TILE,
+            cutoff=TEST_CUTOFF,
+            split="test",
+            target=0,
+            previous_24h_count=0,
+            previous_72h_count=0,
+            previous_7d_count=0,
+            previous_30d_count=0,
+            neighboring_previous_24h_count=0,
+            temperature_2m=None,
+            total_precipitation=None,
+            u_wind_10m=None,
+            v_wind_10m=None,
+            relative_humidity=None,
+            elevation_m=None,
+            slope_deg=None,
+            land_cover_class=None,
+        )
+    )
+    path = bd.save_dataset(rows, tmp_path / "dataset.csv")
+
+    assert bd.load_dataset(path) == rows

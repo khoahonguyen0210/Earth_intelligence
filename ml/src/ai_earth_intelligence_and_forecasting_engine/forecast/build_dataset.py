@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import csv
 import json
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from ai_earth_intelligence_and_forecasting_engine.data.era5 import ERA5Record
 from ai_earth_intelligence_and_forecasting_engine.data.geography import GeographyCell
@@ -195,25 +197,64 @@ def build_dataset_manifest(rows: list[DatasetRow]) -> DatasetManifest:
     )
 
 
+DATASET_HEADER = "tile_id,cutoff,split,target," + ",".join(FEATURE_COLUMNS)
+
+INTEGER_COLUMNS = frozenset(
+    {
+        "previous_24h_count",
+        "previous_72h_count",
+        "previous_7d_count",
+        "previous_30d_count",
+        "neighboring_previous_24h_count",
+        "land_cover_class",
+    }
+)
+
+
+def write_dataset_rows(handle: TextIO, rows: Iterable[DatasetRow]) -> None:
+    """Appends rows in save_dataset's CSV format (header not included), so
+    a large dataset can be streamed to disk cutoff by cutoff."""
+    for row in rows:
+        values = [
+            row.tile_id,
+            row.cutoff.isoformat(),
+            row.split,
+            str(row.target),
+            *(str(getattr(row, column)) for column in FEATURE_COLUMNS),
+        ]
+        handle.write(",".join(values) + "\n")
+
+
 def save_dataset(rows: list[DatasetRow], output_path: Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    header = "tile_id,cutoff,split,target," + ",".join(FEATURE_COLUMNS)
-
     with output_path.open("w", encoding="utf-8") as handle:
-        handle.write(header + "\n")
-
-        for row in rows:
-            values = [
-                row.tile_id,
-                row.cutoff.isoformat(),
-                row.split,
-                str(row.target),
-                *(str(getattr(row, column)) for column in FEATURE_COLUMNS),
-            ]
-            handle.write(",".join(values) + "\n")
+        handle.write(DATASET_HEADER + "\n")
+        write_dataset_rows(handle, rows)
 
     return output_path
+
+
+def load_dataset(path: Path) -> list[DatasetRow]:
+    """The inverse of save_dataset: "None" (a missing feature) reads back
+    as None, counts and land cover as int, everything else as float."""
+
+    def parse(column: str, value: str) -> int | float | None:
+        if value == "None":
+            return None
+        return int(value) if column in INTEGER_COLUMNS else float(value)
+
+    with path.open(encoding="utf-8") as handle:
+        return [
+            DatasetRow(
+                tile_id=record["tile_id"],
+                cutoff=datetime.fromisoformat(record["cutoff"]),
+                split=record["split"],
+                target=int(record["target"]),
+                **{column: parse(column, record[column]) for column in FEATURE_COLUMNS},
+            )
+            for record in csv.DictReader(handle)
+        ]
 
 
 def save_dataset_manifest(manifest: DatasetManifest, output_path: Path) -> Path:
