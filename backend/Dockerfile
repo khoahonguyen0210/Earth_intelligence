@@ -35,7 +35,11 @@ COPY ml/src ./ml/src
 RUN cd ml && uv sync --frozen
 
 COPY scripts ./scripts
+# data/raw now holds the real fire-season history the forecast path reads
+# (docs/historical-dataset.md); the trained production model is baked in
+# beside it, so a container never trains at request time.
 COPY data/raw ./data/raw
+COPY ml/artifacts/production_model_v1 ./ml/artifacts/production_model_v1
 
 COPY --from=build /build/target/*.jar app.jar
 

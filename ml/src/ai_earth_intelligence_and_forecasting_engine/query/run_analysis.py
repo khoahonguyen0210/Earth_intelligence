@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +8,10 @@ from ai_earth_intelligence_and_forecasting_engine.data.firms import (
     load_firms_config,
     normalize_firms_record,
     parse_firms_records,
+)
+from ai_earth_intelligence_and_forecasting_engine.data.history import (
+    load_firms_history,
+    require_firms_coverage,
 )
 from ai_earth_intelligence_and_forecasting_engine.data.observation import Observation
 from ai_earth_intelligence_and_forecasting_engine.query.evidence import (
@@ -75,6 +79,28 @@ def load_firms_observations(raw_path: Path) -> list[Observation]:
     ]
 
 
+def load_observations_for(
+    raw_firms_path: Path, start: datetime, end: datetime
+) -> list[Observation]:
+    """`raw_firms_path` is either one FIRMS CSV (the Phase 1 sample, used
+    by tests and the regression set) or the fire-season history directory
+    the product reads (docs/historical-dataset.md). For the history, the
+    requested period must be fully covered -- an uncovered day is missing
+    data, not zero fires -- and a day of margin either side is loaded; the
+    statistics apply the exact time range themselves."""
+    if not raw_firms_path.is_dir():
+        return load_firms_observations(raw_firms_path)
+
+    last_instant = end - timedelta(microseconds=1)  # NormalizedTimeRange.end is exclusive
+    require_firms_coverage(
+        raw_firms_path,
+        start,
+        last_instant,
+        f"{start.date().isoformat()} to {last_instant.date().isoformat()}",
+    )
+    return load_firms_history(raw_firms_path, start - timedelta(days=1), end + timedelta(days=1))
+
+
 def run_analysis(payload: dict[str, Any], raw_firms_path: Path) -> dict[str, Any]:
     query = parse_request(payload)
 
@@ -91,7 +117,7 @@ def run_analysis(payload: dict[str, Any], raw_firms_path: Path) -> dict[str, Any
 
     region = normalize_region(query.region)
     time_range = normalize_time_range(query.time_range)
-    observations = load_firms_observations(raw_firms_path)
+    observations = load_observations_for(raw_firms_path, time_range.start, time_range.end)
 
     result: dict[str, Any]
 

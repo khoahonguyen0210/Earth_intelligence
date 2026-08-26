@@ -6,20 +6,21 @@ from ai_earth_intelligence_and_forecasting_engine.query.run_forecast import (
     run_forecast,
 )
 
-# Run from the project root; matches every other scripts/data/*.py adapter
-# and scripts/query/run_analysis_cli.py's own sample-data paths.
-RAW_FIRMS_PATH = Path("data/raw/firms/firms_sample.csv")
-RAW_ERA5_PATH = Path("data/raw/era5/era5_sample.nc")
-GEOGRAPHY_BBOX = (-119.8, 37.2, -119.4, 37.6)
-DEM_PATH = Path("data/raw/geography/dem_sample.tif")
-LANDCOVER_PATH = Path("data/raw/geography/landcover_sample.tif")
+# Run from the project root, like every other scripts/ entry point. All
+# inputs are real: the fire-season history (docs/historical-dataset.md)
+# and the production model trained on it
+# (scripts/models/train_production_model.py).
+FIRMS_HISTORY_DIR = Path("data/raw/firms/history")
+ERA5_HISTORY_DIR = Path("data/raw/era5/history")
+GEOGRAPHY_PATH = Path("data/raw/geography/california_geography.csv")
+MODEL_DIR = Path("ml/artifacts/production_model_v1")
 
 
 def main() -> None:
     try:
         payload = json.load(sys.stdin)
         response = run_forecast(
-            payload, RAW_FIRMS_PATH, RAW_ERA5_PATH, GEOGRAPHY_BBOX, DEM_PATH, LANDCOVER_PATH
+            payload, FIRMS_HISTORY_DIR, ERA5_HISTORY_DIR, GEOGRAPHY_PATH, MODEL_DIR
         )
     except Exception as error:
         json.dump({"error": str(error)}, sys.stdout)

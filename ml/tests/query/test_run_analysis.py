@@ -93,3 +93,33 @@ def test_run_analysis_output_is_json_serializable(firms_csv):
     response = run_analysis(_payload(), firms_csv)
 
     json.dumps(response)
+
+
+def test_run_analysis_over_history_refuses_a_period_the_history_does_not_cover(tmp_path):
+    # Only Aug 1-5 2024 downloaded: asking about Aug 1-10 must be refused,
+    # never answered as if Aug 6-10 had zero fires.
+    (tmp_path / "VIIRS_SNPP_SP_2024-08-01_5d.csv").write_text(
+        "latitude,longitude,acq_date,acq_time\n", encoding="utf-8"
+    )
+    payload = _payload()
+    payload["time_range"] = {"start": "2024-08-01", "end": "2024-08-10"}
+
+    with pytest.raises(ValueError, match="no real FIRMS fire history"):
+        run_analysis(payload, tmp_path)
+
+
+def test_run_analysis_over_history_counts_across_span_files(tmp_path):
+    header = "latitude,longitude,acq_date,acq_time,confidence\n"
+    (tmp_path / "VIIRS_SNPP_SP_2024-08-01_5d.csv").write_text(
+        header + "37.5,-119.5,2024-08-02,1000,n\n37.6,-119.6,2024-08-05,2300,n\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "VIIRS_SNPP_SP_2024-08-06_5d.csv").write_text(
+        header + "37.5,-119.5,2024-08-06,0100,h\n", encoding="utf-8"
+    )
+    payload = _payload()
+    payload["time_range"] = {"start": "2024-08-01", "end": "2024-08-10"}
+
+    response = run_analysis(payload, tmp_path)
+
+    assert response["result"] == {"count": 3}

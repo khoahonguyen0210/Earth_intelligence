@@ -104,9 +104,22 @@ def parse_era5_records(nc_path: Path) -> list[ERA5Record]:
 
     frame = dataset.to_dataframe().reset_index()
 
-    for _, row in frame.iterrows():
-        latitude = float(row["latitude"])
-        longitude = float(row["longitude"])
+    # Column-wise, not frame.iterrows(): iterrows builds a pandas Series
+    # per row and took ~48 s for one month of cutoff hours over California
+    # (~51k rows) -- too slow for a forecast request, which parses the
+    # cutoff's monthly history file. Values, types, validation and the
+    # source_record strings are exactly the old loop's (test_era5.py
+    # compares both, on a real history file when one is present).
+    time_column = "valid_time" if "valid_time" in frame.columns else "time"
+    columns = {
+        name: frame[name].to_numpy()
+        for name in ("latitude", "longitude", "t2m", "tp", "u10", "v10", "d2m")
+    }
+    valid_times = frame[time_column].dt.to_pydatetime()
+
+    for index in range(len(frame)):
+        latitude = float(columns["latitude"][index])
+        longitude = float(columns["longitude"][index])
 
         if not -90 <= latitude <= 90:
             raise ValueError(f"Invalid latitude: {latitude}")
@@ -114,31 +127,24 @@ def parse_era5_records(nc_path: Path) -> list[ERA5Record]:
         if not -180 <= longitude <= 180:
             raise ValueError(f"Invalid longitude: {longitude}")
 
-        valid_time = row["valid_time"] if "valid_time" in row else row["time"]
-        valid_time = (
-            valid_time.to_pydatetime()
-            if hasattr(valid_time, "to_pydatetime")
-            else valid_time
-        )
-        valid_time = valid_time.replace(tzinfo=timezone.utc)
+        # float() first: iterrows upcast each row to float64, so the old
+        # source_record strings are float64 reprs, not float32 ones.
+        values = {
+            name: float(columns[name][index])
+            for name in ("t2m", "tp", "u10", "v10", "d2m")
+        }
 
         records.append(
             ERA5Record(
                 latitude=latitude,
                 longitude=longitude,
-                valid_time=valid_time,
-                temperature_2m=float(row["t2m"]),
-                total_precipitation=float(row["tp"]),
-                u_wind_10m=float(row["u10"]),
-                v_wind_10m=float(row["v10"]),
-                dewpoint_2m=float(row["d2m"]),
-                source_record={
-                    "t2m": str(row["t2m"]),
-                    "tp": str(row["tp"]),
-                    "u10": str(row["u10"]),
-                    "v10": str(row["v10"]),
-                    "d2m": str(row["d2m"]),
-                },
+                valid_time=valid_times[index].replace(tzinfo=timezone.utc),
+                temperature_2m=values["t2m"],
+                total_precipitation=values["tp"],
+                u_wind_10m=values["u10"],
+                v_wind_10m=values["v10"],
+                dewpoint_2m=values["d2m"],
+                source_record={name: str(value) for name, value in values.items()},
             )
         )
 

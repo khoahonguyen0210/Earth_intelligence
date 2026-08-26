@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -7,12 +8,17 @@ import xarray as xr
 
 from ai_earth_intelligence_and_forecasting_engine.data.era5 import (
     ERA5Config,
+    ERA5Record,
     build_area,
     fetch_era5_sample,
     load_era5_config,
     parse_era5_records,
     relative_humidity_percent,
 )
+
+# A real monthly file from scripts/data/download_era5_history.py; data/ is not
+# in git, so the real-data comparison below skips when it is absent.
+REAL_ERA5_PATH = Path("data/raw/era5/history/era5_land_2020_08.nc")
 
 
 def test_era5_config_default_dataset():
@@ -148,3 +154,110 @@ def test_relative_humidity_percent_drier_air_is_lower():
     drier = relative_humidity_percent(295.0, 280.0)
 
     assert drier < saturated
+
+
+def _parse_era5_records_row_by_row(nc_path) -> list[ERA5Record]:
+    """The original frame.iterrows() parser, kept as the reference the faster
+    column-wise parse_era5_records must reproduce exactly."""
+    dataset = xr.open_dataset(nc_path)
+    frame = dataset.to_dataframe().reset_index()
+    records = []
+
+    for _, row in frame.iterrows():
+        valid_time = row["valid_time"] if "valid_time" in row else row["time"]
+        valid_time = (
+            valid_time.to_pydatetime()
+            if hasattr(valid_time, "to_pydatetime")
+            else valid_time
+        )
+        records.append(
+            ERA5Record(
+                latitude=float(row["latitude"]),
+                longitude=float(row["longitude"]),
+                valid_time=valid_time.replace(tzinfo=timezone.utc),
+                temperature_2m=float(row["t2m"]),
+                total_precipitation=float(row["tp"]),
+                u_wind_10m=float(row["u10"]),
+                v_wind_10m=float(row["v10"]),
+                dewpoint_2m=float(row["d2m"]),
+                source_record={
+                    name: str(row[name]) for name in ("t2m", "tp", "u10", "v10", "d2m")
+                },
+            )
+        )
+
+    dataset.close()
+    return records
+
+
+def test_parse_era5_records_matches_the_row_by_row_parser(tmp_path):
+    nc_path = tmp_path / "era5_grid.nc"
+    shape = (2, 3, 4)
+    rng = np.random.default_rng(0)
+    variables = {
+        name: (
+            ["valid_time", "latitude", "longitude"],
+            rng.normal(loc, scale, size=shape).astype(np.float32),
+        )
+        for name, loc, scale in (
+            ("t2m", 295.0, 5.0),
+            ("tp", 0.001, 0.0005),
+            ("u10", 0.0, 3.0),
+            ("v10", 0.0, 3.0),
+            ("d2m", 285.0, 5.0),
+        )
+    }
+    variables["t2m"][1][0, 1, 2] = np.nan  # a masked ocean cell stays NaN
+    dataset = xr.Dataset(
+        variables,
+        coords={
+            "valid_time": [
+                np.datetime64("2024-08-15T10:00:00"),
+                np.datetime64("2024-08-16T10:00:00"),
+            ],
+            "latitude": [38.0, 37.9, 37.8],
+            "longitude": [-120.3, -120.2, -120.1, -120.0],
+        },
+    )
+    dataset.to_netcdf(nc_path)
+    dataset.close()
+
+    assert _same_records(
+        parse_era5_records(nc_path), _parse_era5_records_row_by_row(nc_path)
+    )
+
+
+@pytest.mark.skipif(
+    not REAL_ERA5_PATH.exists(), reason="real ERA5 history not downloaded"
+)
+def test_parse_era5_records_matches_the_row_by_row_parser_on_real_data(tmp_path):
+    # Two cutoff hours of a real monthly California file: the real dtypes,
+    # coordinate order and land mask, without the row-by-row parser's ~48 s
+    # on the whole month.
+    nc_path = tmp_path / "era5_real_slice.nc"
+    with xr.open_dataset(REAL_ERA5_PATH) as dataset:
+        dataset.isel(valid_time=slice(0, 2)).to_netcdf(nc_path)
+
+    fast = parse_era5_records(nc_path)
+
+    assert len(fast) > 0
+    assert _same_records(fast, _parse_era5_records_row_by_row(nc_path))
+
+
+def _same_records(left: list[ERA5Record], right: list[ERA5Record]) -> bool:
+    # NaN != NaN, so compare float fields by their repr (identical floats,
+    # including NaN, have identical reprs) and everything else directly.
+    def key(record: ERA5Record) -> tuple:
+        return (
+            record.latitude,
+            record.longitude,
+            record.valid_time,
+            repr(record.temperature_2m),
+            repr(record.total_precipitation),
+            repr(record.u_wind_10m),
+            repr(record.v_wind_10m),
+            repr(record.dewpoint_2m),
+            tuple(sorted(record.source_record.items())),
+        )
+
+    return [key(r) for r in left] == [key(r) for r in right]

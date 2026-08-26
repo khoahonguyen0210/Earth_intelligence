@@ -125,8 +125,21 @@ def build_forecast_result(
     region: NormalizedRegion,
     cutoff: datetime,
     calibration_table: list[CalibrationBin],
+    inputs: dict[str, Any] | None = None,
 ) -> ForecastResult:
+    """`inputs` (optional) records what real data and which trained model
+    produced this forecast -- the FIRMS window and count, the ERA5-Land
+    hour used, the model's training summary -- under the evidence's
+    query_parameters["inputs"], so a result always says what it was
+    computed from."""
     forecast_window = build_forecast_window(cutoff)
+
+    query_parameters: dict[str, Any] = {
+        "cutoff": cutoff.isoformat(),
+        "forecast_window_hours": FORECAST_WINDOW_HOURS,
+    }
+    if inputs is not None:
+        query_parameters["inputs"] = inputs
 
     evidence = build_evidence(
         dataset=f"wildfire_forecast:{MODEL_VERSION}",
@@ -134,10 +147,7 @@ def build_forecast_result(
         time_range=NormalizedTimeRange(
             start=forecast_window.start, end=forecast_window.end
         ),
-        query_parameters={
-            "cutoff": cutoff.isoformat(),
-            "forecast_window_hours": FORECAST_WINDOW_HOURS,
-        },
+        query_parameters=query_parameters,
     )
 
     return ForecastResult(

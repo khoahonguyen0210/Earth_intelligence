@@ -1,30 +1,37 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from ai_earth_intelligence_and_forecasting_engine.data.era5 import parse_era5_records
-from ai_earth_intelligence_and_forecasting_engine.data.geography import (
-    build_geography_grid,
-)
 from ai_earth_intelligence_and_forecasting_engine.data.grid import (
     GridCell,
     build_california_grid,
     cells_within_bbox,
 )
+from ai_earth_intelligence_and_forecasting_engine.data.history import (
+    LOOKBACK_HOURS,
+    load_firms_history,
+    require_firms_coverage,
+)
+from ai_earth_intelligence_and_forecasting_engine.data.statewide_geography import (
+    load_geography_records,
+)
 from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import (
     DatasetRow,
     build_dataset,
 )
+from ai_earth_intelligence_and_forecasting_engine.forecast.historical_dataset import (
+    ERA5History,
+)
 from ai_earth_intelligence_and_forecasting_engine.models.calibration import (
-    build_calibration_table,
-    fit_calibration,
     predict_calibrated,
 )
-from ai_earth_intelligence_and_forecasting_engine.models.xgboost_model import (
-    fit_xgboost,
+from ai_earth_intelligence_and_forecasting_engine.models.production_model import (
+    ProductionModel,
+    load_production_model,
+    train_production_model,
 )
 from ai_earth_intelligence_and_forecasting_engine.query.forecast_result import (
     CellForecast,
@@ -38,18 +45,18 @@ from ai_earth_intelligence_and_forecasting_engine.query.region import (
     NormalizedRegion,
     normalize_region,
 )
-from ai_earth_intelligence_and_forecasting_engine.query.run_analysis import (
-    load_firms_observations,
-)
 from ai_earth_intelligence_and_forecasting_engine.query.schema import RegionSpec
 
-# The same real, known-good historical dates already used as demo train/
-# validation cutoffs in scripts/models/run_final_benchmark.py -- a live
-# forecast request only supplies the inference cutoff, so train/validation
-# rows are always built at these two fixed points in the locked historical
-# split (see docs/forecasting-specification.md).
+# Fixed cutoffs inside the train and validation splits, used by
+# compute_forecast's unit tests (synthetic rows). The live product no
+# longer trains at request time -- see run_forecast.
 TRAIN_DEMO_CUTOFF = datetime(2020, 8, 15, 10, 0, tzinfo=timezone.utc)
 VALIDATION_DEMO_CUTOFF = datetime(2023, 8, 15, 10, 0, tzinfo=timezone.utc)
+
+# The stalest ERA5-Land hour a forecast may use. History holds the weekly
+# benchmark cutoff hours (docs/historical-dataset.md), so any in-season
+# cutoff has one at most 7 days old; older means there is no weather.
+MAX_ERA5_AGE = timedelta(days=7)
 
 
 def parse_forecast_payload(payload: dict[str, Any]) -> ForecastRequest:
@@ -61,6 +68,34 @@ def parse_forecast_payload(payload: dict[str, Any]) -> ForecastRequest:
     )
 
 
+def predict_forecast(
+    model: ProductionModel,
+    inference_rows: list[DatasetRow],
+    target_cells: list[GridCell],
+    region: NormalizedRegion,
+    cutoff: datetime,
+    timings_ms: dict[str, float] | None = None,
+    inputs: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Scores inference_rows with an already-trained model. `timings_ms`
+    (if given) receives `model_inference`: scoring only, the handbook's
+    "model inference time" (Task 13.2)."""
+    inference_start = time.perf_counter()
+    probabilities = predict_calibrated(model.calibrated, inference_rows)
+    if timings_ms is not None:
+        timings_ms["model_inference"] = (time.perf_counter() - inference_start) * 1000
+
+    cell_by_tile_id = {cell.tile_id: cell for cell in target_cells}
+    cells = [
+        CellForecast(cell=cell_by_tile_id[row.tile_id], probability=probability)
+        for row, probability in zip(inference_rows, probabilities, strict=True)
+    ]
+    result = build_forecast_result(
+        cells, region, cutoff, model.calibration_table, inputs
+    )
+    return forecast_result_to_dict(result)
+
+
 def compute_forecast(
     train_rows: list[DatasetRow],
     validation_rows: list[DatasetRow],
@@ -70,58 +105,43 @@ def compute_forecast(
     cutoff: datetime,
     timings_ms: dict[str, float] | None = None,
 ) -> dict[str, Any]:
-    """The pure model-fitting core: always the locked calibrated-XGBoost
-    pipeline (Task 5.3 froze the full feature set; Task 6.1's contract
-    makes calibration metadata a mandatory part of every result), fit
-    fresh from train_rows/validation_rows and scored on inference_rows.
-
-    Task 13.2: if `timings_ms` is given, the wall-clock milliseconds of
-    the two model stages are written into it -- `model_fit` (XGBoost fit,
-    calibration fit, validation scoring for the calibration table) and
-    `model_inference` (scoring the inference rows only, the handbook's
-    "model inference time").
-    """
+    """Train-then-predict in one call: the locked calibrated-XGBoost
+    pipeline fit from train_rows/validation_rows exactly as the
+    production model is (models/production_model.py), then scored on
+    inference_rows. `timings_ms` receives `model_fit` and
+    `model_inference`."""
     fit_start = time.perf_counter()
-    base_result = fit_xgboost(train_rows, validation_rows)
-    calibrated = fit_calibration(base_result, validation_rows)
+    model = train_production_model(train_rows, validation_rows)
+    if timings_ms is not None:
+        timings_ms["model_fit"] = (time.perf_counter() - fit_start) * 1000
 
-    validation_predictions = predict_calibrated(calibrated, validation_rows)
-    calibration_table = build_calibration_table(
-        [row.target for row in validation_rows], validation_predictions
+    return predict_forecast(
+        model, inference_rows, target_cells, region, cutoff, timings_ms
     )
 
-    inference_start = time.perf_counter()
-    inference_predictions = predict_calibrated(calibrated, inference_rows)
-    inference_end = time.perf_counter()
 
-    if timings_ms is not None:
-        timings_ms["model_fit"] = (inference_start - fit_start) * 1000
-        timings_ms["model_inference"] = (inference_end - inference_start) * 1000
-    cell_by_tile_id = {cell.tile_id: cell for cell in target_cells}
-    cells = [
-        CellForecast(cell=cell_by_tile_id[row.tile_id], probability=probability)
-        for row, probability in zip(
-            inference_rows, inference_predictions, strict=True
-        )
-    ]
-
-    result = build_forecast_result(cells, region, cutoff, calibration_table)
-
-    return forecast_result_to_dict(result)
+def require_lookback_coverage(history_dir: Path, cutoff: datetime) -> None:
+    """A forecast needs real fire history for its whole 30-day lookback;
+    outside it every fire-history feature would silently read 0."""
+    require_firms_coverage(
+        history_dir,
+        cutoff - timedelta(hours=LOOKBACK_HOURS),
+        cutoff,
+        f"the 30 days before cutoff {cutoff.isoformat()}",
+    )
 
 
 def run_forecast(
     payload: dict[str, Any],
-    raw_firms_path: Path,
-    raw_era5_path: Path,
-    geography_bbox: tuple[float, float, float, float],
-    dem_path: Path,
-    landcover_path: Path,
+    firms_history_dir: Path,
+    era5_history_dir: Path,
+    geography_path: Path,
+    model_dir: Path,
 ) -> dict[str, Any]:
-    """The real-file orchestrator scripts/query/run_forecast_cli.py calls:
-    parses/validates the request, loads the real Phase 1 sample data (the
-    same files every scripts/models/run_*.py demo already reads), and
-    delegates the actual fitting/prediction to compute_forecast.
+    """The orchestrator scripts/query/run_forecast_cli.py calls: validates
+    the request, builds the inference cutoff's feature rows from the real
+    history (FIRMS strictly before the cutoff -- nothing after it is even
+    loaded), and scores them with the trained production model.
 
     Returns {"result": ..., "timings_ms": {...}}. `timings_ms` sits beside
     the result, not inside it, so docs/forecast-api-contract.md's result
@@ -144,36 +164,43 @@ def run_forecast(
             f"No grid cells fall within the requested region: {region.bbox}"
         )
 
+    require_lookback_coverage(firms_history_dir, cutoff)
+
     load_start = time.perf_counter()
-    observations = load_firms_observations(raw_firms_path)
-    era5_records = parse_era5_records(raw_era5_path)
-    geography_cells = build_geography_grid(
-        bbox=geography_bbox,
-        resolution_deg=0.1,
-        dem_path=dem_path,
-        landcover_path=landcover_path,
-    )
+    lookback_start = cutoff - timedelta(hours=LOOKBACK_HOURS)
+    observations = load_firms_history(firms_history_dir, lookback_start, cutoff)
+    era5_records = ERA5History(era5_history_dir).for_cutoff(cutoff)
+    fresh_era5 = [r for r in era5_records if cutoff - r.valid_time <= MAX_ERA5_AGE]
+    if not fresh_era5:
+        raise ValueError(
+            f"no real ERA5-Land weather within {MAX_ERA5_AGE.days} days before "
+            f"{cutoff.isoformat()}"
+        )
+    geography = load_geography_records(geography_path)
 
-    cutoffs = sorted({TRAIN_DEMO_CUTOFF, VALIDATION_DEMO_CUTOFF, cutoff})
-    rows = build_dataset(
-        observations, era5_records, geography_cells, target_cells, cutoffs
-    )
-
-    train_rows = [row for row in rows if row.cutoff == TRAIN_DEMO_CUTOFF]
-    validation_rows = [row for row in rows if row.cutoff == VALIDATION_DEMO_CUTOFF]
-    inference_rows = [row for row in rows if row.cutoff == cutoff]
+    rows = build_dataset(observations, fresh_era5, geography, target_cells, [cutoff])
     timings_ms: dict[str, float] = {
         "data_load": (time.perf_counter() - load_start) * 1000
     }
 
-    result = compute_forecast(
-        train_rows,
-        validation_rows,
-        inference_rows,
-        target_cells,
-        region,
-        cutoff,
-        timings_ms,
+    model_start = time.perf_counter()
+    model = load_production_model(model_dir)
+    timings_ms["model_load"] = (time.perf_counter() - model_start) * 1000
+
+    inputs = {
+        "firms_observations": len(observations),
+        "firms_window": {
+            "start": lookback_start.isoformat(),
+            "end": cutoff.isoformat(),
+        },
+        "era5_valid_time": max(r.valid_time for r in fresh_era5).isoformat(),
+        "model": {
+            key: model.metadata.get(key)
+            for key in ("model", "model_version", "trained_at", "train", "validation")
+        },
+    }
+    result = predict_forecast(
+        model, rows, target_cells, region, cutoff, timings_ms, inputs
     )
     timings_ms["total"] = (time.perf_counter() - total_start) * 1000
 

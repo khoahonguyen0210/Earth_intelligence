@@ -9,7 +9,10 @@
 
 .venv/
 ml/.venv/
-ml/artifacts/
+# Experiment outputs stay out of the image; the one trained model the
+# product serves is baked in (backend/Dockerfile, docs/historical-dataset.md).
+ml/artifacts/*
+!ml/artifacts/production_model_v1
 
 **/node_modules/
 frontend/dist/
