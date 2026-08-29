@@ -51,5 +51,6 @@ ENV FORECAST_PYTHON_EXECUTABLE=/app/ml/.venv/bin/python \
     FORECAST_PYTHON_WORKDIR=/app \
     ANALYSIS_PYTHON_WORKDIR=/app
 
-EXPOSE 8080
+# 8081 is the internal management port (actuator), never published.
+EXPOSE 8080 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]

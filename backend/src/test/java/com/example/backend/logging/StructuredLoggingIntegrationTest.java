@@ -35,7 +35,7 @@ class StructuredLoggingIntegrationTest {
     @Test
     void anHttpRequestProducesOneEcsJsonLineCarryingTheRequestId(CapturedOutput output) throws Exception {
         HttpResponse<String> response = HttpClient.newHttpClient().send(
-                HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/actuator/health"))
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/readyz"))
                         .header(RequestIdFilter.HEADER, "itest-request-42")
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -55,7 +55,7 @@ class StructuredLoggingIntegrationTest {
         assertEquals("itest-request-42", json.path("request_id").asString());
         assertEquals("http_request", json.path("event").asString());
         assertEquals("GET", json.path("http_method").asString());
-        assertEquals("/actuator/health", json.path("http_path").asString());
+        assertEquals("/readyz", json.path("http_path").asString());
         assertEquals(200, json.path("http_status").asInt());
         assertTrue(json.path("duration_ms").isNumber(), "duration_ms");
     }
