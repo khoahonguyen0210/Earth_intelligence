@@ -10,7 +10,8 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * The JPA row shape for the forecasts table (Task 6.3; attempts/
- * idempotency_key added by Task 6.6's V2 migration). request/result
+ * idempotency_key added by Task 6.6's V2 migration, trace_parent by
+ * Task 13.3's V4). request/result
  * are stored as raw JSON text in a jsonb column -- ForecastStore does the
  * Forecast record <-> JSON conversion, so this class is a pure
  * persistence detail the rest of the forecast package never sees.
@@ -44,6 +45,9 @@ public class ForecastEntity {
     @Column(name = "idempotency_key")
     private String idempotencyKey;
 
+    @Column(name = "trace_parent")
+    private String traceParent;
+
     protected ForecastEntity() {
         // JPA
     }
@@ -56,7 +60,8 @@ public class ForecastEntity {
             String error,
             Instant createdAt,
             int attempts,
-            String idempotencyKey) {
+            String idempotencyKey,
+            String traceParent) {
         this.id = id;
         this.request = request;
         this.status = status;
@@ -65,6 +70,7 @@ public class ForecastEntity {
         this.createdAt = createdAt;
         this.attempts = attempts;
         this.idempotencyKey = idempotencyKey;
+        this.traceParent = traceParent;
     }
 
     public String getId() {
@@ -97,5 +103,9 @@ public class ForecastEntity {
 
     public String getIdempotencyKey() {
         return idempotencyKey;
+    }
+
+    public String getTraceParent() {
+        return traceParent;
     }
 }

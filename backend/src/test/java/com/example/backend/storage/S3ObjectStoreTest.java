@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.example.backend.tracing.Spans;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
@@ -32,7 +33,7 @@ class S3ObjectStoreTest {
                 .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();
 
-        return new S3ObjectStore(client, "ai-earth-artifacts-test");
+        return new S3ObjectStore(client, "ai-earth-artifacts-test", Spans.noop());
     }
 
     @Test

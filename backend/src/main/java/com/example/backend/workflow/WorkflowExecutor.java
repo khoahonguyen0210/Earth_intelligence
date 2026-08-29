@@ -1,5 +1,6 @@
 package com.example.backend.workflow;
 
+import com.example.backend.tracing.Spans;
 import com.example.backend.workflow.WorkflowNode.Status;
 import com.example.backend.workflow.WorkflowTaskDispatcher.DispatchOutcome;
 import java.time.Clock;
@@ -36,6 +37,12 @@ import org.slf4j.event.Level;
  * `workflow_id` (MDC); each node attempt that ends logs one
  * workflow_node_succeeded / workflow_node_retry_scheduled /
  * workflow_node_failed event, and the run ends with workflow_finished.
+ *
+ * Task 13.3: execute() is a `workflow.execute` span (a new trace unless
+ * one is already running, e.g. an HTTP request that runs a workflow), and
+ * each node attempt is a `workflow.node` child of it, tagged with the
+ * task and its outcome -- so a trace shows the DAG's real execution
+ * order, retries included (docs/tracing.md).
  */
 public class WorkflowExecutor {
 
@@ -46,11 +53,18 @@ public class WorkflowExecutor {
     private final WorkflowTaskDispatcher dispatcher;
     private final Clock clock;
     private final int maxAttempts;
+    private final Spans spans;
 
-    public WorkflowExecutor(WorkflowTaskDispatcher dispatcher, Clock clock, int maxAttempts) {
+    public WorkflowExecutor(WorkflowTaskDispatcher dispatcher, Clock clock, int maxAttempts, Spans spans) {
         this.dispatcher = dispatcher;
         this.clock = clock;
         this.maxAttempts = maxAttempts;
+        this.spans = spans;
+    }
+
+    /** Untraced -- for callers that do not run inside Spring. */
+    public WorkflowExecutor(WorkflowTaskDispatcher dispatcher, Clock clock, int maxAttempts) {
+        this(dispatcher, clock, maxAttempts, Spans.noop());
     }
 
     /**
@@ -66,18 +80,31 @@ public class WorkflowExecutor {
 
         MDC.put(MDC_WORKFLOW_ID, workflow.id());
         try {
-            Workflow finished = run(workflow);
-            log.atInfo()
-                    .addKeyValue("event", "workflow_finished")
-                    .addKeyValue("node_count", finished.nodes().size())
-                    .addKeyValue("succeeded", count(finished, Status.SUCCEEDED))
-                    .addKeyValue("failed", count(finished, Status.FAILED))
-                    .addKeyValue("cancelled", count(finished, Status.CANCELLED))
-                    .log("workflow finished");
-            return finished;
+            return spans.root("workflow.execute", () -> runAndLog(workflow));
         } finally {
             MDC.remove(MDC_WORKFLOW_ID);
         }
+    }
+
+    private Workflow runAndLog(Workflow workflow) {
+        spans.tag("workflow.id", workflow.id());
+        spans.tag("workflow.name", workflow.name());
+        Workflow finished = run(workflow);
+        long failed = count(finished, Status.FAILED);
+        spans.tag("workflow.succeeded", count(finished, Status.SUCCEEDED));
+        spans.tag("workflow.failed", failed);
+        spans.tag("workflow.cancelled", count(finished, Status.CANCELLED));
+        if (failed > 0) {
+            spans.fail(failed + " workflow node(s) failed");
+        }
+        log.atInfo()
+                .addKeyValue("event", "workflow_finished")
+                .addKeyValue("node_count", finished.nodes().size())
+                .addKeyValue("succeeded", count(finished, Status.SUCCEEDED))
+                .addKeyValue("failed", failed)
+                .addKeyValue("cancelled", count(finished, Status.CANCELLED))
+                .log("workflow finished");
+        return finished;
     }
 
     private static long count(Workflow workflow, Status status) {
@@ -151,6 +178,20 @@ public class WorkflowExecutor {
     }
 
     private WorkflowNode runNode(WorkflowNode readyOrRetrying) {
+        return spans.child("workflow.node", () -> {
+            spans.tag("workflow.task_id", readyOrRetrying.taskId());
+            spans.tag("workflow.task_type", readyOrRetrying.taskType());
+            WorkflowNode attempted = attemptNode(readyOrRetrying);
+            spans.tag("workflow.attempt", attempted.attempt());
+            spans.tag("workflow.node_status", attempted.status());
+            if (attempted.status() != Status.SUCCEEDED) {
+                spans.fail(attempted.error());
+            }
+            return attempted;
+        });
+    }
+
+    private WorkflowNode attemptNode(WorkflowNode readyOrRetrying) {
         WorkflowNode running = WorkflowStateMachine.transition(readyOrRetrying, Status.RUNNING, clock.instant());
         long startNanos = System.nanoTime();
         DispatchOutcome outcome = dispatcher.dispatch(running);

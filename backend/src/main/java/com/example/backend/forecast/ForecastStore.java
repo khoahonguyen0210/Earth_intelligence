@@ -1,5 +1,6 @@
 package com.example.backend.forecast;
 
+import com.example.backend.tracing.Spans;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -9,29 +10,45 @@ import tools.jackson.databind.ObjectMapper;
  * in-memory ConcurrentHashMap. save/find keep the exact same shape as
  * before, so ForecastController is unchanged -- only this class's
  * internals moved from a Map to a real jsonb-backed table.
+ *
+ * Task 13.3: each call is a child span (the "storage" hop of a trace);
+ * the save that records a job's outcome is where its result lands, and
+ * carries that final status as a tag.
  */
 @Repository
 public class ForecastStore {
 
     private final ForecastJpaRepository repository;
     private final ObjectMapper objectMapper;
+    private final Spans spans;
 
-    public ForecastStore(ForecastJpaRepository repository, ObjectMapper objectMapper) {
+    public ForecastStore(ForecastJpaRepository repository, ObjectMapper objectMapper, Spans spans) {
         this.repository = repository;
         this.objectMapper = objectMapper;
+        this.spans = spans;
     }
 
     public void save(Forecast forecast) {
-        repository.save(toEntity(forecast));
+        spans.child("forecast.store.save", () -> {
+            spans.tag("db.system", "postgresql");
+            spans.tag("forecast.status", forecast.status());
+            repository.save(toEntity(forecast));
+        });
     }
 
     public Optional<Forecast> find(String id) {
-        return repository.findById(id).map(this::toDomain);
+        return spans.child("forecast.store.find", () -> {
+            spans.tag("db.system", "postgresql");
+            return repository.findById(id).map(this::toDomain);
+        });
     }
 
     /** Task 6.6: backs the "same idempotency key -> one logical job" rule. */
     public Optional<Forecast> findByIdempotencyKey(String idempotencyKey) {
-        return repository.findByIdempotencyKey(idempotencyKey).map(this::toDomain);
+        return spans.child("forecast.store.find_by_idempotency_key", () -> {
+            spans.tag("db.system", "postgresql");
+            return repository.findByIdempotencyKey(idempotencyKey).map(this::toDomain);
+        });
     }
 
     private ForecastEntity toEntity(Forecast forecast) {
@@ -43,7 +60,8 @@ public class ForecastStore {
                 forecast.error(),
                 forecast.createdAt(),
                 forecast.attempts(),
-                forecast.idempotencyKey());
+                forecast.idempotencyKey(),
+                forecast.traceParent());
     }
 
     private Forecast toDomain(ForecastEntity entity) {
@@ -55,6 +73,7 @@ public class ForecastStore {
                 entity.getResult() == null ? null : objectMapper.readValue(entity.getResult(), Object.class),
                 entity.getError(),
                 entity.getAttempts(),
-                entity.getIdempotencyKey());
+                entity.getIdempotencyKey(),
+                entity.getTraceParent());
     }
 }

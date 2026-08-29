@@ -1,6 +1,7 @@
 package com.example.backend.forecast;
 
 import com.example.backend.logging.ErrorCode;
+import com.example.backend.tracing.Spans;
 import jakarta.annotation.PreDestroy;
 import java.io.File;
 import java.io.IOException;
@@ -32,6 +33,11 @@ import tools.jackson.databind.ObjectMapper;
  * reads, so waiting for exit before reading would deadlock on any
  * sufficiently large forecast payload (a full California grid
  * FeatureCollection easily can be).
+ *
+ * Task 13.3: each run is a `forecast.python` child span. The Python
+ * process is not itself traced (docs/tracing.md); its own stage timings
+ * (data_load, model_load, model_inference, total) are tagged onto this
+ * span instead, and a failed run's span carries its error code.
  */
 @Service
 public class PythonForecastRunner implements ForecastRunner {
@@ -41,6 +47,7 @@ public class PythonForecastRunner implements ForecastRunner {
     private final String scriptPath;
     private final String workingDirectory;
     private final long timeoutSeconds;
+    private final Spans spans;
     private final ExecutorService ioExecutor = Executors.newFixedThreadPool(2, PythonForecastRunner::newDaemonThread);
 
     public PythonForecastRunner(
@@ -48,16 +55,32 @@ public class PythonForecastRunner implements ForecastRunner {
             @Value("${forecast.python.executable}") String pythonExecutable,
             @Value("${forecast.python.script-path}") String scriptPath,
             @Value("${forecast.python.working-directory}") String workingDirectory,
-            @Value("${forecast.python.timeout-seconds}") long timeoutSeconds) {
+            @Value("${forecast.python.timeout-seconds}") long timeoutSeconds,
+            Spans spans) {
         this.objectMapper = objectMapper;
         this.pythonExecutable = pythonExecutable;
         this.scriptPath = scriptPath;
         this.workingDirectory = workingDirectory;
         this.timeoutSeconds = timeoutSeconds;
+        this.spans = spans;
     }
 
     @Override
     public ForecastOutcome run(ForecastRequest request) {
+        return spans.child("forecast.python", () -> {
+            ForecastOutcome outcome = runProcess(request);
+            outcome.timingsMs().forEach((stage, millis) -> spans.tag("python." + stage + "_ms", millis));
+            if (!outcome.success()) {
+                // Only the code: the error text is the raw Python/stderr
+                // text, which the worker redacts before it goes anywhere.
+                spans.tag("error.code", outcome.errorCode());
+                spans.fail(outcome.errorCode().name());
+            }
+            return outcome;
+        });
+    }
+
+    private ForecastOutcome runProcess(ForecastRequest request) {
         try {
             ProcessBuilder builder = new ProcessBuilder(pythonExecutable, scriptPath);
             builder.directory(new File(workingDirectory));

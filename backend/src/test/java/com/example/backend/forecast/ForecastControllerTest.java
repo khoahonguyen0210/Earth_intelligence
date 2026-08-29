@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.backend.logging.ErrorCode;
+import com.example.backend.tracing.Spans;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -84,13 +85,13 @@ class ForecastControllerTest {
                     .findFirst();
         });
 
-        return new ForecastStore(repository, new ObjectMapper());
+        return new ForecastStore(repository, new ObjectMapper(), Spans.noop());
     }
 
     @Test
     void createForecastReturnsCreatedWithPendingStatusAndEnqueuesTheJob() {
         FakeQueue queue = new FakeQueue();
-        ForecastController controller = new ForecastController(queue, newStore());
+        ForecastController controller = new ForecastController(queue, newStore(), Spans.noop());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response =
                 controller.createForecast(VALID_REQUEST, null);
@@ -104,7 +105,7 @@ class ForecastControllerTest {
 
     @Test
     void getForecastReturnsStoredStatusById() {
-        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore(), Spans.noop());
 
         String id = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.getForecast(id);
@@ -116,7 +117,7 @@ class ForecastControllerTest {
 
     @Test
     void getForecastReturnsNotFoundForUnknownId() {
-        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore(), Spans.noop());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response = controller.getForecast("does-not-exist");
 
@@ -129,7 +130,7 @@ class ForecastControllerTest {
         Map<String, Object> result = Map.of("model_version", "v1", "evidence", Map.of("dataset", "wildfire_forecast:v1"));
         Forecast forecast = Forecast.from("test-id", VALID_REQUEST, Instant.now(), ForecastOutcome.success(result));
         store.save(forecast);
-        ForecastController controller = new ForecastController(new FakeQueue(), store);
+        ForecastController controller = new ForecastController(new FakeQueue(), store, Spans.noop());
 
         ResponseEntity<?> response = controller.getForecastResult("test-id");
 
@@ -143,7 +144,7 @@ class ForecastControllerTest {
         ForecastStore store = newStore();
         Forecast forecast = Forecast.from("test-id", VALID_REQUEST, Instant.now(), ForecastOutcome.failure(ErrorCode.PYTHON_FAILED, "boom"));
         store.save(forecast);
-        ForecastController controller = new ForecastController(new FakeQueue(), store);
+        ForecastController controller = new ForecastController(new FakeQueue(), store, Spans.noop());
 
         ResponseEntity<?> response = controller.getForecastResult("test-id");
 
@@ -154,7 +155,7 @@ class ForecastControllerTest {
 
     @Test
     void getForecastResultReturnsConflictWhileNotYetFinished() {
-        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore(), Spans.noop());
 
         String id = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
         ResponseEntity<?> response = controller.getForecastResult(id);
@@ -166,7 +167,7 @@ class ForecastControllerTest {
 
     @Test
     void getForecastResultReturnsNotFoundForUnknownId() {
-        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore(), Spans.noop());
 
         ResponseEntity<?> response = controller.getForecastResult("does-not-exist");
 
@@ -189,7 +190,7 @@ class ForecastControllerTest {
     @Test
     void createForecastWithSameIdempotencyKeyReturnsTheExistingJobWithoutEnqueueingAgain() {
         FakeQueue queue = new FakeQueue();
-        ForecastController controller = new ForecastController(queue, newStore());
+        ForecastController controller = new ForecastController(queue, newStore(), Spans.noop());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> first =
                 controller.createForecast(VALID_REQUEST, "dup-key");
@@ -205,7 +206,7 @@ class ForecastControllerTest {
 
     @Test
     void createForecastWithDifferentIdempotencyKeysCreatesSeparateJobs() {
-        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore(), Spans.noop());
 
         String firstId = controller.createForecast(VALID_REQUEST, "key-a").getBody().forecastId();
         String secondId = controller.createForecast(VALID_REQUEST, "key-b").getBody().forecastId();
@@ -215,7 +216,7 @@ class ForecastControllerTest {
 
     @Test
     void createForecastWithoutAnIdempotencyKeyAlwaysCreatesASeparateJob() {
-        ForecastController controller = new ForecastController(new FakeQueue(), newStore());
+        ForecastController controller = new ForecastController(new FakeQueue(), newStore(), Spans.noop());
 
         String firstId = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
         String secondId = controller.createForecast(VALID_REQUEST, null).getBody().forecastId();
@@ -235,14 +236,15 @@ class ForecastControllerTest {
                 null,
                 Instant.now(),
                 0,
-                "race-key");
+                "race-key",
+                null);
 
         when(repository.findByIdempotencyKey("race-key"))
                 .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(winnerEntity));
         when(repository.save(any())).thenThrow(new DataIntegrityViolationException("duplicate idempotency key"));
 
-        ForecastController controller = new ForecastController(new FakeQueue(), new ForecastStore(repository, objectMapper));
+        ForecastController controller = new ForecastController(new FakeQueue(), new ForecastStore(repository, objectMapper, Spans.noop()), Spans.noop());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response =
                 controller.createForecast(VALID_REQUEST, "race-key");

@@ -1,6 +1,7 @@
 package com.example.backend.forecast;
 
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.tracing.Spans;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -35,6 +36,14 @@ import org.springframework.stereotype.Component;
  * Task 13.2: the same outcomes feed ForecastMetrics -- attempt duration
  * by outcome, failures by error code, the Python stage timings, and the
  * busy gauge around each attempt (docs/metrics.md).
+ *
+ * Task 13.3: each attempt is a `forecast.job.attempt` span continuing
+ * the trace of the request that submitted the job (its traceparent is on
+ * the forecast row), so the Python run and the store writes below it --
+ * including the one that records the result -- belong to that request's
+ * trace, and so do this attempt's log lines (docs/tracing.md). A failed
+ * attempt's span is marked failed with the error code and the same
+ * redacted text the log line gets.
  */
 @Component
 public class ForecastWorker {
@@ -49,6 +58,7 @@ public class ForecastWorker {
     private final int maxAttempts;
     private final SecretRedactor redactor;
     private final ForecastMetrics metrics;
+    private final Spans spans;
 
     public ForecastWorker(
             ForecastQueue queue,
@@ -56,13 +66,15 @@ public class ForecastWorker {
             ForecastRunner runner,
             @Value("${forecast.worker.max-attempts}") int maxAttempts,
             SecretRedactor redactor,
-            ForecastMetrics metrics) {
+            ForecastMetrics metrics,
+            Spans spans) {
         this.queue = queue;
         this.store = store;
         this.runner = runner;
         this.maxAttempts = maxAttempts;
         this.redactor = redactor;
         this.metrics = metrics;
+        this.spans = spans;
     }
 
     @Scheduled(fixedDelay = 100)
@@ -85,7 +97,13 @@ public class ForecastWorker {
     }
 
     private void attempt(Forecast forecast) {
+        spans.continued(forecast.traceParent(), "forecast.job.attempt", () -> runAttempt(forecast));
+    }
+
+    private void runAttempt(Forecast forecast) {
         int attemptNumber = forecast.attempts() + 1;
+        spans.tag("job.id", forecast.id());
+        spans.tag("job.attempt", attemptNumber);
         store.save(forecast.withStatus(Forecast.Status.RUNNING));
         log.atInfo()
                 .addKeyValue("event", "job_started")
@@ -108,6 +126,7 @@ public class ForecastWorker {
             store.save(attempted.withOutcome(outcome));
             metrics.recordAttempt("succeeded", durationNanos);
             metrics.recordStageTimings(outcome.timingsMs());
+            spans.tag("job.outcome", "succeeded");
             log.atInfo()
                     .addKeyValue("event", "job_succeeded")
                     .addKeyValue("attempt", attemptNumber)
@@ -118,6 +137,7 @@ public class ForecastWorker {
             queue.enqueue(forecast.id());
             metrics.recordAttempt("retry_scheduled", durationNanos);
             metrics.recordFailure(outcome.errorCode(), false);
+            recordFailedAttempt("retry_scheduled", outcome);
             log.atWarn()
                     .addKeyValue("event", "job_retry_scheduled")
                     .addKeyValue("attempt", attemptNumber)
@@ -129,6 +149,7 @@ public class ForecastWorker {
             store.save(attempted.withOutcome(outcome));
             metrics.recordAttempt("failed", durationNanos);
             metrics.recordFailure(outcome.errorCode(), true);
+            recordFailedAttempt("failed", outcome);
             log.atError()
                     .addKeyValue("event", "job_failed")
                     .addKeyValue("attempt", attemptNumber)
@@ -137,5 +158,11 @@ public class ForecastWorker {
                     .addKeyValue("transient", outcome.transientFailure())
                     .log("forecast job failed: {}", redactor.redact(outcome.error()));
         }
+    }
+
+    private void recordFailedAttempt(String jobOutcome, ForecastOutcome outcome) {
+        spans.tag("job.outcome", jobOutcome);
+        spans.tag("error.code", outcome.errorCode());
+        spans.fail(outcome.errorCode() + ": " + redactor.redact(outcome.error()));
     }
 }

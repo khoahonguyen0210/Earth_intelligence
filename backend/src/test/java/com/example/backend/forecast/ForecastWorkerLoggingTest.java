@@ -13,6 +13,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.tracing.Spans;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -74,7 +75,7 @@ class ForecastWorkerLoggingTest {
         });
         when(repository.findById(any())).thenAnswer(
                 invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
-        store = new ForecastStore(repository, new ObjectMapper());
+        store = new ForecastStore(repository, new ObjectMapper(), Spans.noop());
     }
 
     @AfterEach
@@ -85,7 +86,7 @@ class ForecastWorkerLoggingTest {
     private ForecastWorker workerReturning(ForecastOutcome outcome, int maxAttempts) {
         store.save(Forecast.pending("job-1", REQUEST, Instant.now(), null));
         queue.enqueue("job-1");
-        return new ForecastWorker(queue, store, request -> outcome, maxAttempts, SecretRedactor.of(SECRET), metrics);
+        return new ForecastWorker(queue, store, request -> outcome, maxAttempts, SecretRedactor.of(SECRET), metrics, Spans.noop());
     }
 
     private List<String> events() {
@@ -144,7 +145,7 @@ class ForecastWorkerLoggingTest {
         queue.enqueue("does-not-exist");
         new ForecastWorker(queue, store, request -> {
             throw new AssertionError("runner must not run");
-        }, 3, SecretRedactor.of(), metrics).pollOnce();
+        }, 3, SecretRedactor.of(), metrics, Spans.noop()).pollOnce();
 
         assertEquals(List.of("job_skipped"), events());
         assertEquals("does-not-exist", last().getMDCPropertyMap().get(ForecastWorker.MDC_JOB_ID));

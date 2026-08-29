@@ -10,7 +10,8 @@ public record Forecast(
         Object result,
         String error,
         int attempts,
-        String idempotencyKey) {
+        String idempotencyKey,
+        String traceParent) {
 
     /**
      * CANCELLED completes the state space the Execution Handbook's Task
@@ -28,8 +29,18 @@ public record Forecast(
         CANCELLED
     }
 
+    /**
+     * Task 13.3: `traceParent` is the W3C traceparent of the span that
+     * submitted the job (null when nothing was being traced); the worker
+     * continues that trace -- see docs/tracing.md.
+     */
+    public static Forecast pending(
+            String id, ForecastRequest request, Instant createdAt, String idempotencyKey, String traceParent) {
+        return new Forecast(id, request, createdAt, Status.PENDING, null, null, 0, idempotencyKey, traceParent);
+    }
+
     public static Forecast pending(String id, ForecastRequest request, Instant createdAt, String idempotencyKey) {
-        return new Forecast(id, request, createdAt, Status.PENDING, null, null, 0, idempotencyKey);
+        return pending(id, request, createdAt, idempotencyKey, null);
     }
 
     public static Forecast pending(String id, ForecastRequest request, Instant createdAt) {
@@ -41,11 +52,11 @@ public record Forecast(
     }
 
     public Forecast withStatus(Status status) {
-        return new Forecast(id, request, createdAt, status, result, error, attempts, idempotencyKey);
+        return new Forecast(id, request, createdAt, status, result, error, attempts, idempotencyKey, traceParent);
     }
 
     public Forecast withAttempts(int attempts) {
-        return new Forecast(id, request, createdAt, status, result, error, attempts, idempotencyKey);
+        return new Forecast(id, request, createdAt, status, result, error, attempts, idempotencyKey, traceParent);
     }
 
     public Forecast withOutcome(ForecastOutcome outcome) {
@@ -57,6 +68,7 @@ public record Forecast(
                 outcome.result(),
                 outcome.error(),
                 attempts,
-                idempotencyKey);
+                idempotencyKey,
+                traceParent);
     }
 }

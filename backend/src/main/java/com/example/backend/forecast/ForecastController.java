@@ -1,5 +1,6 @@
 package com.example.backend.forecast;
 
+import com.example.backend.tracing.Spans;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.Instant;
@@ -32,10 +33,12 @@ public class ForecastController {
 
     private final ForecastQueue queue;
     private final ForecastStore store;
+    private final Spans spans;
 
-    public ForecastController(ForecastQueue queue, ForecastStore store) {
+    public ForecastController(ForecastQueue queue, ForecastStore store, Spans spans) {
         this.queue = queue;
         this.store = store;
+        this.spans = spans;
     }
 
     @PostMapping("/forecasts")
@@ -53,33 +56,39 @@ public class ForecastController {
         }
 
         String id = UUID.randomUUID().toString();
-        Forecast forecast = Forecast.pending(id, request, Instant.now(), key);
+        // Task 13.3: the job's own span. Its traceparent is stored on the
+        // row, so every later worker attempt continues this request's trace
+        // (docs/tracing.md).
+        return spans.child("forecast.job.submit", () -> {
+            spans.tag("job.id", id);
+            Forecast forecast = Forecast.pending(id, request, Instant.now(), key, spans.currentTraceParent());
 
-        try {
-            store.save(forecast);
-        } catch (DataIntegrityViolationException e) {
-            // Lost a race against a concurrent request carrying the same
-            // idempotency key (Task 6.6: "same idempotency key -> one
-            // logical job") -- the other request's row won; return it.
-            return store.findByIdempotencyKey(key)
-                    .map(winner -> {
-                        logDeduplicated(winner);
-                        return existingForecastResponse(winner);
-                    })
-                    .orElseThrow(() -> e);
-        }
+            try {
+                store.save(forecast);
+            } catch (DataIntegrityViolationException e) {
+                // Lost a race against a concurrent request carrying the same
+                // idempotency key (Task 6.6: "same idempotency key -> one
+                // logical job") -- the other request's row won; return it.
+                return store.findByIdempotencyKey(key)
+                        .map(winner -> {
+                            logDeduplicated(winner);
+                            return existingForecastResponse(winner);
+                        })
+                        .orElseThrow(() -> e);
+            }
 
-        queue.enqueue(id);
-        // job_id links this request's log line (and its request_id) to
-        // every later ForecastWorker line for the same job.
-        log.atInfo()
-                .addKeyValue("event", "job_enqueued")
-                .addKeyValue(ForecastWorker.MDC_JOB_ID, id)
-                .addKeyValue("idempotency_key_present", key != null)
-                .log("forecast job enqueued");
+            queue.enqueue(id);
+            // job_id links this request's log line (and its request_id) to
+            // every later ForecastWorker line for the same job.
+            log.atInfo()
+                    .addKeyValue("event", "job_enqueued")
+                    .addKeyValue(ForecastWorker.MDC_JOB_ID, id)
+                    .addKeyValue("idempotency_key_present", key != null)
+                    .log("forecast job enqueued");
 
-        return ResponseEntity.created(URI.create("/forecasts/" + id))
-                .body(new ForecastSummaryResponse(forecast.id(), forecast.status().name()));
+            return ResponseEntity.created(URI.create("/forecasts/" + id))
+                    .body(new ForecastSummaryResponse(forecast.id(), forecast.status().name()));
+        });
     }
 
     private void logDeduplicated(Forecast existing) {

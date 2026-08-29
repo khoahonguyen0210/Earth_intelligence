@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.tracing.Spans;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -65,7 +66,7 @@ class ForecastWorkerTest {
         when(repository.findById(any())).thenAnswer(
                 invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
 
-        return new ForecastStore(repository, new ObjectMapper());
+        return new ForecastStore(repository, new ObjectMapper(), Spans.noop());
     }
 
     /** Captures the forecast's status in the store at the moment the runner is invoked. */
@@ -97,7 +98,7 @@ class ForecastWorkerTest {
         FakeQueue queue = new FakeQueue();
         queue.seed("job-1");
         ObservingRunner runner = new ObservingRunner(store, "job-1", ForecastOutcome.success(Map.of("model_version", "v1")));
-        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS);
+        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce();
 
@@ -115,7 +116,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(
                 queue, store, request -> ForecastOutcome.failure(ErrorCode.PYTHON_FAILED, "boom"),
-                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS);
+                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce();
 
@@ -129,7 +130,7 @@ class ForecastWorkerTest {
         ForecastStore store = newStore();
         ForecastWorker worker = new ForecastWorker(new FakeQueue(), store, request -> {
             throw new AssertionError("runner should not be invoked when the queue is empty");
-        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS);
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce();
     }
@@ -143,7 +144,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(queue, store, request -> {
             throw new AssertionError("runner should not reprocess an already-terminal forecast");
-        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS);
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce();
 
@@ -157,7 +158,7 @@ class ForecastWorkerTest {
         queue.seed("does-not-exist");
         ForecastWorker worker = new ForecastWorker(queue, store, request -> {
             throw new AssertionError("runner should not be invoked for an unknown id");
-        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS);
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce();
 
@@ -175,7 +176,7 @@ class ForecastWorkerTest {
         ForecastRunner runner = request -> calls.incrementAndGet() == 1
                 ? ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "temporarily unavailable")
                 : ForecastOutcome.success(Map.of("model_version", "v1"));
-        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS);
+        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce();
         Forecast afterFirstAttempt = store.find("job-1").orElseThrow();
@@ -199,7 +200,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(
                 queue, store, request -> ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "still unavailable"),
-                2, NO_SECRETS, METRICS);
+                2, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce(); // attempt 1/2 -> RETRYING, worker re-enqueues it itself
         worker.pollOnce(); // attempt 2/2 -> attempts (2) is not < maxAttempts (2) -> FAILED
@@ -219,7 +220,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(
                 queue, store, request -> ForecastOutcome.failure(ErrorCode.PYTHON_FAILED, "invalid region"),
-                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS);
+                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
 
         worker.pollOnce();
 

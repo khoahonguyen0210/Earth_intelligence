@@ -330,9 +330,15 @@ happens to match a hardcoded value:
 7. Secret rotation            backend.yaml has no reloader annotation, and no
                               ExternalSecret exists yet (see "DB password
                               rotation").
+8. Trace export               the backend exports spans only when
+                              OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is set
+                              (Task 13.3, docs/tracing.md). No manifest sets
+                              it (kind has no collector); the cloud ConfigMap
+                              points it at the CloudWatch agent's OTLP
+                              receiver, verified against the add-on in 12.4.
 ```
 
-Items 1-3 are code or config changes and belong to Task 12.4. Items 4-7
+Items 1-3 are code or config changes and belong to Task 12.4. Items 4-8
 are per-environment manifest values, so the cloud copies of these
 manifests will take them from Terraform outputs instead of hardcoding
 them a second time.
