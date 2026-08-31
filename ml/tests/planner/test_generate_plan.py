@@ -11,6 +11,9 @@ from ai_earth_intelligence_and_forecasting_engine.planner.generate_plan import (
     parse_plan,
 )
 from ai_earth_intelligence_and_forecasting_engine.planner.tools import TOOL_NAMES
+from ai_earth_intelligence_and_forecasting_engine.planner.validator import (
+    MAX_QUESTION_CHARS,
+)
 
 
 class _FakeResponse:
@@ -162,3 +165,12 @@ def test_generate_plan_raises_when_no_text_block_is_present():
 
     with pytest.raises(ValueError, match="no text"):
         generate_plan("q", client)
+
+
+def test_an_overlong_question_is_refused_before_the_model_is_called():
+    client = _FakeClient(_FakeResponse(text=json.dumps(_valid_plan_payload())))
+
+    with pytest.raises(ValueError, match="question exceeds"):
+        generate_plan("q" * (MAX_QUESTION_CHARS + 1), client)
+
+    assert client.models.last_kwargs is None, "no model call for a refused question"

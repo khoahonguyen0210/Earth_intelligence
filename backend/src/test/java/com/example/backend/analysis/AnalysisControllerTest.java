@@ -140,6 +140,20 @@ class AnalysisControllerTest {
     }
 
     @Test
+    void aFailedAnalysisStoresAndReturnsItsErrorRedacted() {
+        String secret = "firms-map-key-0123456789";
+        AnalysisController controller = new AnalysisController(
+                new StubRunner(AnalysisOutcome.failure(ErrorCode.PYTHON_FAILED,
+                        "HTTPError for https://firms.modaps.eosdis.nasa.gov/api/area/csv/" + secret + "/x")),
+                newStore(), SecretRedactor.of(secret), new SimpleMeterRegistry());
+
+        String id = controller.createAnalysis(VALID_REQUEST).getBody().id();
+        AnalysisController.ErrorResponse body = (AnalysisController.ErrorResponse) controller.getResult(id).getBody();
+
+        assertEquals("HTTPError for https://firms.modaps.eosdis.nasa.gov/api/area/csv/***/x", body.error());
+    }
+
+    @Test
     void getResultReturnsNotFoundForUnknownId() {
         AnalysisController controller = newController(new StubRunner(AnalysisOutcome.success(null, null)));
 

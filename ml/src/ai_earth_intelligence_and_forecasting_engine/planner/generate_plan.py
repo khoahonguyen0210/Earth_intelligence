@@ -8,6 +8,7 @@ from ai_earth_intelligence_and_forecasting_engine.planner.tools import (
     TOOL_SCHEMAS,
 )
 from ai_earth_intelligence_and_forecasting_engine.planner.validator import (
+    MAX_QUESTION_CHARS,
     Plan,
     PlanStep,
     validate_plan_or_raise,
@@ -161,7 +162,14 @@ def generate_plan(question: str, client: genai.Client) -> Plan:
     function that returns a Plan which has not already passed
     validate_plan_or_raise. An invalid plan raises ValueError here; it
     is never handed to a workflow unchecked.
+
+    Task 13.4: an overlong question is refused before the model is ever
+    called -- the validator would reject its plan anyway, and the call
+    itself is the cost.
     """
+    if len(question) > MAX_QUESTION_CHARS:
+        raise ValueError(f"question exceeds {MAX_QUESTION_CHARS} characters")
+
     response = client.models.generate_content(
         model=MODEL,
         contents=question,

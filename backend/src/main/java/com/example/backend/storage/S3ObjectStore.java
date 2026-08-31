@@ -19,7 +19,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 /**
  * Task 6.4's S3/MinIO implementation. Task 13.3: each operation is an
  * `object_store.<operation>` child span tagged with the bucket and key,
- * the "storage" hop of any trace that reads or writes an object.
+ * the "storage" hop of any trace that reads or writes an object. Task
+ * 13.4: every key must pass ObjectKeys.requireSafe first.
  */
 @Component
 public class S3ObjectStore implements ObjectStore {
@@ -36,6 +37,7 @@ public class S3ObjectStore implements ObjectStore {
     }
 
     private <T> T traced(String operation, String key, Supplier<T> work) {
+        ObjectKeys.requireSafe(key);
         return spans.child("object_store." + operation, () -> {
             spans.tag("object_store.bucket", bucket);
             spans.tag("object_store.key", key);

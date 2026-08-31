@@ -48,7 +48,8 @@ public class AnalysisController {
     public ResponseEntity<AnalysisSummaryResponse> createAnalysis(@Valid @RequestBody AnalysisRequest request) {
         String id = UUID.randomUUID().toString();
         long startNanos = System.nanoTime();
-        AnalysisOutcome outcome = runner.run(request);
+        // Task 13.4: redacted before it is stored, returned or logged.
+        AnalysisOutcome outcome = runner.run(request).redacted(redactor);
         long durationNanos = System.nanoTime() - startNanos;
         long durationMs = durationNanos / 1_000_000;
         Analysis analysis = Analysis.from(id, request, Instant.now(), outcome);
@@ -80,7 +81,7 @@ public class AnalysisController {
                     .addKeyValue("operation", request.operation())
                     .addKeyValue("duration_ms", durationMs)
                     .addKeyValue("error_code", outcome.errorCode())
-                    .log("analysis failed: {}", redactor.redact(outcome.error()));
+                    .log("analysis failed: {}", outcome.error());
         }
 
         return ResponseEntity.created(URI.create("/analyses/" + id))

@@ -1,6 +1,7 @@
 package com.example.backend.forecast;
 
 import com.example.backend.logging.ErrorCode;
+import com.example.backend.logging.SecretRedactor;
 import java.util.Map;
 
 /**
@@ -47,5 +48,16 @@ public record ForecastOutcome(
 
     public static ForecastOutcome transientFailure(ErrorCode errorCode, String error) {
         return new ForecastOutcome(false, null, error, true, errorCode, Map.of());
+    }
+
+    /**
+     * Task 13.4: the same outcome with its error text passed through the
+     * redactor -- the text is Python's/stderr's, not the backend's, and
+     * it is stored and returned to API clients, not only logged.
+     */
+    public ForecastOutcome redacted(SecretRedactor redactor) {
+        return error == null
+                ? this
+                : new ForecastOutcome(success, result, redactor.redact(error), transientFailure, errorCode, timingsMs);
     }
 }

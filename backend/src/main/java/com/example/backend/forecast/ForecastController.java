@@ -1,11 +1,13 @@
 package com.example.backend.forecast;
 
 import com.example.backend.tracing.Spans;
+import com.example.backend.validation.InvalidRequestException;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,6 +33,14 @@ public class ForecastController {
 
     private static final Logger log = LoggerFactory.getLogger(ForecastController.class);
 
+    /**
+     * Task 13.4: the key is stored (forecasts.idempotency_key is
+     * VARCHAR(255)) and compared, never logged; anything longer or not
+     * plain visible ASCII is refused up front instead of failing in the
+     * database as a 500.
+     */
+    private static final Pattern ACCEPTABLE_IDEMPOTENCY_KEY = Pattern.compile("[\\x21-\\x7E]{1,255}");
+
     private final ForecastQueue queue;
     private final ForecastStore store;
     private final Spans spans;
@@ -46,6 +56,9 @@ public class ForecastController {
             @Valid @RequestBody ForecastRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         String key = (idempotencyKey == null || idempotencyKey.isBlank()) ? null : idempotencyKey;
+        if (key != null && !ACCEPTABLE_IDEMPOTENCY_KEY.matcher(key).matches()) {
+            throw new InvalidRequestException("Idempotency-Key must be 1-255 visible ASCII characters");
+        }
 
         if (key != null) {
             Optional<Forecast> existing = store.findByIdempotencyKey(key);

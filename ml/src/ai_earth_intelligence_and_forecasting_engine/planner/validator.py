@@ -34,6 +34,20 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
 # 7.3/8.x's job; this module only checks the reference is well-formed.
 _STEP_REF_PATTERN = re.compile(r"^\$(?P<step_id>[^.]+)\.(?P<field>.+)$")
 
+# Task 13.4 (LLM tool restrictions): bounds on what a model-written plan
+# may ask for, enforced here rather than trusted to the prompt. Real
+# plans are small -- the handbook's example DAG has 6 nodes and no
+# planner-benchmark case needs more than 2 matching steps -- so 8 steps
+# only ever stops a runaway plan, whose every step could start real work
+# (a run_forecast step queues a Python job). A step id is a short
+# identifier, since it is echoed into later steps' "$step_id.field"
+# references and into logs. The question bound matches the API's own
+# (RequestShape.MAX_QUESTION on the backend).
+MAX_PLAN_STEPS = 8
+MAX_QUESTION_CHARS = 1_000
+# fullmatch, not match with "$": "$" also matches before a trailing newline.
+_STEP_ID_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,31}")
+
 
 @dataclass(frozen=True)
 class PlanStep:
@@ -87,10 +101,23 @@ def validate_plan(plan: Plan) -> list[str]:
     if not plan.steps:
         return ["a plan must have at least one step"]
 
+    if len(plan.steps) > MAX_PLAN_STEPS:
+        return [
+            f"a plan may have at most {MAX_PLAN_STEPS} steps, got {len(plan.steps)}"
+        ]
+
     errors: list[str] = []
+
+    if len(plan.question) > MAX_QUESTION_CHARS:
+        errors.append(f"question exceeds {MAX_QUESTION_CHARS} characters")
     step_index: dict[str, int] = {}
 
     for index, step in enumerate(plan.steps):
+        if not _STEP_ID_PATTERN.fullmatch(step.step_id):
+            errors.append(
+                f"step {step.step_id[:40]!r}: step_id must be a letter followed by "
+                "up to 31 letters, digits or underscores"
+            )
         if step.step_id in step_index:
             errors.append(f"step {step.step_id!r}: duplicate step_id")
         else:

@@ -114,7 +114,9 @@ public class ForecastWorker {
         ForecastOutcome outcome;
         metrics.workerBusy(true);
         try {
-            outcome = runner.run(forecast.request());
+            // Task 13.4: redacted once, here, so the stored error, the 422
+            // body, the log line and the span all carry the same safe text.
+            outcome = runner.run(forecast.request()).redacted(redactor);
         } finally {
             metrics.workerBusy(false);
         }
@@ -144,7 +146,7 @@ public class ForecastWorker {
                     .addKeyValue("max_attempts", maxAttempts)
                     .addKeyValue("duration_ms", durationMs)
                     .addKeyValue("error_code", outcome.errorCode())
-                    .log("forecast job failed transiently, re-enqueued: {}", redactor.redact(outcome.error()));
+                    .log("forecast job failed transiently, re-enqueued: {}", outcome.error());
         } else {
             store.save(attempted.withOutcome(outcome));
             metrics.recordAttempt("failed", durationNanos);
@@ -156,13 +158,13 @@ public class ForecastWorker {
                     .addKeyValue("duration_ms", durationMs)
                     .addKeyValue("error_code", outcome.errorCode())
                     .addKeyValue("transient", outcome.transientFailure())
-                    .log("forecast job failed: {}", redactor.redact(outcome.error()));
+                    .log("forecast job failed: {}", outcome.error());
         }
     }
 
     private void recordFailedAttempt(String jobOutcome, ForecastOutcome outcome) {
         spans.tag("job.outcome", jobOutcome);
         spans.tag("error.code", outcome.errorCode());
-        spans.fail(outcome.errorCode() + ": " + redactor.redact(outcome.error()));
+        spans.fail(outcome.errorCode() + ": " + outcome.error());
     }
 }

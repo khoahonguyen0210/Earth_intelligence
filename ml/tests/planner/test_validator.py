@@ -1,6 +1,8 @@
 import pytest
 
 from ai_earth_intelligence_and_forecasting_engine.planner.validator import (
+    MAX_PLAN_STEPS,
+    MAX_QUESTION_CHARS,
     Plan,
     PlanStep,
     validate_plan,
@@ -267,3 +269,41 @@ def test_validate_plan_or_raise_raises_for_an_invalid_plan():
 
     with pytest.raises(ValueError, match="unknown tool"):
         validate_plan_or_raise(plan)
+
+
+# Task 13.4: LLM tool restrictions -- bounds a model-written plan cannot exceed.
+
+
+def _resolve_step(step_id: str) -> PlanStep:
+    return PlanStep(
+        step_id=step_id, tool="resolve_region", input={"region": VALID_REGION}
+    )
+
+
+def test_a_plan_at_the_step_limit_is_accepted():
+    plan = _plan(*(_resolve_step(f"s{i}") for i in range(MAX_PLAN_STEPS)))
+
+    assert validate_plan(plan) == []
+
+
+def test_a_runaway_plan_over_the_step_limit_is_rejected_outright():
+    plan = _plan(*(_resolve_step(f"s{i}") for i in range(MAX_PLAN_STEPS + 1)))
+
+    assert validate_plan(plan) == [
+        f"a plan may have at most {MAX_PLAN_STEPS} steps, got {MAX_PLAN_STEPS + 1}"
+    ]
+
+
+@pytest.mark.parametrize(
+    "step_id", ["", "1st", "has space", "a.b", "$s1", "x" * 33, "../etc", "s1\n"]
+)
+def test_a_step_id_that_is_not_a_short_identifier_is_rejected(step_id):
+    errors = validate_plan(_plan(_resolve_step(step_id)))
+
+    assert any("step_id must be a letter" in error for error in errors), errors
+
+
+def test_an_overlong_question_is_rejected():
+    plan = Plan(question="q" * (MAX_QUESTION_CHARS + 1), steps=(_resolve_step("s1"),))
+
+    assert f"question exceeds {MAX_QUESTION_CHARS} characters" in validate_plan(plan)

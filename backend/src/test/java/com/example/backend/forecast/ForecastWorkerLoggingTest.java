@@ -130,6 +130,17 @@ class ForecastWorkerLoggingTest {
     }
 
     @Test
+    void theStoredErrorThatTheApiReturnsIsRedactedToo() {
+        workerReturning(ForecastOutcome.failure(ErrorCode.PYTHON_FAILED,
+                "requests.HTTPError for https://firms.modaps.eosdis.nasa.gov/api/area/csv/" + SECRET + "/x"), 3)
+                .pollOnce();
+
+        String stored = store.find("job-1").orElseThrow().error();
+        assertFalse(stored.contains(SECRET), stored);
+        assertTrue(stored.contains("/csv/***/x"), stored);
+    }
+
+    @Test
     void transientFailureWithAttemptsLeftLogsARetryWarningNotAFailure() {
         workerReturning(ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "timed out"), 3).pollOnce();
 
