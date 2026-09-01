@@ -60,3 +60,18 @@ variable "cache_node_type" {
   type        = string
   default     = "cache.t4g.micro"
 }
+
+# Task 13.4: HTTPS (docs/security-baseline.md). No domain is locked, so
+# both default to null and the certificate is created only once a domain
+# is chosen; until then the ALB serves plain HTTP on its AWS DNS name.
+variable "domain_name" {
+  description = "Domain the product is served on over HTTPS; null for HTTP on the ALB's own name."
+  type        = string
+  default     = null
+}
+
+variable "route53_zone_id" {
+  description = "Route 53 hosted zone of domain_name; null if its DNS is hosted elsewhere."
+  type        = string
+  default     = null
+}

@@ -61,6 +61,14 @@ module "registry" {
   repository_names = ["${var.project}-backend", "${var.project}-frontend"]
 }
 
+module "tls" {
+  source = "../../modules/tls"
+  count  = var.domain_name == null ? 0 : 1
+
+  domain_name     = var.domain_name
+  route53_zone_id = var.route53_zone_id
+}
+
 module "secrets" {
   source = "../../modules/secrets"
 

@@ -52,3 +52,13 @@ output "backend_service_account" {
   description = "Namespace/name the backend Deployment must run as to get S3 access."
   value       = "${local.backend_namespace}/${local.backend_service_account}"
 }
+
+output "certificate_arn" {
+  description = "Ingress alb.ingress.kubernetes.io/certificate-arn; null until domain_name is set."
+  value       = one(module.tls[*].certificate_arn)
+}
+
+output "certificate_validation_records" {
+  description = "DNS records to add by hand when domain_name's zone is not in Route 53."
+  value       = one(module.tls[*].validation_records)
+}

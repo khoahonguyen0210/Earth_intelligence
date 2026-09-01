@@ -23,11 +23,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * be checked up front. Browsers' fetch, curl and Python's requests all
  * send Content-Length for a JSON body.
  *
- * Runs right after RequestIdFilter, so a refused request still gets its
- * request ID and its http_request log line.
+ * Runs after RequestIdFilter and SecurityHeadersFilter, so a refused
+ * request still gets its request ID, its http_request log line and the
+ * security headers.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 1)
+@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
     private final long maxRequestBytes;

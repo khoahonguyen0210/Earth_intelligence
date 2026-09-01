@@ -41,7 +41,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * analysis -- which does not need Redis -- keeps working.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 2)
+@Order(Ordered.HIGHEST_PRECEDENCE + 3)
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
