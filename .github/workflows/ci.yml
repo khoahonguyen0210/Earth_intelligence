@@ -81,3 +81,30 @@ jobs:
       - name: Test
         working-directory: frontend
         run: npm test
+
+
+  # Task 13.4: dependency vulnerabilities (Maven, uv, npm) and committed
+  # secrets, with the same script developers run locally
+  # (docs/security-baseline.md).
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # Trivy resolves pom.xml's transitive dependencies from the local
+      # Maven repository rather than one request per POM to Maven Central.
+      - name: Resolve backend dependencies
+        working-directory: backend
+        run: ./mvnw -q dependency:resolve
+
+      - name: Dependency and secret scan
+        run: sh scripts/security/scan.sh

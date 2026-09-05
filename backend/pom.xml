@@ -28,6 +28,12 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<!-- Task 13.4: Spring Boot 4.1.1 (the latest release) manages Tomcat
+		     11.0.24, which has three CRITICAL CVEs fixed in 11.0.25
+		     (CVE-2026-65182, CVE-2026-65905, CVE-2026-68525; found by
+		     scripts/security/scan.sh). Drop this override once a Boot release
+		     manages a fixed Tomcat itself. docs/security-baseline.md -->
+		<tomcat.version>11.0.26</tomcat.version>
 	</properties>
 	<dependencies>
 		<dependency>

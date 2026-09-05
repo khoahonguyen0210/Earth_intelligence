@@ -18,8 +18,9 @@ management.metrics.distribution.percentiles-histogram.forecast.job.duration=true
 
 Histogram buckets are on for the two latency meters, so percentiles are
 computed at query time (`histogram_quantile`) across replicas, not
-pre-computed per pod. The endpoint is not public: the cloud ALB routes
-only `/actuator/health` (`docs/cloud-deployment.md`). The backend pod
+pre-computed per pod. The endpoint is not public: since Task 13.4 every
+actuator endpoint is on the internal management port 8081, which no
+Service or ALB routes (`docs/security-baseline.md`). The backend pod
 template carries the conventional `prometheus.io/scrape|path|port`
 annotations, so a Prometheus-compatible scraper in the cluster finds it.
 

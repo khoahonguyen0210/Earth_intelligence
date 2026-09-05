@@ -247,9 +247,17 @@ still-valid open connections, until the new pods pass readiness.
 
 ```text
 ALB (internet-facing, HTTP :80), path routing:
-  /analyses*  /forecasts*  /results*  /actuator/health  -> backend:8080
-  /*                                                    -> frontend:80
+  /analyses*  /forecasts*  /results*  /readyz  /livez  -> backend:8080
+  /*                                                   -> frontend:80
+ALB target health check: GET /readyz on backend:8080
 ```
+
+Task 13.4 moved every actuator endpoint to the internal management port
+8081, which the ALB never routes. The public backend port answers only
+the API and the status-only `/readyz`/`/livez` probes
+(`docs/security-baseline.md`). With a domain chosen, the same Ingress
+also listens on HTTPS :443 with the ACM certificate from Terraform's
+`certificate_arn` output, and HTTP :80 only redirects to it (gap 9).
 
 The routed prefixes are exactly the backend's real controller mappings
 (`POST /analyses`, `POST /forecasts`, `GET /analyses/{id}`,
@@ -336,9 +344,20 @@ happens to match a hardcoded value:
                               it (kind has no collector); the cloud ConfigMap
                               points it at the CloudWatch agent's OTLP
                               receiver, verified against the add-on in 12.4.
+9. HTTPS                      not planned: the owner will not buy a domain
+                              (docs/security-baseline.md), so the ALB serves
+                              HTTP on its AWS DNS name. If one is ever chosen
+                              (Terraform
+                              domain_name/route53_zone_id), the Ingress
+                              carries alb.ingress.kubernetes.io/
+                              certificate-arn = certificate_arn output,
+                              listen-ports [{"HTTP":80},{"HTTPS":443}],
+                              ssl-redirect: "443", and ssl-policy
+                              ELBSecurityPolicy-TLS13-1-2-2021-06
+                              (docs/security-baseline.md).
 ```
 
-Items 1-3 are code or config changes and belong to Task 12.4. Items 4-8
+Items 1-3 are code or config changes and belong to Task 12.4. Items 4-9
 are per-environment manifest values, so the cloud copies of these
 manifests will take them from Terraform outputs instead of hardcoding
 them a second time.
@@ -385,11 +404,11 @@ brought up for Tasks 12.3-12.5 and later demos, then taken down with
 
 - The Terraform module layout is Task 12.2's.
 - Running `init`/`plan`/`apply` is Task 12.3's.
-- Closing the seven gaps above and verifying health, Earth analysis,
+- Closing the nine gaps above and verifying health, Earth analysis,
   forecast, async jobs and persistent results on AWS is Task 12.4's.
-- Task 13.4's security baseline covers HTTPS, a domain, and the rest of
-  the hardening, including `management.endpoint.health.show-details=always`,
-  which would expose component details on the public ALB.
+- The security baseline is Task 13.4's (`docs/security-baseline.md`):
+  health details and metrics moved to the internal management port.
+  HTTPS is ready but not enabled, since no domain will be bought (gap 9).
 - Re-enqueuing stranded `PENDING` jobs is Phase 13 reliability work.
 
 ## Verified against
