@@ -11,7 +11,7 @@ import org.hibernate.type.SqlTypes;
 /**
  * The JPA row shape for the forecasts table (Task 6.3; attempts/
  * idempotency_key added by Task 6.6's V2 migration, trace_parent by
- * Task 13.3's V4). request/result
+ * Task 13.3's V4, updated_at by Task 13.5's V5). request/result
  * are stored as raw JSON text in a jsonb column -- ForecastStore does the
  * Forecast record <-> JSON conversion, so this class is a pure
  * persistence detail the rest of the forecast package never sees.
@@ -48,6 +48,9 @@ public class ForecastEntity {
     @Column(name = "trace_parent")
     private String traceParent;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     protected ForecastEntity() {
         // JPA
     }
@@ -61,7 +64,8 @@ public class ForecastEntity {
             Instant createdAt,
             int attempts,
             String idempotencyKey,
-            String traceParent) {
+            String traceParent,
+            Instant updatedAt) {
         this.id = id;
         this.request = request;
         this.status = status;
@@ -71,6 +75,7 @@ public class ForecastEntity {
         this.attempts = attempts;
         this.idempotencyKey = idempotencyKey;
         this.traceParent = traceParent;
+        this.updatedAt = updatedAt;
     }
 
     public String getId() {
@@ -107,5 +112,9 @@ public class ForecastEntity {
 
     public String getTraceParent() {
         return traceParent;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

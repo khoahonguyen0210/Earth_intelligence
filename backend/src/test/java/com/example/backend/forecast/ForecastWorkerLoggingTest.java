@@ -4,9 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -18,7 +15,6 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +24,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import tools.jackson.databind.ObjectMapper;
 
 /** Task 13.1: the worker's job lifecycle events, as real logback events. */
 class ForecastWorkerLoggingTest {
@@ -57,6 +52,11 @@ class ForecastWorkerLoggingTest {
         public long size() {
             return queued.size();
         }
+
+        @Override
+        public boolean contains(String forecastId) {
+            return queued.contains(forecastId);
+        }
     };
     private ForecastStore store;
     private final ForecastMetrics metrics = new ForecastMetrics(new SimpleMeterRegistry(), queue);
@@ -66,16 +66,7 @@ class ForecastWorkerLoggingTest {
         appender.start();
         logger.addAppender(appender);
 
-        ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
-        Map<String, ForecastEntity> backing = new HashMap<>();
-        when(repository.save(any())).thenAnswer(invocation -> {
-            ForecastEntity entity = invocation.getArgument(0);
-            backing.put(entity.getId(), entity);
-            return entity;
-        });
-        when(repository.findById(any())).thenAnswer(
-                invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
-        store = new ForecastStore(repository, new ObjectMapper(), Spans.noop());
+        store = InMemoryForecasts.store(Spans.noop());
     }
 
     @AfterEach
@@ -86,7 +77,7 @@ class ForecastWorkerLoggingTest {
     private ForecastWorker workerReturning(ForecastOutcome outcome, int maxAttempts) {
         store.save(Forecast.pending("job-1", REQUEST, Instant.now(), null));
         queue.enqueue("job-1");
-        return new ForecastWorker(queue, store, request -> outcome, maxAttempts, SecretRedactor.of(SECRET), metrics, Spans.noop());
+        return new ForecastWorker(queue, store, request -> outcome, maxAttempts, SecretRedactor.of(SECRET), metrics, Spans.noop(), 0);
     }
 
     private List<String> events() {
@@ -156,7 +147,7 @@ class ForecastWorkerLoggingTest {
         queue.enqueue("does-not-exist");
         new ForecastWorker(queue, store, request -> {
             throw new AssertionError("runner must not run");
-        }, 3, SecretRedactor.of(), metrics, Spans.noop()).pollOnce();
+        }, 3, SecretRedactor.of(), metrics, Spans.noop(), 0).pollOnce();
 
         assertEquals(List.of("job_skipped"), events());
         assertEquals("does-not-exist", last().getMDCPropertyMap().get(ForecastWorker.MDC_JOB_ID));

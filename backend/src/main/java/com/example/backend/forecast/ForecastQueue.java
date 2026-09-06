@@ -16,4 +16,12 @@ public interface ForecastQueue {
 
     /** Task 13.2: ids currently waiting (not yet dequeued) -- the queue-depth metric. */
     long size();
+
+    /**
+     * Task 13.5: whether the id is waiting in the queue now -- how
+     * ForecastRecovery tells a job queued behind a backlog from one whose
+     * queue entry was lost (never enqueued, or popped by a worker that
+     * then failed).
+     */
+    boolean contains(String forecastId);
 }

@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -90,14 +91,26 @@ public class ForecastController {
                         .orElseThrow(() -> e);
             }
 
-            queue.enqueue(id);
-            // job_id links this request's log line (and its request_id) to
-            // every later ForecastWorker line for the same job.
-            log.atInfo()
-                    .addKeyValue("event", "job_enqueued")
-                    .addKeyValue(ForecastWorker.MDC_JOB_ID, id)
-                    .addKeyValue("idempotency_key_present", key != null)
-                    .log("forecast job enqueued");
+            // Task 13.5: the row is the durable record of the job; the queue
+            // entry is only how a worker hears about it. If Redis is down, the
+            // job is still accepted, and ForecastRecovery enqueues it once
+            // Redis is back (docs/reliability-tests.md).
+            try {
+                queue.enqueue(id);
+                // job_id links this request's log line (and its request_id) to
+                // every later ForecastWorker line for the same job.
+                log.atInfo()
+                        .addKeyValue("event", "job_enqueued")
+                        .addKeyValue(ForecastWorker.MDC_JOB_ID, id)
+                        .addKeyValue("idempotency_key_present", key != null)
+                        .log("forecast job enqueued");
+            } catch (DataAccessException e) {
+                log.atWarn()
+                        .addKeyValue("event", "job_enqueue_deferred")
+                        .addKeyValue(ForecastWorker.MDC_JOB_ID, id)
+                        .log("queue unavailable; job kept PENDING for recovery to enqueue: {}",
+                                e.getClass().getSimpleName());
+            }
 
             return ResponseEntity.created(URI.create("/forecasts/" + id))
                     .body(new ForecastSummaryResponse(forecast.id(), forecast.status().name()));

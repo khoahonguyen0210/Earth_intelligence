@@ -23,5 +23,11 @@ public enum ErrorCode {
     /** The script exited 0 but stdout was not the expected JSON. */
     OUTPUT_PARSE_FAILED,
     /** stdout/stderr could not be read back from the process. */
-    OUTPUT_READ_FAILED
+    OUTPUT_READ_FAILED,
+    /**
+     * Task 13.5: the worker running an attempt stopped before finishing it
+     * (process killed, pod lost, or its database write failed) -- found by
+     * ForecastRecovery, never by the worker itself.
+     */
+    WORKER_LOST
 }

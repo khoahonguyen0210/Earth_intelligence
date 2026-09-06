@@ -2,10 +2,13 @@ package com.example.backend.forecast;
 
 import com.example.backend.logging.SecretRedactor;
 import com.example.backend.tracing.Spans;
+import java.time.Duration;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -59,6 +62,8 @@ public class ForecastWorker {
     private final SecretRedactor redactor;
     private final ForecastMetrics metrics;
     private final Spans spans;
+    private final Duration errorBackoff;
+    private volatile boolean dependencyDown;
 
     public ForecastWorker(
             ForecastQueue queue,
@@ -67,7 +72,8 @@ public class ForecastWorker {
             @Value("${forecast.worker.max-attempts}") int maxAttempts,
             SecretRedactor redactor,
             ForecastMetrics metrics,
-            Spans spans) {
+            Spans spans,
+            @Value("${forecast.worker.error-backoff-ms}") long errorBackoffMs) {
         this.queue = queue;
         this.store = store;
         this.runner = runner;
@@ -75,24 +81,77 @@ public class ForecastWorker {
         this.redactor = redactor;
         this.metrics = metrics;
         this.spans = spans;
+        this.errorBackoff = Duration.ofMillis(errorBackoffMs);
     }
 
     @Scheduled(fixedDelay = 100)
     public void pollOnce() {
-        queue.dequeue().ifPresent(this::process);
+        Optional<String> dequeued;
+        try {
+            dequeued = queue.dequeue();
+        } catch (DataAccessException e) {
+            dependencyUnavailable("dequeue", e);
+            return;
+        }
+        dependencyAvailable();
+        dequeued.ifPresent(this::process);
     }
 
+    /**
+     * Task 13.5: the job runs only if this worker's claim flips it to
+     * RUNNING (ForecastStore.claim), so a duplicate queue entry is a
+     * no-op. If Postgres or Redis fails mid-way -- after the pop, or on
+     * the attempt's own writes -- the job is left as it is (waiting, or
+     * RUNNING) and ForecastRecovery finishes the story once the
+     * dependency is back, instead of the job being lost.
+     */
     private void process(String forecastId) {
         MDC.put(MDC_JOB_ID, forecastId);
         try {
-            store.find(forecastId)
-                    .filter(forecast -> forecast.status() == Forecast.Status.PENDING
-                            || forecast.status() == Forecast.Status.RETRYING)
-                    .ifPresentOrElse(this::attempt, () -> log.atInfo()
-                            .addKeyValue("event", "job_skipped")
-                            .log("dequeued forecast is missing or not runnable; skipped"));
+            if (!store.claim(forecastId)) {
+                log.atInfo()
+                        .addKeyValue("event", "job_skipped")
+                        .log("dequeued forecast is missing or not runnable; skipped");
+                return;
+            }
+            attempt(store.find(forecastId).orElseThrow());
+        } catch (DataAccessException e) {
+            log.atWarn()
+                    .addKeyValue("event", "job_interrupted")
+                    .log("a dependency failed during the job; recovery will re-run it: {}",
+                            e.getClass().getSimpleName());
+            dependencyUnavailable("job", e);
         } finally {
             MDC.remove(MDC_JOB_ID);
+        }
+    }
+
+    /**
+     * One WARN per outage rather than one per poll (every 100 ms), and a
+     * pause before the next poll, so a Redis or Postgres outage neither
+     * floods the logs nor spins the scheduler thread.
+     */
+    private void dependencyUnavailable(String during, DataAccessException e) {
+        if (!dependencyDown) {
+            dependencyDown = true;
+            log.atWarn()
+                    .addKeyValue("event", "worker_dependency_unavailable")
+                    .addKeyValue("during", during)
+                    .log("worker paused: {}", e.getClass().getSimpleName());
+        }
+        try {
+            Thread.sleep(errorBackoff.toMillis());
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void dependencyAvailable() {
+        if (dependencyDown) {
+            dependencyDown = false;
+            log.atInfo()
+                    .addKeyValue("event", "worker_dependency_available")
+                    .log("worker resumed");
         }
     }
 
@@ -104,7 +163,6 @@ public class ForecastWorker {
         int attemptNumber = forecast.attempts() + 1;
         spans.tag("job.id", forecast.id());
         spans.tag("job.attempt", attemptNumber);
-        store.save(forecast.withStatus(Forecast.Status.RUNNING));
         log.atInfo()
                 .addKeyValue("event", "job_started")
                 .addKeyValue("attempt", attemptNumber)

@@ -4,8 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
@@ -14,11 +13,12 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import tools.jackson.databind.ObjectMapper;
 
 class ForecastWorkerTest {
@@ -52,21 +52,15 @@ class ForecastWorkerTest {
         public long size() {
             return queued.size();
         }
+
+        @Override
+        public boolean contains(String forecastId) {
+            return queued.contains(forecastId);
+        }
     }
 
     private static ForecastStore newStore() {
-        ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
-        Map<String, ForecastEntity> backing = new HashMap<>();
-
-        when(repository.save(any())).thenAnswer(invocation -> {
-            ForecastEntity entity = invocation.getArgument(0);
-            backing.put(entity.getId(), entity);
-            return entity;
-        });
-        when(repository.findById(any())).thenAnswer(
-                invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
-
-        return new ForecastStore(repository, new ObjectMapper(), Spans.noop());
+        return InMemoryForecasts.store(Spans.noop());
     }
 
     /** Captures the forecast's status in the store at the moment the runner is invoked. */
@@ -98,7 +92,7 @@ class ForecastWorkerTest {
         FakeQueue queue = new FakeQueue();
         queue.seed("job-1");
         ObservingRunner runner = new ObservingRunner(store, "job-1", ForecastOutcome.success(Map.of("model_version", "v1")));
-        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
+        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce();
 
@@ -116,7 +110,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(
                 queue, store, request -> ForecastOutcome.failure(ErrorCode.PYTHON_FAILED, "boom"),
-                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
+                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce();
 
@@ -130,7 +124,7 @@ class ForecastWorkerTest {
         ForecastStore store = newStore();
         ForecastWorker worker = new ForecastWorker(new FakeQueue(), store, request -> {
             throw new AssertionError("runner should not be invoked when the queue is empty");
-        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce();
     }
@@ -144,7 +138,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(queue, store, request -> {
             throw new AssertionError("runner should not reprocess an already-terminal forecast");
-        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce();
 
@@ -158,7 +152,7 @@ class ForecastWorkerTest {
         queue.seed("does-not-exist");
         ForecastWorker worker = new ForecastWorker(queue, store, request -> {
             throw new AssertionError("runner should not be invoked for an unknown id");
-        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce();
 
@@ -176,7 +170,7 @@ class ForecastWorkerTest {
         ForecastRunner runner = request -> calls.incrementAndGet() == 1
                 ? ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "temporarily unavailable")
                 : ForecastOutcome.success(Map.of("model_version", "v1"));
-        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
+        ForecastWorker worker = new ForecastWorker(queue, store, runner, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce();
         Forecast afterFirstAttempt = store.find("job-1").orElseThrow();
@@ -200,7 +194,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(
                 queue, store, request -> ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "still unavailable"),
-                2, NO_SECRETS, METRICS, Spans.noop());
+                2, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce(); // attempt 1/2 -> RETRYING, worker re-enqueues it itself
         worker.pollOnce(); // attempt 2/2 -> attempts (2) is not < maxAttempts (2) -> FAILED
@@ -220,7 +214,7 @@ class ForecastWorkerTest {
         queue.seed("job-1");
         ForecastWorker worker = new ForecastWorker(
                 queue, store, request -> ForecastOutcome.failure(ErrorCode.PYTHON_FAILED, "invalid region"),
-                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop());
+                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
 
         worker.pollOnce();
 
@@ -228,5 +222,63 @@ class ForecastWorkerTest {
         assertEquals(Forecast.Status.FAILED, finished.status());
         assertEquals(1, finished.attempts());
         assertTrue(queue.dequeue().isEmpty(), "a permanent failure must never be retried");
+    }
+
+    // Task 13.5: reliability -- docs/reliability-tests.md.
+
+    @Test
+    void aDuplicateQueueEntryNeverRunsAJobTwice() {
+        ForecastStore store = newStore();
+        store.save(Forecast.pending("job-1", REQUEST, Instant.now()));
+        FakeQueue queue = new FakeQueue();
+        queue.seed("job-1");
+        queue.seed("job-1"); // e.g. re-enqueued by recovery while a worker already held it
+        AtomicInteger runs = new AtomicInteger();
+        ForecastWorker worker = new ForecastWorker(queue, store, request -> {
+            runs.incrementAndGet();
+            return ForecastOutcome.success(Map.of("ok", true));
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
+
+        worker.pollOnce();
+        worker.pollOnce();
+
+        assertEquals(1, runs.get(), "the second entry's claim must fail");
+        assertEquals(Forecast.Status.SUCCEEDED, store.find("job-1").orElseThrow().status());
+    }
+
+    @Test
+    void aQueueOutageNeverEscapesThePollLoop() {
+        ForecastQueue down = new FakeQueue() {
+            @Override
+            public Optional<String> dequeue() {
+                throw new RedisConnectionFailureException("redis down");
+            }
+        };
+        ForecastWorker worker = new ForecastWorker(down, newStore(), request -> {
+            throw new AssertionError("nothing to run");
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
+
+        worker.pollOnce();
+        worker.pollOnce();
+    }
+
+    @Test
+    void aDatabaseOutageMidJobLeavesTheJobRunningForRecoveryNotLost() {
+        ForecastJpaRepository repository = InMemoryForecasts.repository();
+        ForecastStore store = new ForecastStore(repository, new ObjectMapper(), Spans.noop());
+        store.save(Forecast.pending("job-1", REQUEST, Instant.now()));
+        FakeQueue queue = new FakeQueue();
+        queue.seed("job-1");
+        // Postgres goes away while the Python attempt runs: the result
+        // write fails.
+        ForecastWorker worker = new ForecastWorker(queue, store, request -> {
+            doThrow(new DataAccessResourceFailureException("db down")).when(repository).save(any());
+            return ForecastOutcome.success(Map.of("ok", true));
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0);
+
+        worker.pollOnce();
+
+        assertEquals(Forecast.Status.RUNNING, store.find("job-1").orElseThrow().status(),
+                "left RUNNING for ForecastRecovery to find, not dropped or marked failed");
     }
 }

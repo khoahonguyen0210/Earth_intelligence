@@ -4,9 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
@@ -19,13 +16,11 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Task 13.3: one forecast's trace, HTTP -> job -> worker -> storage ->
@@ -64,26 +59,20 @@ class ForecastTracingTest {
         public long size() {
             return queued.size();
         }
+
+        @Override
+        public boolean contains(String forecastId) {
+            return queued.contains(forecastId);
+        }
     }
 
     private static ForecastStore newStore(Spans spans) {
-        ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
-        Map<String, ForecastEntity> backing = new HashMap<>();
-
-        when(repository.save(any())).thenAnswer(invocation -> {
-            ForecastEntity entity = invocation.getArgument(0);
-            backing.put(entity.getId(), entity);
-            return entity;
-        });
-        when(repository.findById(any())).thenAnswer(
-                invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
-
-        return new ForecastStore(repository, new ObjectMapper(), spans);
+        return InMemoryForecasts.store(spans);
     }
 
     private ForecastWorker worker(ForecastRunner runner) {
         return new ForecastWorker(queue, store, runner, 3, SecretRedactor.of(SECRET),
-                new ForecastMetrics(new SimpleMeterRegistry(), queue), spans);
+                new ForecastMetrics(new SimpleMeterRegistry(), queue), spans, 0);
     }
 
     /** Submits a forecast inside a stand-in for Spring's HTTP server span; returns the job id. */
@@ -137,13 +126,15 @@ class ForecastTracingTest {
         assertEquals("succeeded", attribute(attempt, "job.outcome"));
         assertNotEquals(StatusCode.ERROR, attempt.getStatus().getStatusCode());
 
-        // worker -> Python and storage -> result: RUNNING, then the result.
+        // worker -> Python and storage -> result. (The RUNNING transition is
+        // Task 13.5's atomic claim, made before the attempt span opens --
+        // untraced, like the dequeue, so skipped duplicates cost no spans.)
         assertEquals(attempt.getSpanId(), python.getParentSpanId());
         List<String> savedStatuses = childrenOf(attempt).stream()
                 .filter(span -> span.getName().equals("forecast.store.save"))
                 .map(span -> attribute(span, "forecast.status"))
                 .toList();
-        assertEquals(List.of("RUNNING", "SUCCEEDED"), savedStatuses);
+        assertEquals(List.of("SUCCEEDED"), savedStatuses);
 
         // The row carries the submit span's traceparent -- the link across the queue.
         assertTrue(store.find(jobId).orElseThrow().traceParent()

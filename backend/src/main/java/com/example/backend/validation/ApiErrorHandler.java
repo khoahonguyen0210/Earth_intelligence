@@ -1,9 +1,12 @@
 package com.example.backend.validation;
 
 import java.util.stream.Collectors;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -33,6 +36,24 @@ public class ApiErrorHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> unreadableBody(HttpMessageNotReadableException e) {
         return badRequest("request body is not valid JSON of the expected shape");
+    }
+
+    /**
+     * Task 13.5: Postgres (or Redis, where a request needs it) is
+     * unreachable. A 503 with Retry-After tells a client the request was
+     * not accepted and is worth retrying -- not a bare 500. Only
+     * connectivity failures land here; a constraint violation or a bug
+     * stays a 500.
+     */
+    @ExceptionHandler({
+        DataAccessResourceFailureException.class,
+        CannotCreateTransactionException.class,
+        TransientDataAccessException.class
+    })
+    public ResponseEntity<ErrorResponse> dependencyUnavailable(Exception e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "5")
+                .body(new ErrorResponse("a backing service is unavailable; retry shortly"));
     }
 
     @ExceptionHandler(InvalidRequestException.class)

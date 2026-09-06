@@ -3,9 +3,6 @@ package com.example.backend.forecast;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
@@ -14,13 +11,11 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
 
 /** Task 13.2: every forecast meter, read back from a real Micrometer registry. */
 class ForecastMetricsTest {
@@ -46,22 +41,18 @@ class ForecastMetricsTest {
         public long size() {
             return queued.size();
         }
+
+        @Override
+        public boolean contains(String forecastId) {
+            return queued.contains(forecastId);
+        }
     };
     private final ForecastMetrics metrics = new ForecastMetrics(registry, queue);
     private ForecastStore store;
 
     @BeforeEach
     void setUpStore() {
-        ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
-        Map<String, ForecastEntity> backing = new HashMap<>();
-        when(repository.save(any())).thenAnswer(invocation -> {
-            ForecastEntity entity = invocation.getArgument(0);
-            backing.put(entity.getId(), entity);
-            return entity;
-        });
-        when(repository.findById(any())).thenAnswer(
-                invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
-        store = new ForecastStore(repository, new ObjectMapper(), Spans.noop());
+        store = InMemoryForecasts.store(Spans.noop());
     }
 
     private double gauge(String name) {
@@ -95,6 +86,11 @@ class ForecastMetricsTest {
             public long size() {
                 throw new IllegalStateException("redis down");
             }
+
+            @Override
+            public boolean contains(String forecastId) {
+                return false;
+            }
         });
 
         assertTrue(Double.isNaN(isolated.get("forecast.queue.depth").gauge().value()));
@@ -112,7 +108,7 @@ class ForecastMetricsTest {
                     "not_a_stage", 1.0));
         };
 
-        new ForecastWorker(queue, store, runner, 3, SecretRedactor.of(), metrics, Spans.noop()).pollOnce();
+        new ForecastWorker(queue, store, runner, 3, SecretRedactor.of(), metrics, Spans.noop(), 0).pollOnce();
 
         assertEquals(1.0, busyDuringRun[0]);
         assertEquals(0.0, gauge("forecast.worker.busy"));
@@ -131,7 +127,7 @@ class ForecastMetricsTest {
         queue.enqueue("job-2");
         ForecastWorker worker = new ForecastWorker(queue, store,
                 request -> ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "timed out"),
-                2, SecretRedactor.of(), metrics, Spans.noop());
+                2, SecretRedactor.of(), metrics, Spans.noop(), 0);
 
         worker.pollOnce(); // attempt 1: retried
         worker.pollOnce(); // attempt 2 of 2: terminal

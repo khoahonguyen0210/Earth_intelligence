@@ -1,6 +1,8 @@
 package com.example.backend.forecast;
 
 import com.example.backend.tracing.Spans;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -14,6 +16,11 @@ import tools.jackson.databind.ObjectMapper;
  * Task 13.3: each call is a child span (the "storage" hop of a trace);
  * the save that records a job's outcome is where its result lands, and
  * carries that final status as a tag.
+ *
+ * Task 13.5: every save stamps updated_at, and the claim/recovery
+ * operations below are single conditional UPDATEs, so concurrent workers
+ * and recovery sweeps on different replicas never both act on one job
+ * (docs/reliability-tests.md).
  */
 @Repository
 public class ForecastStore {
@@ -43,6 +50,36 @@ public class ForecastStore {
         });
     }
 
+    /**
+     * Task 13.5: flips a PENDING/RETRYING job to RUNNING; false if it is
+     * in any other state (already claimed by another worker, finished,
+     * or unknown) -- the caller must then not run it.
+     */
+    public boolean claim(String id) {
+        return spans.child("forecast.store.claim", () -> {
+            spans.tag("db.system", "postgresql");
+            return repository.claim(id, Instant.now()) == 1;
+        });
+    }
+
+    public List<String> runningUnchangedSince(Instant before) {
+        return repository.findRunningUnchangedSince(before);
+    }
+
+    public List<String> waitingUnchangedSince(Instant before) {
+        return repository.findWaitingUnchangedSince(before);
+    }
+
+    /** Ends an abandoned RUNNING attempt as RETRYING or FAILED; false if another sweep got there first. */
+    public boolean endAbandonedAttempt(String id, Forecast.Status status, String error, Instant before) {
+        return repository.endAbandonedAttempt(id, status.name(), error, before, Instant.now()) == 1;
+    }
+
+    /** Marks a waiting job as re-enqueued now; false if it changed meanwhile or another sweep got there first. */
+    public boolean touchWaiting(String id, Instant before) {
+        return repository.touchWaiting(id, before, Instant.now()) == 1;
+    }
+
     /** Task 6.6: backs the "same idempotency key -> one logical job" rule. */
     public Optional<Forecast> findByIdempotencyKey(String idempotencyKey) {
         return spans.child("forecast.store.find_by_idempotency_key", () -> {
@@ -61,7 +98,8 @@ public class ForecastStore {
                 forecast.createdAt(),
                 forecast.attempts(),
                 forecast.idempotencyKey(),
-                forecast.traceParent());
+                forecast.traceParent(),
+                Instant.now());
     }
 
     private Forecast toDomain(ForecastEntity entity) {

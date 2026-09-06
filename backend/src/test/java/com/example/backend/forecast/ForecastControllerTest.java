@@ -13,7 +13,6 @@ import com.example.backend.tracing.Spans;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -50,6 +49,11 @@ class ForecastControllerTest {
         public long size() {
             return queued.size();
         }
+
+        @Override
+        public boolean contains(String forecastId) {
+            return queued.contains(forecastId);
+        }
     }
 
     /**
@@ -60,32 +64,7 @@ class ForecastControllerTest {
      * behavior, throwing on a key collision between two different ids.
      */
     private static ForecastStore newStore() {
-        ForecastJpaRepository repository = mock(ForecastJpaRepository.class);
-        Map<String, ForecastEntity> backing = new HashMap<>();
-
-        when(repository.save(any())).thenAnswer(invocation -> {
-            ForecastEntity entity = invocation.getArgument(0);
-            boolean keyTakenByAnotherRow = entity.getIdempotencyKey() != null
-                    && backing.values().stream().anyMatch(existing -> !existing.getId().equals(entity.getId())
-                            && entity.getIdempotencyKey().equals(existing.getIdempotencyKey()));
-
-            if (keyTakenByAnotherRow) {
-                throw new DataIntegrityViolationException("duplicate idempotency key");
-            }
-
-            backing.put(entity.getId(), entity);
-            return entity;
-        });
-        when(repository.findById(any())).thenAnswer(
-                invocation -> Optional.ofNullable(backing.get(invocation.getArgument(0))));
-        when(repository.findByIdempotencyKey(any())).thenAnswer(invocation -> {
-            String key = invocation.getArgument(0);
-            return backing.values().stream()
-                    .filter(entity -> key.equals(entity.getIdempotencyKey()))
-                    .findFirst();
-        });
-
-        return new ForecastStore(repository, new ObjectMapper(), Spans.noop());
+        return InMemoryForecasts.store(Spans.noop());
     }
 
     @Test
@@ -237,7 +216,8 @@ class ForecastControllerTest {
                 Instant.now(),
                 0,
                 "race-key",
-                null);
+                null,
+                Instant.now());
 
         when(repository.findByIdempotencyKey("race-key"))
                 .thenReturn(Optional.empty())
