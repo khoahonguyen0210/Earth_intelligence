@@ -247,10 +247,13 @@ still-valid open connections, until the new pods pass readiness.
 
 ```text
 ALB (internet-facing, HTTP :80), path routing:
-  /analyses*  /forecasts*  /results*  /readyz  /livez  -> backend:8080
-  /*                                                   -> frontend:80
+  /analyses*  /forecasts*  /results*  /queries*  /readyz  /livez  -> backend:8080
+  /*                                                              -> frontend:80
 ALB target health check: GET /readyz on backend:8080
 ```
+
+Task 14.1 added `/queries` (the Ask Earth page's own resource,
+`docs/ask-earth.md`), routed exactly like the other three.
 
 Task 13.4 moved every actuator endpoint to the internal management port
 8081, which the ALB never routes. The public backend port answers only

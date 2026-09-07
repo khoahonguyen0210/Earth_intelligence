@@ -21,7 +21,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 class RateLimitFilterTest {
 
     private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
-    private final RateLimitFilter filter = new RateLimitFilter(redis, "ratelimit:", 10, 30);
+    private final RateLimitFilter filter = new RateLimitFilter(redis, "ratelimit:", 10, 30, 20);
 
     private static MockHttpServletRequest request(String method, String path, String client) {
         MockHttpServletRequest request = new MockHttpServletRequest(method, path);
@@ -69,6 +69,20 @@ class RateLimitFilterTest {
 
         assertEquals(200, response.getStatus());
         verify(chain).doFilter(any(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void queriesHaveTheirOwnConfiguredLimit() throws Exception {
+        when(redis.execute(any(RedisScript.class), anyList(), any())).thenReturn(List.of(21L, 45L));
+        FilterChain chain = mock(FilterChain.class);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request("POST", "/queries", "203.0.113.7"), response, chain);
+
+        assertEquals(429, response.getStatus());
+        assertTrue(response.getContentAsString().contains("at most 20 requests per minute to /queries"));
+        verify(chain, never()).doFilter(any(), any());
     }
 
     @Test

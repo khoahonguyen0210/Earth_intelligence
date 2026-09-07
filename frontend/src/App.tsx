@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { createAnalysis, getAnalysisResult, getHealth } from "./api/client";
-import type { AnalysisRequest, ResultResponse } from "./api/types";
-import { QueryForm } from "./components/QueryForm";
-import { ResultView } from "./components/ResultView";
+import { createEarthQuery, getEarthQueryResult, getHealth } from "./api/client";
+import type { EarthQueryResult } from "./api/types";
+import { AskEarthForm } from "./components/AskEarthForm";
 
 type Status = "idle" | "loading" | "error" | "success";
 
@@ -10,10 +9,7 @@ function App() {
   const [backendStatus, setBackendStatus] = useState("Checking backend...");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ResultResponse | null>(null);
-  const [submittedQuestion, setSubmittedQuestion] = useState<string | null>(
-    null,
-  );
+  const [result, setResult] = useState<EarthQueryResult | null>(null);
 
   useEffect(() => {
     getHealth()
@@ -21,16 +17,18 @@ function App() {
       .catch(() => setBackendStatus("Backend: unavailable"));
   }, []);
 
-  async function handleSubmit(request: AnalysisRequest) {
+  // Task 14.1: POST /queries is synchronous (no job queue, like
+  // /analyses), so this awaits the real plan-and-execute pipeline
+  // directly rather than polling a status.
+  async function handleAsk(question: string) {
     setStatus("loading");
     setError(null);
     setResult(null);
-    setSubmittedQuestion(request.question);
 
     try {
-      const summary = await createAnalysis(request);
-      const resultResponse = await getAnalysisResult(summary.id);
-      setResult(resultResponse);
+      const summary = await createEarthQuery(question);
+      const resultResponse = await getEarthQueryResult(summary.id);
+      setResult(resultResponse.result);
       setStatus("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -43,19 +41,25 @@ function App() {
       <h1>AI Earth Intelligence & Forecasting Engine</h1>
       <p>{backendStatus}</p>
 
-      <QueryForm onSubmit={handleSubmit} disabled={status === "loading"} />
+      <AskEarthForm onSubmit={handleAsk} disabled={status === "loading"} />
 
-      {status === "loading" && <p role="status">Running analysis...</p>}
+      {status === "loading" && <p role="status">Asking Earth...</p>}
 
       {status === "error" && error && <p role="alert">Error: {error}</p>}
 
       {status === "success" && result && (
-        <>
-          <p>
-            <em>{submittedQuestion}</em>
-          </p>
-          <ResultView result={result.result} evidence={result.evidence} />
-        </>
+        <section aria-label="Answer" data-testid="ask-earth-answer">
+          <p>{result.answer}</p>
+          {result.facts.length > 0 && (
+            <ul aria-label="Facts behind this answer">
+              {result.facts.map((fact) => (
+                <li key={fact.step_id}>
+                  <em>({fact.category})</em> {fact.step_id}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
     </main>
   );

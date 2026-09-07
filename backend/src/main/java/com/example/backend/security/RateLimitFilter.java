@@ -20,10 +20,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Task 13.4: per-client rate limits on the two routes that start real
- * work -- POST /forecasts queues a Python job that can run for minutes,
- * POST /analyses holds a request thread for a Python subprocess. Reads
- * are not limited.
+ * Task 13.4: per-client rate limits on the routes that start real work
+ * -- POST /forecasts queues a Python job that can run for minutes,
+ * POST /analyses holds a request thread for a Python subprocess, and
+ * (Task 14.1) POST /queries holds one for a real LLM call plus a whole
+ * plan's execution, including a possible run_forecast step. Reads are
+ * not limited.
  *
  * A fixed one-minute window per client IP and route, counted in the
  * Redis every replica already shares, so the limit holds across
@@ -71,10 +73,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
             StringRedisTemplate redis,
             @Value("${api.rate-limit.key-prefix}") String keyPrefix,
             @Value("${api.rate-limit.forecasts-per-minute}") long forecastsPerMinute,
-            @Value("${api.rate-limit.analyses-per-minute}") long analysesPerMinute) {
+            @Value("${api.rate-limit.analyses-per-minute}") long analysesPerMinute,
+            @Value("${api.rate-limit.queries-per-minute}") long queriesPerMinute) {
         this.redis = redis;
         this.keyPrefix = keyPrefix;
-        this.limitsPerMinute = Map.of("/forecasts", forecastsPerMinute, "/analyses", analysesPerMinute);
+        this.limitsPerMinute = Map.of(
+                "/forecasts", forecastsPerMinute,
+                "/analyses", analysesPerMinute,
+                "/queries", queriesPerMinute);
     }
 
     @Override

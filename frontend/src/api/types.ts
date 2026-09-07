@@ -86,3 +86,50 @@ export interface ResultResponse {
 export interface ErrorResponse {
   error: string;
 }
+
+// Task 14.1: the Ask Earth page's own types -- POST /queries takes a
+// bare natural-language question; everything else (region, time range,
+// operation) is what the real planner (backend, Task 7.3) works out,
+// not something this page's request shape carries.
+
+export interface EarthQueryRequest {
+  question: string;
+}
+
+export interface EarthQuerySummary {
+  id: string;
+  status: "SUCCEEDED" | "FAILED";
+}
+
+export interface EarthQueryFact {
+  step_id: string;
+  category: "observed" | "computed" | "predicted";
+  result: unknown;
+  evidence: Record<string, unknown> | null;
+}
+
+export interface EarthQueryPlanStep {
+  step_id: string;
+  tool: string;
+  input: Record<string, unknown>;
+  depends_on: string[];
+}
+
+/**
+ * The whole run_ask_earth.py payload (docs/ask-earth.md): a grounded
+ * answer plus the real facts, outputs and plan behind it. Task 14.2's
+ * result page is what actually renders outputs/plan (map, numbers,
+ * evidence); this page only needs `answer`.
+ */
+export interface EarthQueryResult {
+  question: string;
+  answer: string;
+  facts: EarthQueryFact[];
+  outputs: Record<string, unknown>;
+  plan: { steps: EarthQueryPlanStep[] };
+}
+
+export interface EarthQueryResultResponse {
+  id: string;
+  result: EarthQueryResult;
+}
