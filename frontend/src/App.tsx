@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { createEarthQuery, getEarthQueryResult, getHealth } from "./api/client";
 import type { EarthQueryResult } from "./api/types";
 import { AskEarthForm } from "./components/AskEarthForm";
+import { EarthQueryResultView } from "./components/EarthQueryResultView";
+import { ForecastPanel } from "./components/ForecastPanel";
 
 type Status = "idle" | "loading" | "error" | "success";
 
@@ -47,20 +49,9 @@ function App() {
 
       {status === "error" && error && <p role="alert">Error: {error}</p>}
 
-      {status === "success" && result && (
-        <section aria-label="Answer" data-testid="ask-earth-answer">
-          <p>{result.answer}</p>
-          {result.facts.length > 0 && (
-            <ul aria-label="Facts behind this answer">
-              {result.facts.map((fact) => (
-                <li key={fact.step_id}>
-                  <em>({fact.category})</em> {fact.step_id}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {status === "success" && result && <EarthQueryResultView result={result} />}
+
+      <ForecastPanel />
     </main>
   );
 }

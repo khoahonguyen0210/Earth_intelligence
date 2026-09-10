@@ -153,16 +153,137 @@ untouched on disk (still compiling, still passing) since `POST
 /analyses` is still a real, working, separately useful route; they are
 simply no longer what `App.tsx` renders.
 
+## Task 14.2: the result page
+
+`EarthQueryResultView` replaces the placeholder result snippet Task 14.1
+left in `App.tsx` with the handbook's full list -- answer, map, numbers,
+time, region, evidence -- rendered per fact (a plan can produce more than
+one, e.g. a count alongside a forecast). `RegionMap` (Task 2.8) is reused
+as-is: it only ever needed a bbox and a label, both of which a fact's own
+`Evidence` already carries, so nothing about it changed.
+
+Each fact's `result` is duck-typed by shape, mirroring `ResultView`'s own
+existing pattern (`CountResult`/`DailyAggregateResult`/
+`WeeklyAggregateResult`/`MapResult`), extended with the two shapes only
+this pipeline produces: `DatasetReference` (`get_data`: source, product,
+record count, provenance) and `ForecastJobReference` (`run_forecast`:
+just `{forecast_id, status}` -- `docs/forecast-api-contract.md` locks
+that a forecast job is created, not computed, here). Region/time/evidence
+are rendered only when a fact carries its own `Evidence`
+(`calculate_statistics`/`generate_map`); `get_data`/`run_forecast` facts
+have none of their own (a forecast's evidence needs a separate
+`get_result_evidence` step in the same plan), so those sections are
+simply absent for them rather than showing an empty or fabricated one.
+
+A `run_forecast` fact deliberately shows only the job reference, not a
+risk grid -- that grid is Task 14.3's own forecast map, which needs
+fields (legend, forecast horizon, calibration) this general result view
+does not carry.
+
+## Task 14.3: the forecast map
+
+`ForecastMap` (`frontend/src/components/ForecastMap.tsx`) renders the
+real `GET /forecasts/{id}/result` shape -- confirmed against the actual
+current code, not just `docs/forecast-api-contract.md`'s prose, since
+the doc's own illustrative JSON block reads as a flattened
+`FeatureCollection` while the real `forecast_result_to_dict`
+(`ml/.../query/forecast_result.py`) nests it under a top-level `grid`
+key alongside `model_version`, `data_cutoff`, `forecast_window`,
+`calibration`, and `evidence`; the component is written against that
+real nesting.
+
+It covers every field the handbook lists for this task: the California
+grid (one coloured `<rect>` per feature, projected against the same
+reference bbox `RegionMap` already uses so the two read at the same
+scale), each cell's real `probability`, a scale legend, the forecast
+horizon (`forecast_window`), the data cutoff, the model version, and
+the calibration table plus the forecast's own evidence.
+
+Colour follows the dataviz skill's procedure: probability is a
+magnitude, not an identity, so it gets the skill's validated sequential
+"blue" ramp (`references/palette.md`, steps 100 through 700) quantised
+into 7 bins -- the unmodified reference instance, so no re-validation
+was needed. Domain is the *grid's own* real min/max probability, not a
+fixed [0, 1] range, labelled on the legend, so the colour spread stays
+visible even though real wildfire-risk probabilities cluster near zero.
+Every cell also carries a native SVG `<title>` (its tile ID and
+probability as a hover tooltip) and a full sortable table view of every
+cell folds under a `<details>` toggle -- the accessibility non-negotiable
+that identity/value is never colour-alone, satisfied here by the real
+numbers being present in text form too, not just implied by hue.
+
+This component is intentionally standalone: it takes an already-`
+SUCCEEDED` forecast's `ForecastResult` as a prop and renders it, the
+same way `RegionMap` only ever needed a bbox and a label. Fetching a
+forecast by ID and deciding *when* to show this component --
+PENDING/RUNNING/FAILED handling -- is Task 14.4's "real job-status UI";
+wiring it into a `run_forecast` fact on the result page is that task's
+job too, once there is a real status to gate it on. `getForecastResult`
+(`api/client.ts`) exists now, mirroring `getAnalysisResult`/
+`getEarthQueryResult`, but nothing calls it yet.
+
+## Task 14.4: the real job-status UI
+
+`ForecastPanel` (`frontend/src/components/ForecastPanel.tsx`) is a new,
+second section on the page, alongside Ask Earth -- not a further
+wiring of Ask Earth's own `run_forecast` fact. That distinction is
+deliberate: `query/dispatch.py`'s `dispatch_run_forecast` already polls
+`POST /forecasts` to a terminal status *server-side* before a
+`/queries` response is ever sent (see "Real dispatch" above), so by the
+time a `ForecastJobReference` fact reaches the frontend it is always
+already terminal -- there is no in-progress state left to show. A
+genuine queued/running/completed/failed UI needs a job the browser
+itself watches while it is still in flight, which means the *direct*,
+asynchronous `POST /forecasts` path, submitted through a new
+`ForecastRequestForm` (region + cutoff only, no operation or time
+range -- the same region-kind fieldset `QueryForm` already established).
+
+`ForecastPanel` submits the job, then polls `GET /forecasts/{id}`
+(`getForecastStatus`, `api/client.ts`) every 2s (matching
+`dispatch_run_forecast`'s own `poll_interval_seconds=1.0` order of
+magnitude, not hammering the endpoint) until the real
+`Forecast.Status` reaches a terminal value, then fetches
+`GET /forecasts/{id}/result` and renders `ForecastMap` (Task 14.3) on
+success or the real backend error message on failure. Never a
+fabricated progress percentage: the handbook's own four states
+(queued/running/completed/failed) are a direct, honest fold of the six
+real backend values -- PENDING and RETRYING both read as "queued" (both
+are waiting for an attempt, not making one), CANCELLED folds into
+"failed" (a non-success terminal state; unreachable today per
+`Forecast.java`'s own comment, since no cancel endpoint exists) -- and
+the real backend status string is always shown alongside the folded
+label, never hidden behind it. Status is rendered as a shape (not just
+a colour) plus a text label plus the raw backend value, using the
+dataviz skill's reserved status palette (good/warning/serious/critical),
+so meaning is never colour-alone.
+
+**A real bug this caught:** testing `ForecastPanel` against the actual
+running backend (not just the mocked-client unit tests) found that
+every Forecast response field is serialized as `snake_case`
+(`spring.jackson.property-naming-strategy=SNAKE_CASE`,
+`application.properties`) -- `POST /forecasts` really returns
+`{"forecast_id": ..., "status": ...}`, not the `forecastId` this task's
+first draft assumed straight from `ForecastSummaryResponse`'s own Java
+field name. `ForecastResultResponse` has the same field. Every other
+response type in this codebase (`EarthQuerySummaryResponse`,
+`ResultResponse`, ...) happens to use single-word field names
+(`id`, `status`, `result`) where snake_case and camelCase are
+identical, which is exactly why this had gone unnoticed: nothing before
+this task ever exercised a multi-word Java record field's real wire
+name. Fixed by renaming `ForecastSummary`/`ForecastResultResponse`'s own
+`forecastId` to `forecast_id`, matching this codebase's established
+convention of typing a response exactly as its wire shape (`Evidence`,
+`CalibrationBin`, etc. are already all snake_case), not camel-casing it
+on the way in.
+
 ## What this task does not do
 
-- **The result page is Task 14.2's job.** `App.tsx` shows the grounded
-  answer and the tagged facts behind it (enough to prove the pipeline is
-  real); the fuller layout the handbook lists for 14.2 -- map, numbers,
-  time, region, evidence -- is that task's own work, not duplicated here.
-- **No job-status UI.** `POST /queries` is synchronous; Task 14.4's "real
-  job-status UI" is about the forecast job queue, which a plan's
-  `run_forecast` step already goes through for real without exposing its
-  own separate status polling to this page.
+- **`ForecastPanel` is a separate section, not Ask Earth's own
+  `run_forecast` fact wired up.** As above, Ask Earth's embedded
+  forecast step is already resolved by the time a `/queries` response
+  exists, so there is no separate status UI to add there; a
+  `run_forecast` fact still only ever shows its job reference
+  (Task 14.2), unchanged by this task.
 - **Nothing here changes `WorkflowExecutor`.** `execute_plan` is its own
   simple, sequential, non-persistent executor purpose-built for one
   synchronous Ask Earth request; `WorkflowExecutor` (Task 8.3) still has
@@ -202,6 +323,30 @@ AskEarthForm.test.tsx                     7  submit, blank-question rejection, l
 App.test.tsx                              4  shell + backend status; a question answered
                                              end to end; an error surfaced; the form
                                              disabled while asking
+EarthQueryResultView.test.tsx             8  answer always shown; count/daily/weekly/map
+                                             facts rendered with region+time+evidence;
+                                             get_data/run_forecast facts with none of
+                                             their own show no region/time/evidence
+                                             section; a run_forecast fact is a job
+                                             reference only; multiple facts each in their
+                                             own step
+ForecastMap.test.tsx                      6  one coloured cell per real grid feature with
+                                             a hover title; model version/data cutoff/
+                                             forecast window shown; legend spans the
+                                             grid's own real min/max probability;
+                                             calibration table and full per-cell table
+                                             view both present; the forecast's own
+                                             evidence shown
+ForecastRequestForm.test.tsx               4  named/bbox/coordinates region submission;
+                                             cutoff read as UTC; disabled while a job
+                                             is already in flight
+ForecastPanel.test.tsx                     4  real initial status shown right after
+                                             submit, form disabled meanwhile; the real
+                                             result rendered once the backend reports
+                                             SUCCEEDED; the real backend error shown on
+                                             FAILED, not a fabricated one; the real
+                                             submission error shown when the job
+                                             cannot even be created
 ```
 
 A real, live run against the actual Gemini API and the actual FIRMS
@@ -215,9 +360,14 @@ half-open time window did not exactly match the question's literal
 wording, rather than silently asserting an exact-sounding number, which
 is precisely the "never fabricate" property PROJECT_BIBLE locks.
 
-Full backend suite after this task: **173 tests, 0 failures** (155
+Full backend suite after Task 14.1: **173 tests, 0 failures** (155
 before). Full `ml` suite: **528 -> 545 tests** (17 new, dispatch.py/
 run_ask_earth.py), still 0 failures, 2 skipped (the pre-existing
-real-model forecast tests, unrelated to this task). Frontend: **27
-tests, 0 failures** (19 before, +8 new for `AskEarthForm`, `App.test.tsx`
-rewritten for the new flow rather than added to).
+real-model forecast tests, unrelated to this task). Frontend after Task
+14.1: **27 tests, 0 failures** (19 before, +8 new for `AskEarthForm`,
+`App.test.tsx` rewritten for the new flow rather than added to). Frontend
+after Task 14.2: **35 tests, 0 failures** (+8 new for
+`EarthQueryResultView`). Frontend after Task 14.3: **41 tests, 0
+failures** (+6 new for `ForecastMap`). Frontend after Task 14.4: **49
+tests, 0 failures** (+4 new for `ForecastRequestForm`, +4 new for
+`ForecastPanel`).

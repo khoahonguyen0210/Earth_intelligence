@@ -1,0 +1,197 @@
+import type {
+  CountResult,
+  DailyAggregateResult,
+  DatasetReference,
+  EarthQueryFact,
+  EarthQueryFactResult,
+  EarthQueryResult,
+  ForecastJobReference,
+  MapResult,
+  WeeklyAggregateResult,
+} from "../api/types";
+import { RegionMap } from "./RegionMap";
+
+interface EarthQueryResultViewProps {
+  result: EarthQueryResult;
+}
+
+function isCountResult(result: EarthQueryFactResult): result is CountResult {
+  return typeof (result as CountResult).count === "number";
+}
+
+function isDailyAggregateResult(
+  result: EarthQueryFactResult,
+): result is DailyAggregateResult {
+  return Array.isArray((result as DailyAggregateResult).daily);
+}
+
+function isWeeklyAggregateResult(
+  result: EarthQueryFactResult,
+): result is WeeklyAggregateResult {
+  return Array.isArray((result as WeeklyAggregateResult).weekly);
+}
+
+function isMapResult(result: EarthQueryFactResult): result is MapResult {
+  return (result as MapResult).type === "FeatureCollection";
+}
+
+function isDatasetReference(
+  result: EarthQueryFactResult,
+): result is DatasetReference {
+  return typeof (result as DatasetReference).record_count === "number";
+}
+
+function isForecastJobReference(
+  result: EarthQueryFactResult,
+): result is ForecastJobReference {
+  return typeof (result as ForecastJobReference).forecast_id === "string";
+}
+
+/**
+ * One executed step's contribution to the answer -- the handbook's
+ * "numbers"/"map" (Task 14.2), rendered from the real result shape
+ * run_ask_earth.py actually produced, never fabricated. A run_forecast
+ * step only ever creates a job here (docs/forecast-api-contract.md); its
+ * real risk grid is Task 14.3's own forecast map, not duplicated here.
+ */
+function FactBody({ result }: { result: EarthQueryFactResult }) {
+  if (isCountResult(result)) {
+    return (
+      <p data-testid={`result-count`}>
+        <strong>{result.count}</strong> fire detections
+      </p>
+    );
+  }
+
+  if (isDailyAggregateResult(result)) {
+    return (
+      <table>
+        <caption>Daily fire counts</caption>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {result.daily.map((entry) => (
+            <tr key={entry.date}>
+              <td>{entry.date}</td>
+              <td>{entry.count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
+  if (isWeeklyAggregateResult(result)) {
+    return (
+      <table>
+        <caption>Weekly fire counts</caption>
+        <thead>
+          <tr>
+            <th>Week starting</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {result.weekly.map((entry) => (
+            <tr key={entry.week_start}>
+              <td>{entry.week_start}</td>
+              <td>{entry.count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
+  if (isMapResult(result)) {
+    return (
+      <ul aria-label="Map values">
+        {result.features.map((feature, index) => (
+          <li key={index}>
+            {feature.properties.region_label ?? feature.properties.region_kind}:{" "}
+            {feature.properties.value} {feature.properties.units}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (isForecastJobReference(result)) {
+    return (
+      <p>
+        Forecast job <code>{result.forecast_id}</code>: {result.status}. Its
+        risk grid is shown on the forecast map.
+      </p>
+    );
+  }
+
+  if (isDatasetReference(result)) {
+    return (
+      <p>
+        <strong>{result.record_count}</strong> records from {result.source} (
+        {result.product})
+      </p>
+    );
+  }
+
+  return null;
+}
+
+function Fact({ fact }: { fact: EarthQueryFact }) {
+  const { evidence } = fact;
+
+  return (
+    <article aria-label={`Step ${fact.step_id}`}>
+      <h3>
+        {fact.step_id} <em>({fact.category})</em>
+      </h3>
+
+      <FactBody result={fact.result} />
+
+      {evidence && (
+        <>
+          <h4>Region</h4>
+          <RegionMap bbox={evidence.region_bbox} label={evidence.region_label} />
+          <p>
+            {evidence.region_kind}
+            {evidence.region_label ? ` (${evidence.region_label})` : ""}
+          </p>
+
+          <h4>Time</h4>
+          <p>
+            {evidence.period_start} &ndash; {evidence.period_end}
+          </p>
+
+          <h4>Evidence</h4>
+          <dl>
+            <dt>Dataset</dt>
+            <dd>{evidence.dataset}</dd>
+            <dt>Processing version</dt>
+            <dd>{evidence.processing_version}</dd>
+          </dl>
+        </>
+      )}
+    </article>
+  );
+}
+
+export function EarthQueryResultView({ result }: EarthQueryResultViewProps) {
+  return (
+    <section aria-label="Answer" data-testid="ask-earth-answer">
+      <h2>Answer</h2>
+      <p>{result.answer}</p>
+
+      {result.facts.length > 0 && (
+        <div aria-label="Facts behind this answer">
+          {result.facts.map((fact) => (
+            <Fact key={fact.step_id} fact={fact} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

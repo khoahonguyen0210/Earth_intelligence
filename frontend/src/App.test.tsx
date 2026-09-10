@@ -55,7 +55,8 @@ describe("App", () => {
     );
     expect(mockCreateEarthQuery).toHaveBeenCalledWith("How many fires in California?");
     expect(mockGetEarthQueryResult).toHaveBeenCalledWith("abc-123");
-    expect(screen.getByLabelText(/facts behind this answer/i)).toHaveTextContent("(computed) count");
+    expect(screen.getByLabelText(/facts behind this answer/i)).toHaveTextContent("count (computed)");
+    expect(screen.getByTestId("result-count")).toHaveTextContent("198 fire detections");
   });
 
   it("shows an error message when the query fails", async () => {
