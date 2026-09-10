@@ -12,7 +12,7 @@ from ai_earth_intelligence_and_forecasting_engine.data.firms import load_firms_c
 def main() -> None:
     config = load_firms_config()
 
-    # Same fixed historical slice used by the other Phase 1 adapters.
+    # Same fixed historical slice used by the other ingestion adapters.
     bbox = (-124.5, 32.5, -114.0, 42.0)
     observed_date = date(2024, 8, 15)
 

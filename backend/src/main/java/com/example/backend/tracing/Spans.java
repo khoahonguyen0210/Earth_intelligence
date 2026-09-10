@@ -9,8 +9,8 @@ import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 
 /**
- * Task 13.3: the one place the backend opens its own spans, over
- * Micrometer Tracing's vendor-neutral API (the OpenTelemetry bridge and
+ * The one place the backend opens its own spans, over Micrometer
+ * Tracing's vendor-neutral API (the OpenTelemetry bridge and
  * OTLP exporter sit behind it, see docs/tracing.md).
  *
  * Three kinds of span, so a trace only ever starts where real work
@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component;
  *
  * Every span is put in scope while its work runs, so nested spans become
  * its children and every log line written meanwhile carries its traceId
- * and spanId (MDC), the same way request_id/job_id do (Task 13.1).
+ * and spanId (MDC), the same way request_id/job_id do.
  */
 @Component
 public class Spans {

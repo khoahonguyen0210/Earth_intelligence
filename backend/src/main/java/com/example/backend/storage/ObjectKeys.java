@@ -4,8 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 /**
- * Task 13.4: the only object keys ObjectStore accepts. No caller writes
- * through the store yet (docs/object-storage-contract.md), so the rule is
+ * The only object keys ObjectStore accepts. No caller writes through
+ * the store yet (docs/object-storage-contract.md), so the rule is
  * fixed before one does -- and before any key is built from request data:
  *
  *   - relative "segment/segment/name" of [A-Za-z0-9._-] segments,

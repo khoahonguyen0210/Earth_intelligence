@@ -6,8 +6,8 @@ interface ForecastRequestFormProps {
   disabled: boolean;
 }
 
-// Same named-region set and region-kind pattern as QueryForm (Task 2.8);
-// a forecast job only ever needs a region and a cutoff, not an
+// Same named-region set and region-kind pattern as QueryForm; a forecast
+// job only ever needs a region and a cutoff, not an
 // operation or a time range.
 const NAMED_REGIONS = [
   "california",

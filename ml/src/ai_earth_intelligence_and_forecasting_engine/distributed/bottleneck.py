@@ -11,7 +11,10 @@ from ai_earth_intelligence_and_forecasting_engine.distributed.run import (
     RunContext,
 )
 
-# Task 9.4's own fixed candidate list, verbatim from the handbook.
+# The full set of bottleneck factors under consideration. "network" and
+# "database" are listed for completeness even though identify_bottleneck
+# never measures them: nothing in this pipeline makes a network or
+# database call, so they can never be the dominant factor.
 CANDIDATE_FACTORS: tuple[str, ...] = (
     "cpu",
     "i_o",
@@ -26,8 +29,8 @@ def _noop(value: int) -> int:
     """A trivial worker function: isolates pure process-spawn/coordination
     overhead (interpreter startup, Windows' `spawn` start method
     re-importing this module and everything transitively imported by it
-    -- numpy, xgboost, scikit-learn, rasterio) from any of Task 9.2/9.3's
-    real per-tile computation."""
+    -- numpy, xgboost, scikit-learn, rasterio) from real per-tile
+    computation."""
     return value
 
 
@@ -87,8 +90,8 @@ def measure_serialization_cost(task: ChunkTask) -> SerializationCost:
     Pool run's total wall time. Isolates "serialization" from
     "coordination": a task carries every worker's full copy of the real
     observations/era5_records/geography_cells and the fitted model
-    (Task 9.2's RunContext), not just its own tile slice, so this cost
-    scales with dataset size and worker count, not with tile count."""
+    (RunContext), not just its own tile slice, so this cost scales with
+    dataset size and worker count, not with tile count."""
     start = time.perf_counter()
     payload = pickle.dumps(task)
     pickle_seconds = time.perf_counter() - start
@@ -119,11 +122,10 @@ def identify_bottleneck(
     worker_counts: tuple[int, ...],
     real_compute_seconds: float,
 ) -> BottleneckReport:
-    """Task 9.4: compares four real, directly-measured numbers -- pure
-    process-spawn overhead at each worker count, one real ChunkTask's
-    serialization cost, the one-time data-loading stage (the handbook's
-    own "i_o" candidate), and the actual per-tile compute time Task
-    9.2/9.3 already measured -- and names whichever dominates. "network"
+    """Compares four real, directly-measured numbers -- pure process-spawn
+    overhead at each worker count, one real ChunkTask's serialization
+    cost, the one-time data-loading stage ("i_o"), and the actual
+    per-tile compute time -- and names whichever dominates. "network"
     and "database" are never reached: nothing in this pipeline makes a
     network or database call (it is pure in-process Python plus local
     multiprocessing), so they are correctly never the answer here, not

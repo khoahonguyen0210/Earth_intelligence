@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Task 13.4: response headers for an API that only ever returns JSON.
+ * Response headers for an API that only ever returns JSON.
  *
  *   X-Content-Type-Options: nosniff  -- a browser never reinterprets a
  *       JSON body (which can carry request-derived text, e.g. a region

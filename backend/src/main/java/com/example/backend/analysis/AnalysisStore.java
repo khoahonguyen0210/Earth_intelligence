@@ -5,10 +5,9 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 6.3: durable Postgres-backed storage, replacing the earlier
- * in-memory ConcurrentHashMap. save/find keep the exact same shape as
- * before, so AnalysisController is unchanged -- only this class's
- * internals moved from a Map to a real jsonb-backed table.
+ * Durable Postgres-backed storage for analyses. save/find present a
+ * stable shape so callers like AnalysisController don't need to know how
+ * persistence is implemented underneath.
  */
 @Repository
 public class AnalysisStore {

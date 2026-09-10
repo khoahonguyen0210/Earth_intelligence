@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Task 14.1: the Ask Earth page's real backend -- a natural-language
+ * The Ask Earth page's real backend -- a natural-language
  * question in, a real plan executed against real data, a grounded answer
  * out. Synchronous like AnalysisController (no queue): the request
  * thread blocks for PythonEarthQueryRunner's one subprocess call, which
@@ -72,8 +72,8 @@ public class EarthQueryController {
             long durationMs = durationNanos / 1_000_000;
             EarthQuery query = EarthQuery.from(id, request, Instant.now(), outcome);
 
-            // Task 13.2-style: tagged by outcome/error code only, never by
-            // the question text itself, which a client controls.
+            // Tagged by outcome/error code only, never by the question
+            // text itself, which a client controls.
             Timer.builder("earth_query.duration")
                     .description("Wall-clock time of one Ask Earth question, including the Python subprocess")
                     .tag("outcome", outcome.success() ? "succeeded" : "failed")

@@ -50,7 +50,7 @@ def fit_calibration(
 ) -> CalibratedModel:
     """Calibrates an already-fit model's probabilities using validation
     data only -- the base model (fit on train, tuned via validation early
-    stopping in Task 4.3) is frozen and never refit here."""
+    stopping) is frozen and never refit here."""
     y_validation = extract_targets(validation_rows)
     validation_classes = sorted(set(y_validation.tolist()))
 

@@ -1,4 +1,4 @@
-"""Task 13.5: a stand-in for scripts/query/run_forecast_cli.py whose
+"""A stand-in for scripts/query/run_forecast_cli.py whose
 behaviour the reliability harness chooses per request, through the
 request's own region name (a `named` region's value), so one backend
 instance can run every job-level scenario:

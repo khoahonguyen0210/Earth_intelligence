@@ -41,9 +41,9 @@ class AnalysisControllerTest {
     }
 
     /**
-     * AnalysisStore is now Postgres-backed (Task 6.3); these tests stay
-     * DB-free by faking the JpaRepository with an in-memory map behind a
-     * Mockito mock, exercising the store's real JSON conversion logic.
+     * AnalysisStore is Postgres-backed; these tests stay DB-free by faking
+     * the JpaRepository with an in-memory map behind a Mockito mock,
+     * exercising the store's real JSON conversion logic.
      */
     private static AnalysisController newController(AnalysisRunner runner) {
         return new AnalysisController(runner, newStore(), SecretRedactor.of(), new SimpleMeterRegistry());

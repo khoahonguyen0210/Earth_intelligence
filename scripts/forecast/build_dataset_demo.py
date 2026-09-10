@@ -1,8 +1,8 @@
-"""Live demo of Task 3.7's dataset builder against real Phase 1 sample data.
+"""Live demo of the dataset builder against the real sample data.
 
 Honesty note: we only have real historical data for a single real day
-(2024-08-15, from the FIRMS/ERA5-Land/geography samples fetched in Phase
-1), which falls in the locked TEST split. To demonstrate the pipeline
+(2024-08-15, from the real FIRMS/ERA5-Land/geography samples already
+fetched), which falls in the locked TEST split. To demonstrate the pipeline
 assembles a dataset spanning all three splits, this script also computes
 rows for a train-period and a validation-period cutoff -- those will
 correctly show zero fire activity and no environmental data, because we

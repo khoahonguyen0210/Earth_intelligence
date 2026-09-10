@@ -11,8 +11,6 @@ from ai_earth_intelligence_and_forecasting_engine.distributed.workload import (
     DistributedWorkload,
 )
 
-# Task 9.3 (Execution Handbook Phase 9): the handbook's own fixed worker
-# counts.
 WORKER_COUNTS: tuple[int, ...] = (1, 2, 4, 8)
 
 
@@ -28,15 +26,14 @@ def run_scaling_benchmark(
     context: RunContext,
     worker_counts: tuple[int, ...] = WORKER_COUNTS,
 ) -> list[ScalingPoint]:
-    """Task 9.3: runs Task 9.2's exact same implementation
-    (run_distributed_inference) at each worker count in worker_counts,
-    against one shared RunContext (the same loaded data and the same
-    fitted model for every point -- see RunContext's own docstring for
-    why that is what makes "keep workload/data/model fixed" literally
-    true here, not just nominally true). The first worker count's wall
-    time is T1; every point's speedup/efficiency (the handbook's own
-    formulas) are computed against it, including the first point itself
-    (speedup 1.0, efficiency 1.0/requested_workers)."""
+    """Runs the same implementation (run_distributed_inference) at each
+    worker count in worker_counts, against one shared RunContext (the
+    same loaded data and the same fitted model for every point -- see
+    RunContext's own docstring for why that is what makes "keep
+    workload/data/model fixed" literally true here, not just nominally
+    true). The first worker count's wall time is T1; every point's
+    speedup/efficiency are computed against it, including the first
+    point itself (speedup 1.0, efficiency 1.0/requested_workers)."""
     if not worker_counts:
         raise ValueError("worker_counts must not be empty")
 

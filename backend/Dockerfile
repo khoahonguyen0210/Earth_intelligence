@@ -48,8 +48,10 @@ COPY --from=build /build/target/*.jar app.jar
 # working directory -- no Java code change needed for containerization.
 ENV FORECAST_PYTHON_EXECUTABLE=/app/ml/.venv/bin/python \
     ANALYSIS_PYTHON_EXECUTABLE=/app/ml/.venv/bin/python \
+    ASK_EARTH_PYTHON_EXECUTABLE=/app/ml/.venv/bin/python \
     FORECAST_PYTHON_WORKDIR=/app \
-    ANALYSIS_PYTHON_WORKDIR=/app
+    ANALYSIS_PYTHON_WORKDIR=/app \
+    ASK_EARTH_PYTHON_WORKDIR=/app
 
 # 8081 is the internal management port (actuator), never published.
 EXPOSE 8080 8081

@@ -191,9 +191,9 @@ class WorkflowExecutorTest {
 
     @Test
     void aNodeAlreadyRunningAtTheStartOfExecuteIsTreatedAsAnInterruptedAttemptAndRetried() {
-        // Task 8.4: a node stuck RUNNING can only be a leftover from a
-        // process that crashed mid-dispatch -- execute() must resume it,
-        // not leave it stuck forever.
+        // A node stuck RUNNING can only be a leftover from a process that
+        // crashed mid-dispatch -- execute() must resume it, not leave it
+        // stuck forever.
         WorkflowNode orphanedRunning =
                 WorkflowNode.pending("a", "a", List.of(), "{}", NOW).withStatus(Status.RUNNING, NOW);
         Workflow workflow = new Workflow("wf-9", "resumed-after-crash", null, NOW, List.of(orphanedRunning));

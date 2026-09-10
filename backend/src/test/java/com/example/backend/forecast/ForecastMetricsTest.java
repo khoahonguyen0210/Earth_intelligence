@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Task 13.2: every forecast meter, read back from a real Micrometer registry. */
+/** Every forecast meter, read back from a real Micrometer registry. */
 class ForecastMetricsTest {
 
     private static final ForecastRequest REQUEST = new ForecastRequest(

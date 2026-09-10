@@ -5,10 +5,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One node in a workflow DAG (Task 8.1, Execution Handbook Phase 8):
- * exactly the fields the handbook lists -- task_id, task_type,
- * dependencies, status, attempt, input/output references, timestamps,
- * error.
+ * One node in a workflow DAG: task_id, task_type, dependencies, status,
+ * attempt, input/output references, timestamps, error.
  *
  * Mirrors the Python planner's PlanStep
  * (ai_earth_intelligence_and_forecasting_engine.planner.validator.PlanStep
@@ -22,9 +20,8 @@ import java.util.Objects;
  * -- this record does not interpret them, the same way PlanStep's own
  * `input` is left uninterpreted at the plan layer.
  *
- * Persisting this to the `jobs`/`workflows` tables (Task 6.3, schema
- * only until now) is Task 8.4's job, not this one -- see
- * docs/workflow-dag-schema.md.
+ * Persisting this to the `jobs`/`workflows` tables is WorkflowStore's
+ * job, not this one -- see docs/workflow-dag-schema.md.
  */
 public record WorkflowNode(
         String taskId,
@@ -39,8 +36,8 @@ public record WorkflowNode(
         String error) {
 
     /**
-     * Task 8.2 defines the legal transitions between these; this task
-     * only fixes the state space itself (the handbook's own list).
+     * WorkflowStateMachine defines the legal transitions between these;
+     * this only fixes the state space itself.
      */
     public enum Status {
         PENDING,

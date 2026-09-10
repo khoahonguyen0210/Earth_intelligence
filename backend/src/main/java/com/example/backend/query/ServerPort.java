@@ -6,7 +6,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Task 14.1: the backend's own real, bound HTTP port -- needed because
+ * The backend's own real, bound HTTP port -- needed because
  * PythonAskEarthRunner's subprocess calls back into this same running
  * backend (POST /forecasts, for a plan's run_forecast/get_result_evidence
  * steps; see docs/ask-earth.md). `@Value("${server.port}")` is wrong for
@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
  * request time (PythonAskEarthRunner.run), not at construction time,
  * since construction happens before this event has necessarily fired.
  *
- * Task 13.4 gave the app its own separate management.server.port, which
- * means Boot starts *two* embedded web servers -- the main one and the
+ * The app has its own separate management.server.port, which means Boot
+ * starts *two* embedded web servers -- the main one and the
  * management one -- each firing its own WebServerInitializedEvent. A
  * real run against the full app caught this: without filtering, whichever
  * of the two fired last silently won, occasionally handing out the

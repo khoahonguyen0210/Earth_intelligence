@@ -6,7 +6,7 @@ import { ForecastRequestForm } from "./ForecastRequestForm";
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 
-// The handbook's own four states (Task 14.4). The backend's real
+// Four display states. The backend's real
 // Forecast.Status carries two extra values folded in below: RETRYING is
 // still waiting for its next attempt, so it reads as "queued" rather than
 // "running"; CANCELLED (unreachable today -- no cancel endpoint exists)
@@ -64,9 +64,9 @@ interface ForecastPanelProps {
 }
 
 /**
- * The handbook's real job-status UI (Task 14.4): submit a forecast job
+ * The real job-status UI: submit a forecast job
  * (POST /forecasts), poll its real status until a terminal state, then
- * render its real result (Task 14.3's ForecastMap) or its real error --
+ * render its real result (ForecastMap) or its real error --
  * never a fabricated progress percentage. This is the direct, async
  * /forecasts path, independent of Ask Earth's own embedded run_forecast
  * step, which already polls to a terminal state server-side before a

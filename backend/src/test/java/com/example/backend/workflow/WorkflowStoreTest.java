@@ -17,7 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Task 8.4: exercises WorkflowStore against a real local Postgres (run
+ * Exercises WorkflowStore against a real local Postgres (run
  * `docker compose up -d` in infra/docker/ first -- same requirement
  * BackendApplicationTests already has, see docs/persistence-schema.md).
  * @Transactional rolls each test's writes back afterward, the same
@@ -93,11 +93,11 @@ class WorkflowStoreTest {
     }
 
     /**
-     * Task 8.4's own acceptance test: "restart a worker/controller during
-     * a controlled run and verify active state can be recovered." A
-     * fresh WorkflowExecutor (standing in for a brand-new process after a
-     * restart, with no in-memory state at all) resumes a workflow loaded
-     * purely from what a previous, now-gone process persisted mid-run.
+     * Restarting a worker/controller during a controlled run must not lose
+     * active state: a fresh WorkflowExecutor (standing in for a brand-new
+     * process after a restart, with no in-memory state at all) resumes a
+     * workflow loaded purely from what a previous, now-gone process
+     * persisted mid-run.
      */
     @Test
     void aWorkflowSavedMidRunCanBeReloadedAndResumedToCompletionAfterASimulatedRestart() {

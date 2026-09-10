@@ -1,4 +1,4 @@
-"""Task 14.1: dispatch.py wires the six locked planner tools to real,
+"""dispatch.py wires the six locked planner tools to real,
 already-existing computation. Each dispatch_* test proves the real
 function actually ran (a real count, a real bbox, a real evidence
 record) -- not that some object was returned. run_forecast/
@@ -410,10 +410,10 @@ def test_execute_plan_cancels_steps_depending_on_a_failed_step_without_running_t
 
 
 def test_execute_plan_defends_against_a_ref_to_a_step_never_run_without_depends_on():
-    # A validated Plan (Task 7.2) always declares depends_on for every
-    # $ref it uses, so this shouldn't occur in practice -- but the
-    # dispatcher does not trust that blindly, and fails the referencing
-    # step cleanly rather than raising a raw KeyError.
+    # A validated Plan always declares depends_on for every $ref it uses,
+    # so this shouldn't occur in practice -- but the dispatcher does not
+    # trust that blindly, and fails the referencing step cleanly rather
+    # than raising a raw KeyError.
     plan = Plan(
         question="reference a step that never ran",
         steps=(

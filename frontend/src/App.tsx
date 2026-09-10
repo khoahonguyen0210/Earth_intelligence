@@ -19,7 +19,7 @@ function App() {
       .catch(() => setBackendStatus("Backend: unavailable"));
   }, []);
 
-  // Task 14.1: POST /queries is synchronous (no job queue, like
+  // POST /queries is synchronous (no job queue, like
   // /analyses), so this awaits the real plan-and-execute pipeline
   // directly rather than polling a status.
   async function handleAsk(question: string) {

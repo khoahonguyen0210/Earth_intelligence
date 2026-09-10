@@ -18,7 +18,7 @@ RAW_FIRMS_PATH = Path("data/raw/firms/firms_sample.csv")
 LABELS_OUTPUT_PATH = Path("data/processed/forecast/labels_sample.csv")
 METADATA_OUTPUT_PATH = Path("data/processed/forecast/labels_sample_metadata.json")
 
-# The real FIRMS sample (Task 1.2) covers 2024-08-15. A cutoff at the start
+# The real FIRMS sample covers 2024-08-15. A cutoff at the start
 # of that day gives a (cutoff, cutoff+24h] window covering the entire
 # sample -- enough to produce both positive and negative examples across
 # the full California grid for manual inspection.

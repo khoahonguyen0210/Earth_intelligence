@@ -7,10 +7,9 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 8.4: durable Postgres-backed storage for a Workflow and its
- * nodes, giving `workflows`/`jobs` (Task 6.3, schema only until now)
- * their first real read/write path. Mirrors ForecastStore's shape
- * exactly (Task 6.3): save/find do the domain <-> entity conversion,
+ * Durable Postgres-backed storage for a Workflow and its nodes, giving
+ * `workflows`/`jobs` their first real read/write path. Mirrors
+ * ForecastStore's shape: save/find do the domain <-> entity conversion,
  * nothing else in the workflow package needs to know these are Postgres
  * rows under a jsonb dependencies column.
  */

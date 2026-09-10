@@ -1,6 +1,6 @@
-"""Task 3.6 -- consolidated leakage-safety tests (blocking task).
+"""Consolidated leakage-safety tests.
 
-Handbook checklist and where each item is verified:
+Checklist of properties and where each is verified:
 
 [x] future timestamps excluded
     -- test_fire_history_features_never_uses_future_timestamps
@@ -13,13 +13,11 @@ Handbook checklist and where each item is verified:
     -- test_fire_history_windows_never_extend_past_cutoff
     -- test_environmental_feature_never_uses_record_after_cutoff
 [x] learned preprocessing uses training data only
-    -- Task 4.2 added the first preprocessing/fitting code
-    (models/preprocessing.py). The regression test lives in that task's
-    own suite: ml/tests/models/test_preprocessing.py::
+    -- ml/tests/models/test_preprocessing.py::
     test_transform_uses_train_statistics_not_the_input_rows_own_distribution.
-    This item was left unchecked here until that code existed; it is not
-    duplicated in this file since ml/tests/models/test_preprocessing.py
-    is the authoritative test for it.
+    Not duplicated here: that suite is the authoritative test for it,
+    alongside the preprocessing/fitting code it covers
+    (models/preprocessing.py).
 """
 
 import random

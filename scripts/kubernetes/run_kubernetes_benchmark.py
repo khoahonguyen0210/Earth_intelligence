@@ -22,13 +22,12 @@ FORECAST_REQUEST = {
     "cutoff": "2024-08-15T10:00:00Z",
 }
 
-# Runtime/throughput already measured for real by Task 11.3
+# Runtime/throughput already measured for real
 # (docs/worker-replica-scaling.md) on this exact cluster -- re-running
 # the same 1/2/4/8 sweep here would just reproduce (with normal run-to-
-# run noise) an already-locked result, the same reason Task 9.4/9.5
-# didn't redo Task 9.3's scaling sweep. Speedup/efficiency are computed
+# run noise) an already-locked result. Speedup/efficiency are computed
 # fresh from those real numbers below; resource usage and failure
-# recovery are this task's own new real measurements.
+# recovery are this script's own new real measurements.
 LOCKED_TASK_11_3_TRIALS = [
     ReplicaScalingTrialResult(1, 8, 64.2856718999974, 0.12444452649487395, (), {"FAILED": 8}),
     ReplicaScalingTrialResult(2, 8, 51.32596069999272, 0.155866541822005, (), {"FAILED": 8}),
@@ -75,12 +74,12 @@ def wait_for_pod_count(count: int, timeout_seconds: float = 120.0) -> None:
 
 def measure_resource_usage() -> dict:
     """Idle usage at the steady-state 1 replica, then real usage while
-    KEDA's own autoscaler (Task 11.4) reacts to a genuine queue backlog
+    KEDA's own autoscaler reacts to a genuine queue backlog
     and scales to 2 -- not a synthetic bypass of the autoscaler.
 
-    8 jobs (Task 11.3's own batch size), not fewer: with only a handful
+    8 jobs, not fewer: with only a handful
     of jobs, one already-running replica can drain the backlog before
-    the second replica's ~45s JVM boot (Task 11.2) even finishes, so the
+    the second replica's ~45s JVM boot even finishes, so the
     scale-up arrives, briefly exists, and reverts again inside one
     window this script could easily poll straight through -- observed
     directly when this script's first draft used 4 jobs. Capturing usage

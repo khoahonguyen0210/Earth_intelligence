@@ -18,10 +18,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 13.4: the public port serves the API and two status-only probes,
- * nothing operational; metrics and component details are only on the
- * internal management port. Real application, real ports, against the
- * same `docker compose up -d` stack as BackendApplicationTests.
+ * The public port serves the API and two status-only probes, nothing
+ * operational; metrics and component details are only on the internal
+ * management port. Real application, real ports, against the same
+ * `docker compose up -d` stack as BackendApplicationTests.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMetrics

@@ -8,8 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Task 8.2 (Execution Handbook Phase 8): the legal transitions between a
- * WorkflowNode's seven states (Task 8.1's state space).
+ * The legal transitions between a WorkflowNode's seven states.
  *
  * ```text
  * PENDING   -> READY, CANCELLED
@@ -22,19 +21,17 @@ import java.util.Set;
  * ```
  *
  * PENDING never goes straight to RUNNING: a node only becomes eligible
- * to run once its dependencies are satisfied (Task 8.1's own
- * task_id/dependencies shape is what that check runs against), and
- * READY is the state that records that. RETRYING re-enters at RUNNING
- * directly, not through READY again -- a retry re-dispatches the same
- * already-ready node, it does not re-check dependencies a second time --
- * which mirrors how `ForecastWorker` (Task 6.5/6.6) already treats
- * PENDING and RETRYING as equally eligible to become RUNNING for a
- * single standalone job (a `Forecast` has no dependencies of its own, so
- * it never needed a distinct READY state at all; a `WorkflowNode` does).
- * Cancellation is legal from every non-terminal state, matching the
- * handbook's Task 6.6 "worker timeout -> recover/retry" and Task 9.5
- * fault-injection expectations that in-flight work can be stopped, not
- * only queued work.
+ * to run once its dependencies are satisfied (the node's own
+ * dependencies list is what that check runs against), and READY is the
+ * state that records that. RETRYING re-enters at RUNNING directly, not
+ * through READY again -- a retry re-dispatches the same already-ready
+ * node, it does not re-check dependencies a second time -- which
+ * mirrors how `ForecastWorker` already treats PENDING and RETRYING as
+ * equally eligible to become RUNNING for a single standalone job (a
+ * `Forecast` has no dependencies of its own, so it never needed a
+ * distinct READY state at all; a `WorkflowNode` does). Cancellation is
+ * legal from every non-terminal state, since in-flight work must be
+ * stoppable, not only queued work.
  */
 public final class WorkflowStateMachine {
 
@@ -70,10 +67,10 @@ public final class WorkflowStateMachine {
     }
 
     /**
-     * The one path Task 8.3's execution engine is meant to change a
-     * node's status through: illegal transitions raise rather than
-     * silently applying, the same "cannot bypass the validator"
-     * property Task 7.2's plan validator already guarantees for a Plan.
+     * The one path the execution engine is meant to change a node's
+     * status through: illegal transitions raise rather than silently
+     * applying, the same "cannot bypass the validator" property the
+     * plan validator already guarantees for a Plan.
      */
     public static WorkflowNode transition(WorkflowNode node, Status to, Instant updatedAt) {
         if (!isLegalTransition(node.status(), to)) {

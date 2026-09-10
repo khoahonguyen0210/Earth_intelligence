@@ -19,7 +19,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 14.1's bridge to the real natural-language pipeline
+ * Bridges to the real natural-language pipeline
  * (scripts/query/run_ask_earth_cli.py) -- one subprocess call per
  * question, the same pattern PythonAnalysisRunner/PythonForecastRunner
  * already use. Modeled on PythonForecastRunner specifically, not
@@ -28,7 +28,8 @@ import tools.jackson.databind.ObjectMapper;
  * forecast.worker.max-attempts inside the script's own HTTP polling) and
  * generate_map can produce a large FeatureCollection, so both the
  * bounded wait and the threaded stdout/stderr draining (avoiding the
- * same OS-pipe-buffer deadlock Task 6.6 already found) apply here too.
+ * same OS-pipe-buffer deadlock PythonForecastRunner already guards
+ * against) apply here too.
  *
  * The subprocess calls back into this same running backend for
  * run_forecast/get_result_evidence (docs/ask-earth.md), so it is started

@@ -24,8 +24,8 @@ class RegionSpec:
       - "coordinates": (latitude, longitude)
       - "named": the region name, e.g. "California"
 
-    Task 2.2 resolves this into deterministic geometry; this type only
-    carries what the query stated, unresolved.
+    normalize_region resolves this into deterministic geometry; this
+    type only carries what the query stated, unresolved.
     """
 
     kind: str
@@ -37,8 +37,8 @@ class TimeRangeSpec:
     """Raw, unresolved time range input.
 
     `start`/`end` are ISO 8601 date or datetime strings as stated in the
-    query. Task 2.3 implements the exact inclusive/exclusive boundary
-    semantics; this type only carries what the query stated.
+    query. normalize_time_range implements the exact inclusive/exclusive
+    boundary semantics; this type only carries what the query stated.
     """
 
     start: str

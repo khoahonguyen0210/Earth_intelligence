@@ -240,8 +240,17 @@ def test_require_lookback_coverage_accepts_a_fully_covered_lookback(tmp_path):
 
 @pytest.mark.skipif(not REAL_INPUTS_PRESENT, reason="real history/model not built")
 def test_run_forecast_end_to_end_on_real_history_and_the_trained_model():
+    # 2024-08-10 is one of the real weekly benchmark cutoffs
+    # (build_historical_dataset.py's own cutoff rule: 10:00 UTC every 7
+    # days from June 1 through October), so ERA5's curated per-cutoff
+    # history actually has a record at this exact hour
+    # (ERA5History.for_cutoff's own documented contract). An off-grid
+    # cutoff like 2024-08-15 has no ERA5 snapshot of its own -- for_cutoff
+    # correctly falls back to the latest one before it (2024-08-10) -- so
+    # asserting exact alignment needs an on-grid cutoff, not a mismatch in
+    # the pipeline.
     response = _run_real(
-        {"region": {"kind": "named", "value": "california"}, "cutoff": "2024-08-15T10:00:00Z"}
+        {"region": {"kind": "named", "value": "california"}, "cutoff": "2024-08-10T10:00:00Z"}
     )
 
     result = response["result"]
@@ -249,8 +258,8 @@ def test_run_forecast_end_to_end_on_real_history_and_the_trained_model():
     assert result["grid"]["features"], "a real forecast covers real cells"
     assert all(0.0 <= f["properties"]["probability"] <= 1.0 for f in result["grid"]["features"])
     assert inputs["firms_observations"] > 0
-    assert inputs["firms_window"]["end"] == "2024-08-15T10:00:00+00:00"
-    assert inputs["era5_valid_time"] == "2024-08-15T10:00:00+00:00"
+    assert inputs["firms_window"]["end"] == "2024-08-10T10:00:00+00:00"
+    assert inputs["era5_valid_time"] == "2024-08-10T10:00:00+00:00"
     assert inputs["model"]["train"]["positives"] > 0
     assert set(response["timings_ms"]) == {"data_load", "model_load", "model_inference", "total"}
 

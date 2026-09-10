@@ -1,8 +1,8 @@
 package com.example.backend.logging;
 
 /**
- * Task 13.1: stable, machine-readable failure codes for the structured
- * logs' `error_code` field. The human-readable error text still goes to
+ * Stable, machine-readable failure codes for the structured logs'
+ * `error_code` field. The human-readable error text still goes to
  * the API response and the database unchanged; these exist so a log
  * query can count or alert on a failure *kind* without pattern-matching
  * free text that embeds paths, exit codes, or Python messages.
@@ -25,8 +25,8 @@ public enum ErrorCode {
     /** stdout/stderr could not be read back from the process. */
     OUTPUT_READ_FAILED,
     /**
-     * Task 13.5: the worker running an attempt stopped before finishing it
-     * (process killed, pod lost, or its database write failed) -- found by
+     * The worker running an attempt stopped before finishing it (process
+     * killed, pod lost, or its database write failed) -- found by
      * ForecastRecovery, never by the worker itself.
      */
     WORKER_LOST

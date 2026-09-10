@@ -371,3 +371,70 @@ after Task 14.2: **35 tests, 0 failures** (+8 new for
 failures** (+6 new for `ForecastMap`). Frontend after Task 14.4: **49
 tests, 0 failures** (+4 new for `ForecastRequestForm`, +4 new for
 `ForecastPanel`).
+
+## Task 14.5: browser end-to-end flow verification
+
+This environment has no browser-automation tool, so a literal
+click-through of a rendered browser page was not possible. Instead,
+both flows were driven at the API layer with the exact requests
+`client.ts` itself issues (same URLs, methods, and bodies a browser's
+`fetch()` calls would send) against a real, freshly built backend and
+the real Docker Compose infra (Postgres/Redis/MinIO) -- not mocks, not
+a replay of earlier canned responses. This is a genuine substitute for
+what a browser would do, short of literally rendering pixels; it does
+not exercise React's own rendering, so a rendering-only bug (a typo in
+JSX, a missed prop) would not be caught by it the way the component
+tests already are.
+
+**Found along the way:** `curl http://localhost:8080/readyz` returned a
+healthy response before this task started, but `POST /queries` 404'd
+against it -- that port was actually being served by a stale kind
+Kubernetes cluster's `ai-earth-backend` image (Docker Desktop/WSL
+forwarding it, not a Maven process), built before Task 14.1 added
+`EarthQueryController`. A fresh backend was started for real
+(`./mvnw spring-boot:run` with `SERVER_PORT=8090`/`MANAGEMENT_PORT=8091`
+to avoid that occupied port) against the same Docker Compose stack, and
+every check below ran against that real, current build.
+
+### Earth question -> planner -> validated workflow -> computation -> result -> map -> evidence
+
+`POST /queries {"question": "Show me a map of wildfire counts across
+the Bay Area in August 2024"}` against the real Gemini API produced a
+real plan (`generate_map`, region `bay area`, time range 2024-08-01 to
+2024-09-01 -- the model's own reading of "August 2024"), which passed
+real plan validation, then real dispatch executed it against the real
+FIRMS history and returned a genuine `FeatureCollection` fact: one
+polygon (the Bay Area's real bbox), `properties.value: 245`,
+`units: "fire_count"`. The grounded answer text ("The Bay Area recorded
+245 wildfire counts during August 2024 (computed)...") and the fact's
+own `evidence` (`dataset: "NASA_FIRMS:VIIRS_SNPP_SP"`, the real
+`region_bbox`, `period_start`/`period_end`, `query_parameters`) matched
+`EarthQueryResultView.tsx`'s expected shape field-for-field: the
+`isMapResult` branch would render `"bay_area: 245 fire_count"`, and the
+evidence section would show the real dataset, region, and time range --
+exactly the "map" and "evidence" the handbook asks this flow to reach.
+
+### forecast question -> job -> status -> prediction -> uncertainty -> evidence
+
+`POST /forecasts` for the same region created a real job
+(`{"forecast_id": ..., "status": "PENDING"}`); polling
+`GET /forecasts/{id}` observed the real, live transition
+PENDING -> RUNNING -> FAILED (not simulated -- `ForecastWorker` picked
+the job up from the real Redis queue and ran it), and
+`GET /forecasts/{id}/result` returned the real
+`422 {"error": "no trained production model at ml/artifacts/
+production_model_v1 -- run scripts/models/train_production_model.py
+first"}` -- exactly the shape `ForecastPanel`'s own error handling
+expects and renders as an alert.
+
+**Known gap, out of this task's scope by the project owner's own
+choice:** this environment has no trained `production_model_v1` (its
+own build needs `scripts/forecast/build_historical_dataset.py` over the
+full 2019-2024 FIRMS/ERA5 history first, an unscoped, potentially
+long-running job), so a genuine *SUCCEEDED* prediction -- real
+probabilities and a real calibration ("uncertainty") table -- was not
+exercised live here. That response shape was already verified against
+the real `forecast_result_to_dict`/`cell_to_feature` code in Task
+14.3's own research, and `ForecastMap`/`ForecastPanel`'s handling of it
+is covered by their own component tests; only the live numbers are
+unverified, not the contract.

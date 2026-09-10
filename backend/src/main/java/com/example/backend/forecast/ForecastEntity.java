@@ -9,12 +9,11 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * The JPA row shape for the forecasts table (Task 6.3; attempts/
- * idempotency_key added by Task 6.6's V2 migration, trace_parent by
- * Task 13.3's V4, updated_at by Task 13.5's V5). request/result
- * are stored as raw JSON text in a jsonb column -- ForecastStore does the
- * Forecast record <-> JSON conversion, so this class is a pure
- * persistence detail the rest of the forecast package never sees.
+ * The JPA row shape for the forecasts table (some columns were added in
+ * later migrations). request/result are stored as raw JSON text in a
+ * jsonb column -- ForecastStore does the Forecast record <-> JSON
+ * conversion, so this class is a pure persistence detail the rest of the
+ * forecast package never sees.
  */
 @Entity
 @Table(name = "forecasts")

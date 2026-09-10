@@ -12,10 +12,10 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Interim Phase 2 bridge to the Python analysis pipeline: a synchronous
- * subprocess call per request. This is deliberately simple -- the proper
- * async worker/queue architecture (Task 6.2, Redis-backed) replaces this
- * once it exists.
+ * Bridges to the Python analysis pipeline with a synchronous subprocess
+ * call per request. This is deliberately simple: unlike forecasts,
+ * analysis runs synchronously on the request thread rather than through
+ * a queue and worker.
  */
 @Service
 public class PythonAnalysisRunner implements AnalysisRunner {

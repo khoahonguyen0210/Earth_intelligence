@@ -1,5 +1,5 @@
-"""Live demo of Task 4.1's climatology baseline against the real Task 3.7
-dataset.
+"""Live demo of the climatology baseline against the real dataset built by
+the forecast pipeline.
 
 Honesty note: the project has only ingested real historical data for one
 real day (2024-08-15, which falls in the TEST split). The train split has

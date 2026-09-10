@@ -16,7 +16,7 @@ DEPLOYMENT = "deployment/backend"
 REPLICA_COUNTS = (1, 2, 4, 8)
 JOBS_PER_TRIAL = 8
 
-# Same fixed request scripts/api/benchmark_forecast_api.py (Task 6.7) uses --
+# Same fixed request scripts/api/benchmark_forecast_api.py uses --
 # a real region/cutoff the backend actually resolves. It reaches the same
 # already-documented FAILED (single-class training split,
 # docs/clean-start-test.md) regardless of replica count; that is fine here,
@@ -30,7 +30,7 @@ FORECAST_REQUEST = {
 
 def kubectl(*args: str, retries: int = 3) -> str:
     # A kind-on-WSL2 control plane occasionally drops one API request
-    # under load (seen live scaling to 4 replicas, Task 11.3) -- a short
+    # under load (seen live while scaling to 4 replicas) -- a short
     # retry absorbs that transient blip without masking a real failure
     # (the last attempt's error still propagates).
     for attempt in range(retries):

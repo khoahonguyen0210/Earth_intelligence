@@ -1,9 +1,9 @@
-"""Live demo of Task 4.4's calibration step against the real Task 3.7
-dataset.
+"""Live demo of the calibration step against the real dataset built by
+the forecast pipeline.
 
-Honesty note: same real limitation as Tasks 4.1-4.3's demos. Calibration
-depends on first fitting the Task 4.3 XGBoost base model, which itself
-cannot be fit because the real training split has zero positive examples
+Honesty note: same real limitation as the other baseline demos.
+Calibration depends on first fitting the XGBoost base model, which
+itself cannot be fit because the real training split has zero positive examples
 (no historical FIRMS data ingested for 2019-2022 yet). This script
 expects that exact, honestly-reported limitation. See
 ml/tests/models/test_calibration.py for proof the calibration/reliability

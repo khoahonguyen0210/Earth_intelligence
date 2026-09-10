@@ -1,7 +1,8 @@
 """Static geography (elevation, slope, land cover) for every California cell.
 
-The Phase 1 sample covers one 0.4 x 0.4 degree box (16 grid cells), so
-9,959 of the 9,975 benchmark cells had no geography features at all.
+The original sample data covers one 0.4 x 0.4 degree box (16 grid
+cells), so 9,959 of the 9,975 benchmark cells had no geography features
+at all.
 This builds the same features for the whole grid by walking 1-degree
 tiles and running each one through the locked `build_geography_grid`
 unchanged:

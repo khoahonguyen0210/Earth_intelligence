@@ -9,8 +9,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * The JPA row shape for the earth_queries table (Task 14.1, V6) --
- * mirrors AnalysisEntity exactly. request/result are raw JSON text in
+ * The JPA row shape for the earth_queries table -- mirrors
+ * AnalysisEntity exactly. request/result are raw JSON text in
  * jsonb columns; EarthQueryStore does the EarthQuery record <-> JSON
  * conversion.
  */

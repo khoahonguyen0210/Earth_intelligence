@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Task 13.1's "never log secrets": masks every configured secret value
- * in free text before that text reaches a log line.
+ * Masks every configured secret value in free text before that text
+ * reaches a log line.
  *
  * Needed because the backend logs error text that it does not write
  * itself -- a failed Python subprocess's stderr. data/firms.py builds

@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Task 13.4: dependency vulnerability and secret scan of the repository
+# Dependency vulnerability and secret scan of the repository
 # (docs/security-baseline.md). One tool, Trivy, covers every ecosystem the
 # project ships -- backend/pom.xml (Maven), ml/uv.lock (Python) and
 # frontend/package-lock.json (npm) -- plus committed secrets.

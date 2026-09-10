@@ -1,10 +1,10 @@
-"""Task 4.6: the final baseline benchmark comparing all four locked models
+"""The baseline benchmark comparing all four locked models
 (Climatology, Logistic Regression, XGBoost, Calibrated XGBoost) against
-the real Task 3.7 dataset.
+the real dataset built by the forecast pipeline.
 
 Honesty note: only climatology can currently succeed against real data
-(see every Phase 4 demo script for why -- the training/validation splits
-have zero real positive examples). This is itself the honest, reproducible
+(see the other baseline demo scripts for why -- the training/validation
+splits have zero real positive examples). This is itself the honest, reproducible
 first scientific benchmark result: one real measured baseline, and three
 models whose real evaluation is correctly blocked on data that has not
 been ingested yet, each fully documented rather than faked.

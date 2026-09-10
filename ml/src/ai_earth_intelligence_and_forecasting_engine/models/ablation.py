@@ -22,9 +22,10 @@ from ai_earth_intelligence_and_forecasting_engine.models.xgboost_model import (
 ABLATION_VERSION = "v1"
 
 # The same NUMERIC_FEATURE_COLUMNS (preprocessing.py) split into the two
-# feature groups Task 5.1 compares. Geography columns (elevation_m,
-# slope_deg, land_cover_class) are deliberately excluded from both
-# variants -- that comparison is Task 5.2's job, not this one.
+# feature groups run_weather_ablation compares. Geography columns
+# (elevation_m, slope_deg, land_cover_class) are deliberately excluded
+# from both variants -- that comparison belongs to run_geography_ablation,
+# not this one.
 FIRE_HISTORY_FEATURE_COLUMNS: tuple[str, ...] = (
     "previous_24h_count",
     "previous_72h_count",
@@ -45,11 +46,11 @@ FIRE_HISTORY_PLUS_WEATHER_FEATURE_COLUMNS: tuple[str, ...] = (
     FIRE_HISTORY_FEATURE_COLUMNS + WEATHER_FEATURE_COLUMNS
 )
 
-# Task 5.2 adds these on top of fire-history+weather: the two static,
-# numeric geography columns plus (via include_land_cover=True below) the
-# ESA WorldCover land-cover one-hot. Together with fire-history and
-# weather, this is the complete locked feature set -- the same columns
-# as NUMERIC_FEATURE_COLUMNS, in the same order.
+# run_geography_ablation adds these on top of fire-history+weather: the
+# two static, numeric geography columns plus (via include_land_cover=True
+# below) the ESA WorldCover land-cover one-hot. Together with
+# fire-history and weather, this is the complete locked feature set --
+# the same columns as NUMERIC_FEATURE_COLUMNS, in the same order.
 GEOGRAPHY_FEATURE_COLUMNS: tuple[str, ...] = (
     "elevation_m",
     "slope_deg",
@@ -134,10 +135,10 @@ def run_weather_ablation(
     validation_rows: list[DatasetRow],
     test_rows: list[DatasetRow],
 ) -> AblationResult:
-    """Task 5.1: fire-history-only vs fire-history+weather, with the test
-    period and the XGBoost model protocol (Task 4.3's BASE_CONFIG, same
-    early-stopping rule) held fixed -- the only difference between the
-    two runs is which feature columns are fed into the model."""
+    """Fire-history-only vs fire-history+weather, with the test period
+    and the XGBoost model protocol (BASE_CONFIG, same early-stopping
+    rule) held fixed -- the only difference between the two runs is
+    which feature columns are fed into the model."""
     baseline = _run_variant(
         "fire_history_only",
         FIRE_HISTORY_FEATURE_COLUMNS,
@@ -168,10 +169,10 @@ def run_geography_ablation(
     validation_rows: list[DatasetRow],
     test_rows: list[DatasetRow],
 ) -> AblationResult:
-    """Task 5.2: fire-history+weather vs fire-history+weather+geography
-    (the complete locked feature set -- NUMERIC_FEATURE_COLUMNS plus the
-    ESA WorldCover land-cover one-hot), with the same XGBoost protocol
-    and test period held fixed as Task 5.1."""
+    """Fire-history+weather vs fire-history+weather+geography (the
+    complete locked feature set -- NUMERIC_FEATURE_COLUMNS plus the ESA
+    WorldCover land-cover one-hot), with the same XGBoost protocol and
+    test period held fixed as run_weather_ablation."""
     baseline = _run_variant(
         "fire_history_plus_weather",
         FIRE_HISTORY_PLUS_WEATHER_FEATURE_COLUMNS,

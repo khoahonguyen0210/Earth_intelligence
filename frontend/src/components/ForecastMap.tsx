@@ -72,12 +72,12 @@ function RiskLegend({ min, max }: { min: number; max: number }) {
 }
 
 /**
- * The handbook's forecast map (Task 14.3): California grid, risk value,
- * legend, forecast horizon, data cutoff, model, calibration/evidence --
- * rendered only from the real GET /forecasts/{id}/result shape
+ * The forecast map: California grid, risk value, legend, forecast
+ * horizon, data cutoff, model, calibration/evidence -- rendered only
+ * from the real GET /forecasts/{id}/result shape
  * (forecast_result_to_dict), nothing fabricated. A job's own status
  * polling (queued/running/failed) and wiring this into the result page
- * are Task 14.4's job; this component only ever receives an already
+ * happen elsewhere; this component only ever receives an already
  * SUCCEEDED forecast's result.
  */
 export function ForecastMap({ result }: ForecastMapProps) {

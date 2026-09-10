@@ -22,9 +22,9 @@ LANDCOVER_PATH = Path("data/raw/geography/landcover_sample.tif")
 
 OUTPUT_PATH = Path("data/processed/distributed/fault_injection_report.json")
 
-# 4 workers, not 8: Task 9.4 already measured 8-worker cold-start alone
-# at ~25s; this test needs a timeout comfortably larger than one worker's
-# real replacement cold-start, without the whole run taking minutes.
+# 4 workers, not 8: an 8-worker cold-start alone measured at ~25s; this
+# test needs a timeout comfortably larger than one worker's real
+# replacement cold-start, without the whole run taking minutes.
 NUM_WORKERS = 4
 TASK_TIMEOUT_SECONDS = 30
 MAX_RETRIES = 2

@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Task 13.1: gives every HTTP request a request ID and one structured
+ * Gives every HTTP request a request ID and one structured
  * `http_request` log line.
  *
  * The ID is put in the MDC as `request_id`, so every log line written

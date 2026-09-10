@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 /**
- * Task 13.3: a workflow run is one trace -- a workflow.execute span with
- * one workflow.node child per node attempt, in real execution order, with
+ * A workflow run is one trace -- a workflow.execute span with one
+ * workflow.node child per node attempt, in real execution order, with
  * retries and failures visible on the spans.
  */
 class WorkflowTracingTest {

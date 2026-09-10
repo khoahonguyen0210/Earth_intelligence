@@ -224,7 +224,7 @@ class ForecastWorkerTest {
         assertTrue(queue.dequeue().isEmpty(), "a permanent failure must never be retried");
     }
 
-    // Task 13.5: reliability -- docs/reliability-tests.md.
+    // Reliability -- see docs/reliability-tests.md.
 
     @Test
     void aDuplicateQueueEntryNeverRunsAJobTwice() {

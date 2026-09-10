@@ -20,8 +20,8 @@ def parse_kubectl_top_pods(output: str) -> list[PodResourceUsage]:
     line per pod: NAME CPU(cores) MEMORY(bytes)). Real `kubectl` reports
     CPU in millicores ("15m") and memory with a Ki/Mi/Gi suffix ("652Mi")
     -- this normalizes both to a single unit (millicores, mebibytes) so
-    Task 11.5's benchmark can compare an idle pod against a loaded one
-    without unit conversion scattered through the caller.
+    an idle pod can be compared against a loaded one without unit
+    conversion scattered through the caller.
     """
     lines = [line for line in output.strip().splitlines() if line.strip()]
     if not lines:
@@ -72,9 +72,9 @@ def measure_failure_recovery(
     now: Callable[[], float] = time.monotonic,
 ) -> FailureRecoveryResult:
     """Times real recovery from a real failure: `delete_pod` kills the
-    running pod (a real `kubectl delete pod`, Task 11.2's own manual
-    check made quantitative here), then this polls `is_ready` until the
-    Deployment controller's replacement pod reports ready again.
+    running pod (a real `kubectl delete pod`), then this polls `is_ready`
+    until the Deployment controller's replacement pod reports ready
+    again.
     `sleep`/`now` are injected for unit testing against a fake clock, the
     same pattern `run_replica_scaling_trial` already uses.
     """

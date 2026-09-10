@@ -48,8 +48,8 @@ def run_api_benchmark(
     percentiles, throughput, and error rate.
 
     Sequential, not concurrent: this is a single-instance baseline of the
-    API's own per-request cost (Task 6.7), not a concurrency/load-limit
-    test -- see docs/forecast-api-benchmark.md.
+    API's own per-request cost, not a concurrency/load-limit test -- see
+    docs/forecast-api-benchmark.md.
     """
     latencies: list[float] = []
     error_count = 0

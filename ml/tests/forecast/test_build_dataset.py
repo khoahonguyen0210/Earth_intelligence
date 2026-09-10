@@ -13,7 +13,7 @@ TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)  # single cell
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
 TILE = CELLS[0].tile_id
 
-# One cutoff per split, per the locked spec (Task 3.1):
+# One cutoff per split, per the locked spec:
 #   train      2019-01-01 .. 2022-12-31
 #   validation 2023-01-01 .. 2023-12-31
 #   test       2024-01-01 .. 2024-12-31

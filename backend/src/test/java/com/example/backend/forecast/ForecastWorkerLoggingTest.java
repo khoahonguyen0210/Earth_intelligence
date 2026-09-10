@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-/** Task 13.1: the worker's job lifecycle events, as real logback events. */
+/** The worker's job lifecycle events, as real logback events. */
 class ForecastWorkerLoggingTest {
 
     private static final ForecastRequest REQUEST = new ForecastRequest(

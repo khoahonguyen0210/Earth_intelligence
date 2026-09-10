@@ -1,10 +1,10 @@
-"""Task 14.1: real dispatch of a validated Plan's steps -- the piece
+"""Real dispatch of a validated Plan's steps -- the piece
 `docs/planner-tool-schemas.md` left for "whoever wires up real dispatch"
-and Task 7.4's `generate_answer` explicitly deferred ("Phase 8's workflow
-engine is what will actually execute a Plan and produce these for
-real"). Every one of the six locked tools (Task 7.1) maps to the exact
-existing function `docs/planner-tool-schemas.md` already names -- no new
-computation is invented here, only wiring:
+and `generate_answer` explicitly deferred to the workflow engine that
+would actually execute a Plan and produce these for real. Every one of
+the six locked tools maps to the exact existing function
+`docs/planner-tool-schemas.md` already names -- no new computation is
+invented here, only wiring:
 
     resolve_region        -> query.region.normalize_region
     get_data               -> real record counts + real provenance
@@ -14,8 +14,8 @@ computation is invented here, only wiring:
                               terminal status (not a direct Python call:
                               this goes through the real async job --
                               retries, idempotency, tracing, recovery --
-                              Phase 6/13 already built, not a shortcut
-                              around it)
+                              the backend's already-built job system, not
+                              a shortcut around it)
     get_result_evidence    -> GET /forecasts/{id}/result's own evidence
                               (the only tool a plan can validly reference
                               this way -- see generate_plan's system
@@ -74,7 +74,7 @@ DEFAULT_FIRMS_HISTORY_DIR = Path("data/raw/firms/history")
 DEFAULT_ERA5_HISTORY_DIR = Path("data/raw/era5/history")
 
 # calculate_statistics's operation enum matches run_analysis's
-# SUPPORTED_OPERATIONS minus "map" exactly (Task 7.1, checked by
+# SUPPORTED_OPERATIONS minus "map" exactly (checked by
 # tests/planner/test_tools.py), so "count"/"daily_aggregate"/
 # "weekly_aggregate" always need intent "aggregate" except "count" -> a
 # plain "count" intent, matching what a hand-built structured query would
@@ -296,9 +296,9 @@ class _ReferencedStepUnavailable(Exception):
 def _resolve_refs(value: Any, outputs: dict[str, dict[str, Any]]) -> Any:
     """Substitutes every "$step_id.field" string in `value` (recursively,
     through dicts/lists) with that step's real, already-produced output
-    value -- Task 7.2's validator already proved every such reference
-    points at a real earlier step and a field it really produces (when
-    that step ran); this is purely substitution, not a second round of
+    value -- the validator already proved every such reference points at
+    a real earlier step and a field it really produces (when that step
+    ran); this is purely substitution, not a second round of
     validation."""
     if isinstance(value, str) and value.startswith("$"):
         step_id, _, field = value[1:].partition(".")
@@ -316,9 +316,9 @@ def _execute_step(
     step: PlanStep, question: str, outputs: dict[str, dict[str, Any]], backend: Backend
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     """Returns (output, evidence). Only calculate_statistics/generate_map
-    have an evidence record of their own (Task 7.4's generate_answer
-    only reads .evidence for those, per RESULT_CATEGORY_BY_TOOL); every
-    other tool's evidence is None."""
+    have an evidence record of their own (generate_answer only reads
+    .evidence for those, per RESULT_CATEGORY_BY_TOOL); every other
+    tool's evidence is None."""
     try:
         resolved_input = _resolve_refs(step.input, outputs)
 
@@ -357,13 +357,13 @@ class PlanExecution:
 
 
 def execute_plan(plan: Plan, backend: Backend) -> PlanExecution:
-    """Runs every step of an already-validated Plan (Task 7.2's
-    validate_plan_or_raise must have passed first) in dependency order.
-    A step whose dependency failed -- by depends_on, or by referencing a
-    failed step's field -- is never attempted, the same "cancelled, not
-    fabricated" rule WorkflowExecutor already enforces (Task 8.3), and
-    the whole call raises StepFailed naming every failure, rather than
-    silently producing a partial answer."""
+    """Runs every step of an already-validated Plan (validate_plan_or_raise
+    must have passed first) in dependency order. A step whose dependency
+    failed -- by depends_on, or by referencing a failed step's field --
+    is never attempted, the same "cancelled, not fabricated" rule
+    WorkflowExecutor already enforces, and the whole call raises
+    StepFailed naming every failure, rather than silently producing a
+    partial answer."""
     outputs: dict[str, dict[str, Any]] = {}
     evidence: dict[str, dict[str, Any]] = {}
     failed: dict[str, str] = {}

@@ -16,7 +16,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 14.1 end to end: the real application on a random port, real
+ * End to end: the real application on a random port, real
  * Postgres (same `docker compose up -d` stack as BackendApplicationTests),
  * the real ServerPort event wiring (not the unit tests' setForTest) --
  * proving PythonEarthQueryRunner really learns this app's own randomly

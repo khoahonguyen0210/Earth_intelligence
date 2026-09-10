@@ -4,8 +4,9 @@ import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
 
 /**
- * Mirrors AnalysisOutcome exactly (Task 13.1's ErrorCode for structured
- * logs, never persisted or returned; Task 13.4's redaction). `result` is
+ * Mirrors AnalysisOutcome exactly (a stable ErrorCode for structured
+ * logs, never persisted or returned; the same error-text redaction).
+ * `result` is
  * the whole JSON object run_ask_earth.py returns -- answer, facts,
  * outputs, plan (docs/ask-earth.md) -- stored as one JSON blob, the same
  * way Forecast.result already is.

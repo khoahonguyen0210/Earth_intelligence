@@ -14,17 +14,16 @@ import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 /**
- * Task 13.2 end to end: the real application's /actuator/prometheus
- * serves Prometheus text with the HTTP, queue and worker meters a
- * scraper needs, against the live compose Redis (queue depth is a real
- * LLEN). Needs the same `docker compose up -d` stack as
- * BackendApplicationTests.
+ * End to end: the real application's /actuator/prometheus serves Prometheus
+ * text with the HTTP, queue and worker meters a scraper needs, against the
+ * live compose Redis (queue depth is a real LLEN). Needs the same
+ * `docker compose up -d` stack as BackendApplicationTests.
  *
  * @AutoConfigureMetrics: Spring Boot disables metrics export (and so
  * the /actuator/prometheus endpoint) in tests by default; this opts
  * back in, so the endpoint under test is the production one.
  *
- * Task 13.4: the endpoint is on the internal management port
+ * The endpoint is on the internal management port
  * (docs/security-baseline.md); OpsSurfaceIntegrationTest checks the
  * public port does not serve it.
  */

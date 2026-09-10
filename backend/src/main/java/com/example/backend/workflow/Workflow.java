@@ -12,9 +12,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * A named DAG of WorkflowNodes (Task 8.1) -- the shape the `workflows`
- * table (Task 6.3, schema only until now) names but has no real type
- * for yet. Mirrors the Python planner's Plan (question + steps) with a
+ * A named DAG of WorkflowNodes -- the shape the `workflows` table names
+ * but has no real type for yet. Mirrors the Python planner's Plan
+ * (question + steps) with a
  * name/description in place of a natural-language question, since a
  * Workflow is not necessarily produced by the planner -- see
  * docs/workflow-dag-schema.md.
@@ -32,13 +32,12 @@ public record Workflow(String id, String name, String description, Instant creat
      * The structural half of "this is really a DAG": every dependency
      * must name a real node in this same workflow, no node may depend
      * on itself, task_ids are unique, and the dependency graph has no
-     * cycle. This is Task 8.1's own version of the "workflow
-     * dependencies" check the handbook's Task 7.2 already does for a
-     * Plan's `depends_on` references -- it is deliberately only
-     * structural: which task_type a node names, and whether its
-     * inputRef is actually resolvable, are Task 8.2 (legal status
-     * transitions) and Task 8.3 (real execution)'s concerns, not this
-     * one's.
+     * cycle. This mirrors the "workflow dependencies" check the plan
+     * validator already does for a Plan's `depends_on` references -- it
+     * is deliberately only structural: which task_type a node names,
+     * and whether its inputRef is actually resolvable, are
+     * WorkflowStateMachine's (legal status transitions) and
+     * WorkflowExecutor's (real execution) concerns, not this one's.
      */
     public List<String> validate() {
         List<String> errors = new ArrayList<>();

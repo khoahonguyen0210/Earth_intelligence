@@ -19,7 +19,8 @@ METADATA_OUTPUT_PATH = Path(
     "data/processed/forecast/geography_features_sample_metadata.json"
 )
 
-# Same Sierra Nevada foothills sample bbox used by Task 1.5's live demo.
+# Same Sierra Nevada foothills sample bbox used across the other feature
+# demo scripts, so results stay comparable.
 BBOX = (-119.8, 37.2, -119.4, 37.6)
 RESOLUTION_DEG = 0.1
 

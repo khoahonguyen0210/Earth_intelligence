@@ -18,9 +18,9 @@ GEOGRAPHY_BBOX = (-119.8, 37.2, -119.4, 37.6)
 DEM_PATH = Path("data/raw/geography/dem_sample.tif")
 LANDCOVER_PATH = Path("data/raw/geography/landcover_sample.tif")
 
-# Small on purpose -- see test_run.py's own comment. The real Task 9.5
-# fault-injection run against the full 500-tile workload is
-# scripts/distributed/run_fault_injection_test.py's job.
+# Small on purpose -- see test_run.py's own comment. The fault-injection
+# run against the full 500-tile workload lives in
+# scripts/distributed/run_fault_injection_test.py.
 SMALL_WORKLOAD_SIZE = 4
 
 
@@ -54,15 +54,15 @@ def test_a_run_with_no_injected_crash_succeeds_on_the_first_attempt(context):
 
 
 def test_a_killed_worker_is_detected_retried_and_recovers_with_no_result_lost(context):
-    # Task 9.5's own four checks, against a real killed worker (Task
-    # 9.5's process_chunk really calls os._exit for the injected chunk --
-    # confirmed live that Pool.apply_async's result then times out, never
-    # raises a distinct exception).
+    # Four checks against a real killed worker: process_chunk really calls
+    # os._exit for the injected chunk -- confirmed live that
+    # Pool.apply_async's result then times out, never raises a distinct
+    # exception.
     #
     # task_timeout_seconds=30, not a tight bound: Pool replaces the dead
     # worker with a brand-new process, which must pay the same real
-    # spawn+import cold-start cost Task 9.4 measured (multiple real
-    # seconds) before it can even start the retried task -- a shorter
+    # spawn+import cold-start cost (multiple real seconds, measured
+    # separately) before it can even start the retried task -- a shorter
     # timeout was observed live to mistake that legitimate cold start for
     # a second crash and trigger an extra, unnecessary retry.
     workload = freeze_workload(workload_size=SMALL_WORKLOAD_SIZE)

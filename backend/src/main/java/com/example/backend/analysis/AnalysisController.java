@@ -48,14 +48,14 @@ public class AnalysisController {
     public ResponseEntity<AnalysisSummaryResponse> createAnalysis(@Valid @RequestBody AnalysisRequest request) {
         String id = UUID.randomUUID().toString();
         long startNanos = System.nanoTime();
-        // Task 13.4: redacted before it is stored, returned or logged.
+        // Redacted before it is stored, returned or logged.
         AnalysisOutcome outcome = runner.run(request).redacted(redactor);
         long durationNanos = System.nanoTime() - startNanos;
         long durationMs = durationNanos / 1_000_000;
         Analysis analysis = Analysis.from(id, request, Instant.now(), outcome);
 
-        // Task 13.2: tagged by outcome and error code only -- never by the
-        // request's own operation/region text, which a client controls.
+        // Tagged by outcome and error code only -- never by the request's
+        // own operation/region text, which a client controls.
         Timer.builder("analysis.duration")
                 .description("Wall-clock time of one Earth analysis, including the Python subprocess")
                 .tag("outcome", outcome.success() ? "succeeded" : "failed")

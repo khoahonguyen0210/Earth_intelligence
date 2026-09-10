@@ -1,0 +1,54 @@
+{
+  "ml_benchmark": {
+    "source": "docs/final-ml-benchmark.md",
+    "dataset_version": "v1",
+    "results": {
+      "climatology":         {"pr_auc": 0.2522, "roc_auc": 0.8616, "brier_score": 0.0026, "log_loss": 0.0341, "training_time_seconds": 0.6419, "inference_time_seconds": 0.0818},
+      "logistic_regression": {"pr_auc": 0.2782, "roc_auc": 0.9463, "brier_score": 0.0649, "log_loss": 0.2473, "training_time_seconds": 70.6928, "inference_time_seconds": 3.1573},
+      "xgboost":             {"pr_auc": 0.4513, "roc_auc": 0.9669, "brier_score": 0.0022, "log_loss": 0.0101, "training_time_seconds": 38.5590, "inference_time_seconds": 1.4033},
+      "calibrated_xgboost":  {"pr_auc": 0.4361, "roc_auc": 0.9667, "brier_score": 0.0022, "log_loss": 0.0108, "training_time_seconds": 38.4730, "inference_time_seconds": 1.2758}
+    }
+  },
+  "ablation_benchmark": {
+    "source": "docs/final-ablation-benchmark.md",
+    "results": {
+      "fire_history_only":                        {"pr_auc": 0.3559, "roc_auc": 0.9119, "brier_score": 0.0025, "log_loss": 0.0173},
+      "fire_history_plus_weather":                 {"pr_auc": 0.3703, "roc_auc": 0.9002, "brier_score": 0.0024, "log_loss": 0.0179},
+      "fire_history_plus_weather_plus_geography":  {"pr_auc": 0.4513, "roc_auc": 0.9669, "brier_score": 0.0022, "log_loss": 0.0101}
+    },
+    "deltas": {
+      "weather_pr_auc":   0.0144,
+      "weather_roc_auc": -0.0117,
+      "geography_pr_auc": 0.0811,
+      "geography_roc_auc": 0.0667
+    }
+  },
+  "distributed_benchmark": {
+    "source": "docs/final-distributed-benchmark.md",
+    "scaling": {
+      "1": {"wall_seconds": 0.851, "throughput_tiles_per_second": 587.49, "speedup": 1.000, "efficiency": 1.000},
+      "2": {"wall_seconds": 9.488, "throughput_tiles_per_second": 52.70,  "speedup": 0.090, "efficiency": 0.045},
+      "4": {"wall_seconds": 12.109, "throughput_tiles_per_second": 41.29, "speedup": 0.070, "efficiency": 0.018},
+      "8": {"wall_seconds": 22.381, "throughput_tiles_per_second": 22.34, "speedup": 0.038, "efficiency": 0.005}
+    },
+    "failure_recovery": {
+      "any_failure_detected": true,
+      "all_chunks_eventually_succeeded": true,
+      "total_tiles_recovered": 500,
+      "total_tiles": 500,
+      "total_recovery_seconds": 1.353
+    }
+  },
+  "planner_benchmark": {
+    "source": "docs/final-planner-benchmark.md",
+    "total_cases": 14,
+    "results": {
+      "intent_correctness": 1.0,
+      "region_correctness": 1.0,
+      "time_correctness": 0.667,
+      "valid_plan_rate": 0.917,
+      "execution_success": 1.0,
+      "unsupported_request_handling": 0.5
+    }
+  }
+}

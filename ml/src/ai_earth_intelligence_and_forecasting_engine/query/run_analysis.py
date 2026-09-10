@@ -82,9 +82,10 @@ def load_firms_observations(raw_path: Path) -> list[Observation]:
 def load_observations_for(
     raw_firms_path: Path, start: datetime, end: datetime
 ) -> list[Observation]:
-    """`raw_firms_path` is either one FIRMS CSV (the Phase 1 sample, used
-    by tests and the regression set) or the fire-season history directory
-    the product reads (docs/historical-dataset.md). For the history, the
+    """`raw_firms_path` is either one FIRMS CSV (the original sample
+    data, used by tests and the regression set) or the fire-season
+    history directory the product reads (docs/historical-dataset.md).
+    For the history, the
     requested period must be fully covered -- an uncovered day is missing
     data, not zero fires -- and a day of margin either side is loaded; the
     statistics apply the exact time range themselves."""

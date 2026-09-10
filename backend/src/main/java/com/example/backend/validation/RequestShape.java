@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Task 13.4: the request shapes the API contracts already lock
- * (docs/forecast-api-contract.md, Task 2.1's RegionSpec), checked in Java
+ * The request shapes the API contracts already lock
+ * (docs/forecast-api-contract.md, RegionSpec), checked in Java
  * before a Python process or a queued job is spent on a request that can
  * only fail. Only the shape is checked here -- whether a bbox lies in
  * California, or a date range is sensible, stays the pipeline's call and

@@ -20,8 +20,8 @@ FEATURE_DATASET_VERSION = "v1"
 
 # name -> lookback window length in hours. Every window is
 # (cutoff - hours, cutoff] -- closed at the cutoff, per "every window ends
-# at or before the cutoff" (the complement of Task 3.2's forward label
-# window, which excludes the cutoff itself).
+# at or before the cutoff" (the complement of the forward label window,
+# which excludes the cutoff itself).
 FIRE_HISTORY_WINDOWS_HOURS: dict[str, int] = {
     "previous_24h_count": 24,
     "previous_72h_count": 72,

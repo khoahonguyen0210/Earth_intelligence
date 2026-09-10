@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Task 13.4: caps a request body before anything reads it. Every API
+ * Caps a request body before anything reads it. Every API
  * request is a small JSON object (a region, a cutoff, a question of at
  * most 1,000 characters), but nothing else bounds what Tomcat accepts and
  * Jackson parses -- the form-post limit does not apply to JSON.

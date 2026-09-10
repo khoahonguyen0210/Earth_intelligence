@@ -1,4 +1,4 @@
-"""Task 4.5's evaluation harness: one command runs data selection -> split
+"""The evaluation harness: one command runs data selection -> split
 -> preprocessing -> training -> prediction -> metrics -> plots -> artifact
 metadata for any model in the ladder, saved under ml/artifacts/<experiment_id>/.
 
@@ -21,8 +21,8 @@ from ai_earth_intelligence_and_forecasting_engine.models.harness import (
     run_experiment,
 )
 
-# Same fixed cutoffs used by every Phase 4 demo script, spanning all three
-# locked splits.
+# Same fixed cutoffs used by the other baseline demo scripts, spanning
+# all three locked splits.
 TRAIN_CUTOFF = datetime(2020, 8, 15, 10, 0, tzinfo=timezone.utc)
 VALIDATION_CUTOFF = datetime(2023, 8, 15, 10, 0, tzinfo=timezone.utc)
 TEST_CUTOFF = datetime(2024, 8, 15, 10, 0, tzinfo=timezone.utc)

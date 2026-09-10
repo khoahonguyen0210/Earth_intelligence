@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Component;
 
 /**
- * Task 13.2: the forecast pipeline's Micrometer meters, exported in
+ * The forecast pipeline's Micrometer meters, exported in
  * Prometheus format at /actuator/prometheus (docs/metrics.md). Names
  * below are Micrometer's dotted form; Prometheus sees them snake-cased
  * with unit suffixes (forecast.job.duration -> forecast_job_duration_seconds).

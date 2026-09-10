@@ -31,8 +31,8 @@ def run_replica_scaling_trial(
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], float] = time.monotonic,
 ) -> ReplicaScalingTrialResult:
-    """Submits `job_count` identical jobs back-to-back (Task 6.5's Redis
-    queue, not this function, is what actually load-balances them across
+    """Submits `job_count` identical jobs back-to-back (the Redis queue,
+    not this function, is what actually load-balances them across
     however many backend/worker replicas are running) and polls every
     job until it reaches a terminal status, timing the whole batch.
 
@@ -42,7 +42,7 @@ def run_replica_scaling_trial(
     HTTP calls against a real `kubectl scale`-d Deployment; this module
     only owns the timing/throughput arithmetic, the same split
     ml/.../api/benchmark.py already uses for the sequential API
-    benchmark (Task 6.7).
+    benchmark.
 
     A job reaching FAILED still counts as a completed unit of work here,
     not an error: docs/clean-start-test.md's already-documented
@@ -93,9 +93,9 @@ class ReplicaScalingPoint:
 def compute_speedup_efficiency(
     trials: list[ReplicaScalingTrialResult],
 ) -> list[ReplicaScalingPoint]:
-    """The handbook's own formulas (also used for the Task 9.3
-    multi-worker benchmark, ml/.../distributed/scaling.py):
-    speedup(n) = T1 / Tn, efficiency(n) = speedup(n) / n, against the
+    """The same formulas used for the multi-worker benchmark
+    (ml/.../distributed/scaling.py): speedup(n) = T1 / Tn,
+    efficiency(n) = speedup(n) / n, against the
     first trial's (replicas=1) wall time as T1. `trials` is expected
     sorted by replica count ascending, replicas=1 first."""
     baseline_seconds = trials[0].total_wall_seconds

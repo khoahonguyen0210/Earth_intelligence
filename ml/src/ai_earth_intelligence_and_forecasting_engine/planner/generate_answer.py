@@ -11,9 +11,9 @@ if TYPE_CHECKING:
 
 MODEL = "gemini-3.1-flash-lite"
 
-# Which of the six locked tools (Task 7.1) contributes a fact to a final
-# answer, and how that fact must be labeled (the handbook's
-# observed/computed/predicted distinction). resolve_region is absent: it
+# Which tools contribute a fact to a final answer, and how that fact
+# must be labeled (the observed/computed/predicted distinction).
+# resolve_region is absent: it
 # resolves geometry, it doesn't produce a fact about the world.
 # get_result_evidence is absent too: it fetches metadata about a fact
 # another step already produced, it isn't itself a fact.
@@ -27,11 +27,11 @@ RESULT_CATEGORY_BY_TOOL: dict[str, str] = {
 
 @dataclass(frozen=True)
 class StepResult:
-    """The minimal shape Task 7.4 needs from one executed plan step: the
-    real value a tool produced, and its evidence if it has any of its
-    own. Phase 8's workflow engine is what will actually execute a Plan
-    and produce these for real; this module only consumes them -- tests
-    build StepResults from genuine calls to the real Task 2.x/6.x
+    """The minimal shape this module needs from one executed plan step:
+    the real value a tool produced, and its evidence if it has any of
+    its own. The workflow engine is what actually executes a Plan and
+    produces these for real; this module only consumes them -- tests
+    build StepResults from genuine calls to the real underlying
     functions (query.statistics.count, query.evidence.build_evidence,
     ...) rather than fabricating result shapes."""
 

@@ -16,12 +16,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Task 13.5: ForecastRecovery and the atomic claim against the real
- * Postgres and Redis (the same `docker compose up -d` stack as
- * BackendApplicationTests). The recovery under test runs on its own queue
- * key, which no worker polls, and rows are backdated 30 s -- past its
- * thresholds (1 s and 0 s), well inside the production defaults
- * (180 s and 60 s), so sweeps in other cached test contexts never race it.
+ * ForecastRecovery and its atomic claim against the real Postgres and Redis
+ * (the same `docker compose up -d` stack as BackendApplicationTests). The
+ * recovery under test runs on its own queue key, which no worker polls, and
+ * rows are backdated 30 s -- past its thresholds (1 s and 0 s), well inside
+ * the production defaults (180 s and 60 s), so sweeps in other cached test
+ * contexts never race it.
  */
 @SpringBootTest
 @TestPropertySource(properties = "forecast.recovery.interval-seconds=3600")

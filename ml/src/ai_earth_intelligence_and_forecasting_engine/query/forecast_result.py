@@ -31,7 +31,8 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
 )
 
 # Locked per docs/forecast-api-contract.md. The full lifecycle is owned by
-# Task 6.5 (Redis async jobs); do not alter without updating that document.
+# the backend's Redis-based async job system; do not alter without
+# updating that document.
 FORECAST_STATUS_VALUES: tuple[str, ...] = (
     "PENDING",
     "RUNNING",
@@ -41,9 +42,9 @@ FORECAST_STATUS_VALUES: tuple[str, ...] = (
     "CANCELLED",
 )
 
-# Task 6.2's Java<->Python bridge is a synchronous subprocess call (the
-# same interim pattern Task 2.7's PythonAnalysisRunner already uses), so
-# until Task 6.5 lands only these two terminal states are ever reachable.
+# The Java<->Python bridge for forecasts is a synchronous subprocess call
+# (the same interim pattern PythonAnalysisRunner already uses), so from
+# this side only these two terminal states are ever reachable.
 SYNCHRONOUS_STATUS_VALUES: tuple[str, ...] = ("SUCCEEDED", "FAILED")
 
 

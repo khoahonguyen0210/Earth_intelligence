@@ -44,9 +44,9 @@ from ai_earth_intelligence_and_forecasting_engine.query.run_forecast import (
     VALIDATION_DEMO_CUTOFF,
 )
 
-# Task 9.2/9.3: an arbitrary but fixed inference cutoff -- any real,
-# parseable cutoff measures computational cost equally well; what Task
-# 9.1 actually requires held fixed is the tiles/dataset/model, not which
+# An arbitrary but fixed inference cutoff -- any real, parseable cutoff
+# measures computational cost equally well; what actually needs to be
+# held fixed across benchmark runs is the tiles/dataset/model, not which
 # specific cutoff is used for inference.
 INFERENCE_CUTOFF = datetime(2024, 8, 15, 10, 0, tzinfo=timezone.utc)
 
@@ -64,12 +64,12 @@ MIN_SYNTHETIC_FIT_ROWS = 20
 def fit_baseline_model(
     train_rows: list[DatasetRow], validation_rows: list[DatasetRow]
 ) -> tuple[CalibratedModel, bool]:
-    """Fits the one calibrated-XGBoost model every Phase 9 benchmark run
-    holds fixed. Falls back to realistically-shaped synthetic rows
-    (models.profiling.synthetic_timing_rows) on the exact same documented
-    gap Task 5.4 already hit: the real train/validation splits have zero
-    real historical positive examples in this project's small sample
-    data, so calibration -- which needs both classes present in
+    """Fits the one calibrated-XGBoost model every distributed benchmark
+    run holds fixed. Falls back to realistically-shaped synthetic rows
+    (models.profiling.synthetic_timing_rows) because the real
+    train/validation splits have zero real historical positive examples
+    in this project's small sample data, so calibration -- which needs
+    both classes present in
     validation -- cannot fit a real model. Returns whether the fallback
     was used, the same `used_synthetic_timing_data` distinction
     profiling.py already reports, so a benchmark result is never silently
@@ -128,9 +128,9 @@ class ChunkTask:
     picklable argument per call, and every field here must round-trip
     through pickle across the process boundary regardless.
 
-    inject_crash is Task 9.5's fault-injection switch: when True, the
-    worker terminates itself immediately instead of doing any real work
-    (see process_chunk). Always False for every real Task 9.2/9.3 run."""
+    inject_crash is the fault-injection switch: when True, the worker
+    terminates itself immediately instead of doing any real work (see
+    process_chunk). Always False for a normal benchmark run."""
 
     tile_ids: tuple[str, ...]
     cutoff: datetime
@@ -143,23 +143,23 @@ class ChunkTask:
 
 
 def process_chunk(task: ChunkTask) -> WorkerChunkResult:
-    """Runs inside one worker process -- Task 9.2/9.3's actual unit of
-    distributed work: builds real feature rows for this chunk's tiles
+    """Runs inside one worker process -- the actual unit of distributed
+    work: builds real feature rows for this chunk's tiles
     (fire-history/environmental/geography joins, all real code, real
     sample data) and scores them with the model already fitted once in
     the parent. Must be a module-level name (not a closure) to be
     picklable at all under Windows' spawn start method.
 
-    Task 9.5: when task.inject_crash is set, this worker process
-    terminates itself via os._exit before doing any real work, instead
-    of returning normally or raising. os._exit (not sys.exit or raising)
-    is deliberate: it ends the process immediately with no Python-level
+    When task.inject_crash is set, this worker process terminates itself
+    via os._exit before doing any real work, instead of returning
+    normally or raising. os._exit (not sys.exit or raising) is
+    deliberate: it ends the process immediately with no Python-level
     cleanup or exception propagation, the same way an external `kill -9`
     would -- confirmed against the real interpreter that the parent
     Pool's corresponding AsyncResult.get() then raises
     multiprocessing.TimeoutError, never a distinct "worker died"
-    exception, which is exactly why Task 9.5's fault-tolerant dispatcher
-    detects failure via a timeout rather than an exception type."""
+    exception, which is exactly why fault-tolerant dispatch has to
+    detect failure via a timeout rather than an exception type."""
     if task.inject_crash:
         os._exit(1)
 
@@ -191,12 +191,12 @@ def process_chunk(task: ChunkTask) -> WorkerChunkResult:
 @dataclass(frozen=True)
 class RunContext:
     """The real data + the one fitted model every worker-count run in a
-    single benchmark (Task 9.2's num_workers=1 alone, or Task 9.3's
+    single benchmark (whether a single num_workers=1 run or a full
     1/2/4/8 sweep) shares unchanged -- prepared once by
     prepare_run_context, not re-loaded/re-fit per run. This is what
-    actually makes "keep workload/data/model fixed" (the handbook's own
-    words for Task 9.3) literally true across a sweep: the exact same
-    model object, not just the same fitting recipe re-run each time."""
+    actually makes "keep workload/data/model fixed" literally true
+    across a sweep: the exact same model object, not just the same
+    fitting recipe re-run each time."""
 
     observations: list
     era5_records: list
@@ -214,8 +214,8 @@ def prepare_run_context(
     dem_path: Path,
     landcover_path: Path,
 ) -> RunContext:
-    """Loads the real Phase 1 sample data once and fits the one
-    calibrated-XGBoost model a whole benchmark run (or sweep of runs)
+    """Loads the real sample data once and fits the one calibrated-XGBoost
+    model a whole benchmark run (or sweep of runs)
     holds fixed. See fit_baseline_model for why fitting may fall back to
     synthetic-shaped rows, and RunContext's own docstring for why this is
     a separate, reusable step rather than folded into
@@ -285,12 +285,11 @@ class DistributedRunResult:
 def run_distributed_inference(
     workload: DistributedWorkload, num_workers: int, context: RunContext
 ) -> DistributedRunResult:
-    """Task 9.2 (num_workers=1) and Task 9.3 (num_workers=2/4/8) share
-    this one real implementation and one prepared RunContext rather than
-    each reimplementing/re-preparing it -- the handbook's own "keep
-    workload/data/model fixed" requirement for a real speedup/efficiency
-    comparison only holds if the code path and the fitted model
-    genuinely do not change between runs, only the worker count."""
+    """Every worker count shares this one real implementation and one
+    prepared RunContext rather than each reimplementing/re-preparing it:
+    a real speedup/efficiency comparison only holds if the code path and
+    the fitted model genuinely do not change between runs, only the
+    worker count."""
     chunks = chunk_tile_ids(workload.tile_ids, num_workers)
     tasks = [
         ChunkTask(

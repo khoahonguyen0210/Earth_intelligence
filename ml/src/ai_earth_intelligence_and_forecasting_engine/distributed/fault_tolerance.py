@@ -75,16 +75,16 @@ def run_with_fault_tolerance(
     max_retries: int,
     inject_crash_in_chunk: int | None = None,
 ) -> FaultTolerantRunResult:
-    """Task 9.5: a controlled distributed run with one chunk's worker
-    killed mid-task (inject_crash_in_chunk), verifying the four things
-    the handbook asks for -- failure detected, the task retried, no
-    final result lost, and every chunk reaching a correct terminal
-    state -- plus the real time recovery took.
+    """A controlled distributed run with one chunk's worker killed
+    mid-task (inject_crash_in_chunk), verifying that the failure is
+    detected, the task is retried, no final result is lost, and every
+    chunk reaches a correct terminal state -- plus the real time
+    recovery took.
 
-    Dispatches every chunk via apply_async (not Task 9.2/9.3's plain
-    Pool.map): a crashed worker's task must be individually retried
-    without waiting for or losing every other chunk's real, already-
-    completed result, which a single blocking Pool.map call cannot do.
+    Dispatches every chunk via apply_async (not a plain Pool.map):
+    a crashed worker's task must be individually retried without
+    waiting for or losing every other chunk's real, already-completed
+    result, which a single blocking Pool.map call cannot do.
     Failure is detected via a timeout, not an exception: confirmed
     against the real interpreter (see process_chunk's own docstring),
     a worker terminating via os._exit leaves its AsyncResult simply

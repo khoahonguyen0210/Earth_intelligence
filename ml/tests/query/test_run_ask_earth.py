@@ -1,4 +1,4 @@
-"""Task 14.1: run_ask_earth end to end -- a real question, a real
+"""run_ask_earth end to end -- a real question, a real
 (faked-at-the-API-boundary) planner call, real dispatch against a real
 FIRMS fixture, and a real (faked) answer call. Only the two Gemini calls
 are faked (the same pattern tests/planner/test_generate_plan.py and
@@ -125,8 +125,8 @@ def test_run_ask_earth_raises_when_the_plan_fails_validation(firms_history):
 
 
 def test_run_ask_earth_raises_when_a_step_fails(firms_history):
-    # A named region the deterministic validator itself rejects (Task
-    # 7.2 already checks region validity against the real normalize_region).
+    # A named region the deterministic validator itself rejects (checked
+    # against the real normalize_region).
     plan_payload = [
         {
             "step_id": "count",

@@ -31,7 +31,7 @@ export interface AnalysisSummary {
   status: "SUCCEEDED" | "FAILED";
 }
 
-// Task 14.4: a direct forecast job request (docs/forecast-api-contract.md's
+// A direct forecast job request (docs/forecast-api-contract.md's
 // POST /forecasts), independent of Ask Earth's own embedded run_forecast
 // step -- this is the real async job path (queued/running/completed/failed),
 // not the synchronous /queries flow.
@@ -108,9 +108,9 @@ export interface ErrorResponse {
   error: string;
 }
 
-// Task 14.1: the Ask Earth page's own types -- POST /queries takes a
+// The Ask Earth page's own types -- POST /queries takes a
 // bare natural-language question; everything else (region, time range,
-// operation) is what the real planner (backend, Task 7.3) works out,
+// operation) is what the real planner (backend) works out,
 // not something this page's request shape carries.
 
 export interface EarthQueryRequest {
@@ -130,7 +130,7 @@ export interface DatasetReference {
   provenance: Record<string, unknown>;
 }
 
-/** run_forecast's own output shape: it only creates the job (docs/forecast-api-contract.md); Task 14.3 renders the real grid. */
+/** run_forecast's own output shape: it only creates the job (docs/forecast-api-contract.md); the forecast result view renders the real grid. */
 export interface ForecastJobReference {
   forecast_id: string;
   status: string;
@@ -164,8 +164,8 @@ export interface EarthQueryPlanStep {
 
 /**
  * The whole run_ask_earth.py payload (docs/ask-earth.md): a grounded
- * answer plus the real facts, outputs and plan behind it. Task 14.2's
- * result page is what actually renders outputs/plan (map, numbers,
+ * answer plus the real facts, outputs and plan behind it. The result
+ * page is what actually renders outputs/plan (map, numbers,
  * evidence); this page only needs `answer`.
  */
 export interface EarthQueryResult {
@@ -181,7 +181,7 @@ export interface EarthQueryResultResponse {
   result: EarthQueryResult;
 }
 
-// Task 14.3: the real forecast result shape (docs/forecast-api-contract.md,
+// The real forecast result shape (docs/forecast-api-contract.md,
 // ml/src/.../query/forecast_result.py's forecast_result_to_dict). A
 // run_forecast fact only ever carries a job reference (ForecastJobReference
 // above); once that job is SUCCEEDED, GET /forecasts/{id}/result serves this.

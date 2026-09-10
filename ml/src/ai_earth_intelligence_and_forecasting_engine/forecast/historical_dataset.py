@@ -1,7 +1,7 @@
 """Builds the real historical benchmark dataset one cutoff at a time.
 
-`build_dataset` (Task 3.7) is the locked definition of a dataset row. It
-scans every observation for every cutoff, which is fine for one day of
+`build_dataset` is the locked definition of a dataset row. It scans
+every observation for every cutoff, which is fine for one day of
 data and quadratic for six fire seasons. This module does not
 reimplement any of it: for each cutoff it calls `build_dataset` itself,
 passing only the observations whose time can affect that cutoff's row --

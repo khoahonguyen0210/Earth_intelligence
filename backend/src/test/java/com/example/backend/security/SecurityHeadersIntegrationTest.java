@@ -12,11 +12,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 /**
- * Task 13.4: every public response carries the security headers --
- * successes and refusals alike -- and HSTS is sent exactly when the
- * request reached the load balancer over HTTPS. The test client is on
- * 127.0.0.1, one of Tomcat's trusted internal proxies, so its
- * X-Forwarded-Proto header stands in for the cloud ALB's.
+ * Every public response carries the security headers -- successes and
+ * refusals alike -- and HSTS is sent exactly when the request reached the
+ * load balancer over HTTPS. The test client is on 127.0.0.1, one of
+ * Tomcat's trusted internal proxies, so its X-Forwarded-Proto header
+ * stands in for the cloud ALB's.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SecurityHeadersIntegrationTest {

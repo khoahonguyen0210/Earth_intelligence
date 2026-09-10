@@ -14,10 +14,9 @@ public record Forecast(
         String traceParent) {
 
     /**
-     * CANCELLED completes the state space the Execution Handbook's Task
-     * 6.5 lists, but is not reachable yet: there is no cancel endpoint
-     * (docs/forecast-api-contract.md locks the three existing routes).
-     * RETRYING is real as of Task 6.6 -- see
+     * CANCELLED completes the state space but is not reachable yet:
+     * there is no cancel endpoint (docs/forecast-api-contract.md locks
+     * the three existing routes). RETRYING is real -- see
      * docs/forecast-retry-and-idempotency.md.
      */
     public enum Status {
@@ -30,8 +29,8 @@ public record Forecast(
     }
 
     /**
-     * Task 13.3: `traceParent` is the W3C traceparent of the span that
-     * submitted the job (null when nothing was being traced); the worker
+     * `traceParent` is the W3C traceparent of the span that submitted
+     * the job (null when nothing was being traced); the worker
      * continues that trace -- see docs/tracing.md.
      */
     public static Forecast pending(

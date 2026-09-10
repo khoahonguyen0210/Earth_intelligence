@@ -35,10 +35,9 @@ public class ForecastController {
     private static final Logger log = LoggerFactory.getLogger(ForecastController.class);
 
     /**
-     * Task 13.4: the key is stored (forecasts.idempotency_key is
-     * VARCHAR(255)) and compared, never logged; anything longer or not
-     * plain visible ASCII is refused up front instead of failing in the
-     * database as a 500.
+     * The key is stored (forecasts.idempotency_key is VARCHAR(255)) and
+     * compared, never logged; anything longer or not plain visible ASCII
+     * is refused up front instead of failing in the database as a 500.
      */
     private static final Pattern ACCEPTABLE_IDEMPOTENCY_KEY = Pattern.compile("[\\x21-\\x7E]{1,255}");
 
@@ -70,8 +69,8 @@ public class ForecastController {
         }
 
         String id = UUID.randomUUID().toString();
-        // Task 13.3: the job's own span. Its traceparent is stored on the
-        // row, so every later worker attempt continues this request's trace
+        // The job's own span. Its traceparent is stored on the row, so
+        // every later worker attempt continues this request's trace
         // (docs/tracing.md).
         return spans.child("forecast.job.submit", () -> {
             spans.tag("job.id", id);
@@ -81,8 +80,8 @@ public class ForecastController {
                 store.save(forecast);
             } catch (DataIntegrityViolationException e) {
                 // Lost a race against a concurrent request carrying the same
-                // idempotency key (Task 6.6: "same idempotency key -> one
-                // logical job") -- the other request's row won; return it.
+                // idempotency key -- the invariant is one logical job per
+                // key -- the other request's row won; return it.
                 return store.findByIdempotencyKey(key)
                         .map(winner -> {
                             logDeduplicated(winner);
@@ -91,9 +90,9 @@ public class ForecastController {
                         .orElseThrow(() -> e);
             }
 
-            // Task 13.5: the row is the durable record of the job; the queue
-            // entry is only how a worker hears about it. If Redis is down, the
-            // job is still accepted, and ForecastRecovery enqueues it once
+            // The row is the durable record of the job; the queue entry is
+            // only how a worker hears about it. If Redis is down, the job
+            // is still accepted, and ForecastRecovery enqueues it once
             // Redis is back (docs/reliability-tests.md).
             try {
                 queue.enqueue(id);

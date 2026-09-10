@@ -21,10 +21,10 @@ import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 13.4: malformed and oversized requests are refused with a 400,
- * 411 or 413 and the contracts' `{ "error": ... }` body, before any
- * Python process or queued job is spent on them. Real application,
- * against the same `docker compose up -d` stack as BackendApplicationTests.
+ * Malformed and oversized requests are refused with a 400, 411 or 413 and
+ * the contracts' `{ "error": ... }` body, before any Python process or
+ * queued job is spent on them. Real application, against the same
+ * `docker compose up -d` stack as BackendApplicationTests.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RequestValidationIntegrationTest {

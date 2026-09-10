@@ -20,10 +20,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Task 13.5, "partial workflow failure": the handbook's forecast DAG plus
- * an independent statistics branch, run by the real WorkflowExecutor and
- * persisted in the real Postgres (docs/reliability-tests.md). One node
- * fails transiently once, another permanently:
+ * A forecast DAG plus an independent statistics branch, run by the real
+ * WorkflowExecutor and persisted in the real Postgres
+ * (docs/reliability-tests.md). One node fails transiently once, another
+ * permanently:
  *
  *   get_data -> validate -> build_features (transient once) -> run_forecast (permanent)
  *                        \                                        -> get_result_evidence

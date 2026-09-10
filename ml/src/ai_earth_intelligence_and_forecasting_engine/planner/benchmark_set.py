@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 from ai_earth_intelligence_and_forecasting_engine.planner.validator import Plan
 
-# The handbook's own seven categories for Task 7.5 (natural language ->
-# LLM -> structured plan, per docs/natural-language-planner.md -- this
+# The seven categories for this benchmark (natural language -> LLM ->
+# structured plan, per docs/natural-language-planner.md -- this
 # benchmarks that pipeline's real, live behavior, not a mock). "compare"
 # has no single dedicated tool: a correct plan answers it with two or
 # more calculate_statistics/generate_map steps naming different regions,
@@ -23,12 +23,12 @@ CATEGORIES: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class BenchmarkCase:
-    """One fixed query for Task 7.5's planner benchmark.
+    """One fixed query for the planner benchmark.
 
     `expect_valid_plan` is the pass/fail bar `valid_plan_rate` scores
     against: True for a question the planner should successfully turn
-    into a Task-7.2-validated Plan, False for one it should correctly
-    reject. It is None for "ambiguous" cases -- a genuinely ambiguous
+    into a validated Plan, False for one it should correctly reject.
+    It is None for "ambiguous" cases -- a genuinely ambiguous
     question (missing region/time) has no single correct outcome to
     assert against, so those cases are recorded for observability only,
     never scored as pass/fail.
@@ -333,10 +333,10 @@ def _rate(flags: list[bool | None]) -> float | None:
 
 
 def summarize(outcomes: list[CaseOutcome]) -> dict[str, float | int | None]:
-    """The handbook's six Task 7.5 metrics, each a 0-1 rate over however
-    many cases actually had that metric scored (None inputs -- cases with
-    nothing fixed to check -- are excluded from a rate's denominator, not
-    counted as failures)."""
+    """Six metrics, each a 0-1 rate over however many cases actually had
+    that metric scored (None inputs -- cases with nothing fixed to
+    check -- are excluded from a rate's denominator, not counted as
+    failures)."""
     unsupported_outcomes = [
         outcome for outcome in outcomes if outcome.case.category == "unsupported"
     ]

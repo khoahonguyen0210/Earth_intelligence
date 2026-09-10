@@ -1,4 +1,4 @@
-"""Task 13.5: controlled failures against the real backend.
+"""Controlled failures against the real backend.
 
 Runs the handbook's failure scenarios against the packaged backend jar,
 the real compose Postgres and Redis containers and real processes, and

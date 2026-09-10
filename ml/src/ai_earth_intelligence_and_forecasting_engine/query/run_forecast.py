@@ -78,8 +78,8 @@ def predict_forecast(
     inputs: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Scores inference_rows with an already-trained model. `timings_ms`
-    (if given) receives `model_inference`: scoring only, the handbook's
-    "model inference time" (Task 13.2)."""
+    (if given) receives `model_inference`: scoring time only, not
+    feature-building or model fitting."""
     inference_start = time.perf_counter()
     probabilities = predict_calibrated(model.calibrated, inference_rows)
     if timings_ms is not None:
@@ -145,8 +145,8 @@ def run_forecast(
 
     Returns {"result": ..., "timings_ms": {...}}. `timings_ms` sits beside
     the result, not inside it, so docs/forecast-api-contract.md's result
-    shape is unchanged; the backend turns it into metrics (Task 13.2,
-    docs/metrics.md) and never returns it to API clients."""
+    shape is unchanged; the backend turns it into metrics (docs/metrics.md)
+    and never returns it to API clients."""
     total_start = time.perf_counter()
     request = parse_forecast_payload(payload)
     errors = validate_forecast_request(request)

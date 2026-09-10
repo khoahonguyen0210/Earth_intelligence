@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 6.6: PythonForecastRunner's timeout/kill and transient-vs-permanent
+ * PythonForecastRunner's timeout/kill and transient-vs-permanent
  * classification, exercised against the real python interpreter (the same
  * assumption forecast.python.executable already makes, per
  * application.properties) and tiny fixture scripts under

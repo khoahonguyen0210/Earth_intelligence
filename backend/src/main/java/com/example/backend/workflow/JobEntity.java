@@ -9,14 +9,12 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * The JPA row shape for the `jobs` table (Task 6.3, schema only until
- * Task 8.4's V3 migration gave it a WorkflowNode's worth of columns).
- * `id` is synthesized as `workflowId + ":" + taskId` (WorkflowStore's
- * job): a WorkflowNode's own task_id is only unique within one workflow,
- * not globally, so it cannot be the primary key on its own -- see
- * V3__workflow_persistence.sql. `jobType` is the column's existing
- * name (Task 6.3 already named it before Task 8.1's "task_type" existed
- * as a term) for the same field.
+ * The JPA row shape for the `jobs` table. `id` is synthesized as
+ * `workflowId + ":" + taskId` (WorkflowStore's job): a WorkflowNode's
+ * own task_id is only unique within one workflow, not globally, so it
+ * cannot be the primary key on its own -- see
+ * V3__workflow_persistence.sql. `jobType` is the column's existing name
+ * for what is conceptually a node's task type.
  */
 @Entity
 @Table(name = "jobs")

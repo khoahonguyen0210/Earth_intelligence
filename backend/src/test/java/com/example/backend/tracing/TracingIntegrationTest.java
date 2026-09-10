@@ -38,7 +38,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 13.3 end to end: the real application on a random port -- Spring's
+ * End to end: the real application on a random port -- Spring's
  * own HTTP server span, the real Postgres row carrying the traceparent,
  * the real Redis queue, the scheduled worker thread and a real Python
  * subprocess (the timed stub) -- exporting through the production

@@ -46,7 +46,7 @@ def _row(
 
 
 def _separable_split(split: str, offset: int) -> list[DatasetRow]:
-    """Same separable signal used throughout Phase 4's model tests."""
+    """Same separable signal used throughout the model tests."""
     high_targets = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
     low_targets = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
 
@@ -141,7 +141,7 @@ def test_profile_model_falls_back_to_synthetic_data_when_real_data_cannot_fit(
 def test_profile_model_climatology_never_needs_the_synthetic_fallback(tmp_path):
     """Climatology only needs an empirical rate, not two classes, so it
     should succeed directly on real data even under the documented
-    single-class data-availability gap (same fact Task 4.6 established)."""
+    single-class data-availability gap."""
     single_class_train = [_row("A", 0, 0, "train"), _row("B", 0, 10, "train")]
 
     profile = profile_model(

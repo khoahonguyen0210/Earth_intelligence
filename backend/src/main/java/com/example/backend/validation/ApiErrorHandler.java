@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Task 13.4: every request the API refuses before doing any work gets
- * the same `{ "error": "<message>" }` body the contracts already use for
+ * Every request the API refuses before doing any work gets the same
+ * `{ "error": "<message>" }` body the contracts already use for
  * 422s, with a 400. Messages name the offending field and rule only --
  * they never echo the rejected value back, and a parse failure never
  * returns Jackson's own message (which can quote the body).
@@ -39,8 +39,8 @@ public class ApiErrorHandler {
     }
 
     /**
-     * Task 13.5: Postgres (or Redis, where a request needs it) is
-     * unreachable. A 503 with Retry-After tells a client the request was
+     * Postgres (or Redis, where a request needs it) is unreachable. A
+     * 503 with Retry-After tells a client the request was
      * not accepted and is worth retrying -- not a bare 500. Only
      * connectivity failures land here; a constraint violation or a bug
      * stays a 500.

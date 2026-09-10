@@ -66,9 +66,9 @@ def test_identify_bottleneck_names_coordination_when_spawn_overhead_dominates(
     context,
 ):
     # Real compute forced tiny; 8 workers' real spawn overhead reliably
-    # exceeds the real (somewhat variable) data-loading time (Task 9.3's
-    # real run measured ~70s of 8-worker spawn overhead vs ~22s of
-    # data-loading -- comfortable margin, unlike a smaller worker count).
+    # exceeds the real (somewhat variable) data-loading time (a real run
+    # measured ~70s of 8-worker spawn overhead vs ~22s of data-loading --
+    # comfortable margin, unlike a smaller worker count).
     report = identify_bottleneck(
         context, worker_counts=(1, 8), real_compute_seconds=0.0001
     )

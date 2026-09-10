@@ -32,9 +32,9 @@ NUMERIC_FEATURE_COLUMNS: tuple[str, ...] = (
     "slope_deg",
 )
 
-# ESA WorldCover's fixed class taxonomy (docs/static-geography-input-contract.md,
-# Task 1.5) -- a known external schema, not something fit from data, so
-# one-hot encoding against it carries no leakage risk and needs no fitting.
+# ESA WorldCover's fixed class taxonomy (docs/static-geography-input-contract.md)
+# -- a known external schema, not something fit from data, so one-hot
+# encoding against it carries no leakage risk and needs no fitting.
 LAND_COVER_CLASSES: tuple[int, ...] = (10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100)
 
 
@@ -71,7 +71,7 @@ def fit_preprocessor(
     feature_columns: tuple[str, ...] = NUMERIC_FEATURE_COLUMNS,
     include_land_cover: bool = True,
 ) -> Preprocessor:
-    """`feature_columns`/`include_land_cover` let a caller (e.g. Task 5.1's
+    """`feature_columns`/`include_land_cover` let a caller (e.g. the
     weather ablation) fit against a deliberate subset of features while
     keeping every other part of the pipeline identical. Defaults preserve
     the original full-feature-set behavior exactly."""

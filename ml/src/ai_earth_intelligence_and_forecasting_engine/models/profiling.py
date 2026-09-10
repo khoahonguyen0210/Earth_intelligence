@@ -157,7 +157,7 @@ def profile_model(
     artifacts_root: Path = Path("ml/artifacts"),
     experiment_prefix: str = "computation_profile_v1",
 ) -> ModelProfile:
-    """Task 5.4: training/inference time and memory for one model. Reuses
+    """Training/inference time and memory for one model. Reuses
     harness.py's already-tested fit/predict dispatch and timing capture
     entirely -- this function only adds memory measurement and, when the
     real split cannot support a fit, a synthetic-shaped-data fallback so

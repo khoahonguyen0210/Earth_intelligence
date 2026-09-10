@@ -37,10 +37,9 @@ def run_baseline_benchmark(
     experiment_prefix: str = "final_baseline_benchmark_v1",
 ) -> list[BenchmarkRow]:
     """Runs every model in the locked ladder (Climatology, Logistic
-    Regression, XGBoost, Calibrated XGBoost) through the Task 4.5 harness
-    and returns one comparable row per model, including training/
-    inference time -- the two metrics this task adds on top of Task 4.5's
-    per-model artifacts."""
+    Regression, XGBoost, Calibrated XGBoost) through harness.py and
+    returns one comparable row per model, including training/inference
+    time on top of harness.py's per-model artifacts."""
     rows: list[BenchmarkRow] = []
 
     for model_name in SUPPORTED_MODELS:

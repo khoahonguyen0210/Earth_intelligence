@@ -12,11 +12,10 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import 
     FEATURE_VERSION,
 )
 
-# Task 9.1 (Execution Handbook Phase 9): fixed per docs/distributed-
-# workload.md, held fixed across every later Phase 9 task (9.2-9.5) --
-# the whole point of that phase is to vary only the worker count between
-# benchmark runs, never the workload/data/model. Reuses the project's
-# already-locked version constants (Task 1.6's GRID_VERSION, Task 3.7's
+# Fixed per docs/distributed-workload.md and held constant across every
+# distributed benchmark run -- the point of that benchmark suite is to
+# vary only the worker count, never the workload/data/model. Reuses the
+# project's already-locked version constants (GRID_VERSION,
 # DATASET_VERSION/FEATURE_VERSION) rather than inventing new ones.
 # ml/artifacts/calibrated_xgboost_v1/config.json
 MODEL_VERSION = "calibrated_xgboost_v1"
@@ -38,11 +37,11 @@ class DistributedWorkload:
 
 def freeze_workload(workload_size: int = WORKLOAD_SIZE) -> DistributedWorkload:
     """The first `workload_size` tiles from the real, versioned
-    California grid (Task 1.6's build_california_grid), in the grid's
-    own deterministic lat/lon-index order -- not randomly sampled, so
-    every Phase 9 benchmark run (9.2-9.5) operates on the exact same
-    tiles, and a fixed subset rather than the full ~10k-tile grid so a
-    1-worker baseline (Task 9.2) finishes in a reasonable local runtime.
+    California grid (build_california_grid), in the grid's own
+    deterministic lat/lon-index order -- not randomly sampled, so every
+    benchmark run operates on the exact same tiles, and a fixed subset
+    rather than the full ~10k-tile grid so a 1-worker baseline finishes
+    in a reasonable local runtime.
     """
     cells: list[GridCell] = build_california_grid()
 

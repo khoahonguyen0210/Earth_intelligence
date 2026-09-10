@@ -271,7 +271,7 @@ def test_validate_plan_or_raise_raises_for_an_invalid_plan():
         validate_plan_or_raise(plan)
 
 
-# Task 13.4: LLM tool restrictions -- bounds a model-written plan cannot exceed.
+# LLM tool restrictions -- bounds a model-written plan cannot exceed.
 
 
 def _resolve_step(step_id: str) -> PlanStep:

@@ -30,14 +30,15 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
 # in this tool surface that plausibly needs a cross-step value
 # (result_id) is itself string-typed, so a reference already satisfies
 # that field's JSON Schema type with no special-casing required in the
-# schema-shape check below. Resolving it to a real value is Tasks
-# 7.3/8.x's job; this module only checks the reference is well-formed.
+# schema-shape check below. Resolving it to a real value is the
+# execution layer's job; this module only checks the reference is
+# well-formed.
 _STEP_REF_PATTERN = re.compile(r"^\$(?P<step_id>[^.]+)\.(?P<field>.+)$")
 
-# Task 13.4 (LLM tool restrictions): bounds on what a model-written plan
-# may ask for, enforced here rather than trusted to the prompt. Real
-# plans are small -- the handbook's example DAG has 6 nodes and no
-# planner-benchmark case needs more than 2 matching steps -- so 8 steps
+# Bounds on what a model-written plan may ask for, enforced here rather
+# than trusted to the prompt. Real plans are small -- the documented
+# example DAG has 6 nodes and no planner-benchmark case needs more than
+# 2 matching steps -- so 8 steps
 # only ever stops a runaway plan, whose every step could start real work
 # (a run_forecast step queues a Python job). A step id is a short
 # identifier, since it is echoed into later steps' "$step_id.field"
@@ -92,8 +93,8 @@ def _find_step_refs(value: Any) -> list[tuple[str, str]]:
 
 def validate_plan(plan: Plan) -> list[str]:
     """Returns a list of human-readable error messages; a valid plan
-    returns an empty list. Checks, per the Execution Handbook's Task 7.2:
-    tool name, input schema, region, time range, allowed operations
+    returns an empty list. Checks: tool name, input schema, region, time
+    range, allowed operations
     (calculate_statistics.operation), parameter ranges (bbox/coordinates/
     named-region/cutoff validity), and workflow dependencies (depends_on
     and $step.field references both point to a real, earlier step whose

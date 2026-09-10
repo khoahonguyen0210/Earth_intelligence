@@ -8,18 +8,17 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 6.3: durable Postgres-backed storage, replacing the earlier
- * in-memory ConcurrentHashMap. save/find keep the exact same shape as
- * before, so ForecastController is unchanged -- only this class's
- * internals moved from a Map to a real jsonb-backed table.
+ * Durable Postgres-backed storage for forecasts. save/find present a
+ * stable shape so callers like ForecastController don't need to know how
+ * persistence is implemented underneath.
  *
- * Task 13.3: each call is a child span (the "storage" hop of a trace);
- * the save that records a job's outcome is where its result lands, and
- * carries that final status as a tag.
+ * Each call is a child span (the "storage" hop of a trace); the save
+ * that records a job's outcome is where its result lands, and carries
+ * that final status as a tag.
  *
- * Task 13.5: every save stamps updated_at, and the claim/recovery
- * operations below are single conditional UPDATEs, so concurrent workers
- * and recovery sweeps on different replicas never both act on one job
+ * Every save stamps updated_at, and the claim/recovery operations below
+ * are single conditional UPDATEs, so concurrent workers and recovery
+ * sweeps on different replicas never both act on one job
  * (docs/reliability-tests.md).
  */
 @Repository
@@ -51,9 +50,9 @@ public class ForecastStore {
     }
 
     /**
-     * Task 13.5: flips a PENDING/RETRYING job to RUNNING; false if it is
-     * in any other state (already claimed by another worker, finished,
-     * or unknown) -- the caller must then not run it.
+     * Flips a PENDING/RETRYING job to RUNNING; false if it is in any
+     * other state (already claimed by another worker, finished, or
+     * unknown) -- the caller must then not run it.
      */
     public boolean claim(String id) {
         return spans.child("forecast.store.claim", () -> {
@@ -80,7 +79,7 @@ public class ForecastStore {
         return repository.touchWaiting(id, before, Instant.now()) == 1;
     }
 
-    /** Task 6.6: backs the "same idempotency key -> one logical job" rule. */
+    /** Backs the "same idempotency key -> one logical job" rule. */
     public Optional<Forecast> findByIdempotencyKey(String idempotencyKey) {
         return spans.child("forecast.store.find_by_idempotency_key", () -> {
             spans.tag("db.system", "postgresql");

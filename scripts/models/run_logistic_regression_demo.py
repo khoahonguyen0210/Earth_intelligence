@@ -1,7 +1,7 @@
-"""Live demo of Task 4.2's logistic regression against the real Task 3.7
-dataset.
+"""Live demo of the logistic regression baseline against the real dataset
+built by the forecast pipeline.
 
-Honesty note: same real limitation as Task 4.1's climatology demo -- the
+Honesty note: same real limitation as the climatology demo -- the
 project has only ingested real historical data for one real day
 (2024-08-15, TEST split). The train split has zero real positive
 examples, and scikit-learn's LogisticRegression genuinely cannot be fit

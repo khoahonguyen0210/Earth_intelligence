@@ -12,8 +12,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Task 13.5: finds forecast jobs that no worker will ever finish and puts
- * them back on track -- the recovery path the queue itself does not have
+ * Finds forecast jobs that no worker will ever finish and puts them
+ * back on track -- the recovery path the queue itself does not have
  * (docs/reliability-tests.md). Postgres is the source of truth; the Redis
  * list is only a hint of what to run next.
  *

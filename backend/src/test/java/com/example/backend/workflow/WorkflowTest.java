@@ -17,8 +17,6 @@ class WorkflowTest {
 
     @Test
     void validLinearChainHasNoErrors() {
-        // get_data -> validate -> build_features -> run_forecast, the
-        // handbook's own Task 8.3 example DAG.
         Workflow workflow = new Workflow(
                 "wf-1",
                 "forecast-pipeline",

@@ -67,9 +67,9 @@ def compute_environmental_features(
 
             # tile_records is sorted ascending by valid_time; the last
             # eligible, non-NaN entry is the most recent usable one. ERA5-
-            # Land masks ocean cells as NaN (Task 1.5), which is not
-            # "missing because not yet available" -- treat it the same as
-            # no record at all rather than passing NaN through.
+            # Land masks ocean cells as NaN, which is not "missing because
+            # not yet available" -- treat it the same as no record at all
+            # rather than passing NaN through.
             latest = None
             for record in tile_records:
                 if record.valid_time > cutoff:

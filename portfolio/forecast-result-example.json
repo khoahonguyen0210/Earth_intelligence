@@ -1,0 +1,771 @@
+{
+  "forecast_id": "ebf0b6b3-a9fd-4328-bd62-91ed202f8a36",
+  "model_version": "v1",
+  "data_cutoff": "2024-08-10T10:00:00+00:00",
+  "forecast_window": {
+    "end": "2024-08-11T10:00:00+00:00",
+    "hours": 24,
+    "start": "2024-08-10T10:00:00+00:00"
+  },
+  "calibration": {
+    "table": [
+      {
+        "count": 218085,
+        "bin_index": 0,
+        "predicted_mean": 0.001917103581772578,
+        "observed_frequency": 0.0019166838617970057
+      },
+      {
+        "count": 255,
+        "bin_index": 1,
+        "predicted_mean": 0.1333333370732326,
+        "observed_frequency": 0.13333333333333333
+      },
+      {
+        "count": 432,
+        "bin_index": 2,
+        "predicted_mean": 0.23611112208002144,
+        "observed_frequency": 0.2361111111111111
+      },
+      {
+        "count": 214,
+        "bin_index": 3,
+        "predicted_mean": 0.35046729250488995,
+        "observed_frequency": 0.35046728971962615
+      },
+      {
+        "count": 131,
+        "bin_index": 4,
+        "predicted_mean": 0.48854962059559714,
+        "observed_frequency": 0.48854961832061067
+      },
+      {
+        "count": 8,
+        "bin_index": 5,
+        "predicted_mean": 0.5,
+        "observed_frequency": 0.5
+      },
+      {
+        "count": 181,
+        "bin_index": 6,
+        "predicted_mean": 0.6519337085729145,
+        "observed_frequency": 0.6519337016574586
+      },
+      {
+        "count": 35,
+        "bin_index": 7,
+        "predicted_mean": 0.7428571530750819,
+        "observed_frequency": 0.7428571428571429
+      },
+      {
+        "count": 54,
+        "bin_index": 8,
+        "predicted_mean": 0.8703703869272161,
+        "observed_frequency": 0.8703703703703703
+      },
+      {
+        "count": 55,
+        "bin_index": 9,
+        "predicted_mean": 0.9818181850693443,
+        "observed_frequency": 0.9818181818181818
+      }
+    ],
+    "method": "isotonic"
+  },
+  "evidence": {
+    "dataset": "wildfire_forecast:v1",
+    "period_end": "2024-08-11T10:00:00+00:00",
+    "region_bbox": [
+      -124.5,
+      32.5,
+      -114.0,
+      42.0
+    ],
+    "region_kind": "named",
+    "period_start": "2024-08-10T10:00:00+00:00",
+    "region_label": "california",
+    "query_parameters": {
+      "cutoff": "2024-08-10T10:00:00+00:00",
+      "inputs": {
+        "model": {
+          "model": "xgboost + isotonic calibration",
+          "train": {
+            "rows": 877800,
+            "cutoffs": 88,
+            "positives": 4003,
+            "last_cutoff": "2022-10-26T10:00:00+00:00",
+            "first_cutoff": "2019-06-01T10:00:00+00:00",
+            "positive_rate": 0.0045602642971064025
+          },
+          "trained_at": "2026-09-28T19:33:47.018728+00:00",
+          "validation": {
+            "rows": 219450,
+            "cutoffs": 22,
+            "positives": 942,
+            "last_cutoff": "2023-10-26T10:00:00+00:00",
+            "first_cutoff": "2023-06-01T10:00:00+00:00",
+            "positive_rate": 0.00429254955570745
+          },
+          "model_version": "v1"
+        },
+        "firms_window": {
+          "end": "2024-08-10T10:00:00+00:00",
+          "start": "2024-07-11T10:00:00+00:00"
+        },
+        "era5_valid_time": "2024-08-10T10:00:00+00:00",
+        "firms_observations": 8626
+      },
+      "forecast_window_hours": 24
+    },
+    "processing_version": "0.1.0"
+  },
+  "grid_sample_note": "Full real grid has 9975 cells; this file keeps the 10 highest-probability and 5 lowest-probability real cells as a representative sample. The full result is regenerable via docs/reproducibility-package.md section 4 (gitignored, ~3.6MB, not committed).",
+  "grid_total_features": 9975,
+  "grid_sample_features": [
+    {
+      "id": "CA_0053_0048",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -119.7,
+              37.8
+            ],
+            [
+              -119.6,
+              37.8
+            ],
+            [
+              -119.6,
+              37.9
+            ],
+            [
+              -119.7,
+              37.9
+            ],
+            [
+              -119.7,
+              37.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 37.9,
+        "max_lon": -119.6,
+        "min_lat": 37.8,
+        "min_lon": -119.7,
+        "tile_id": "CA_0053_0048",
+        "lat_index": 53,
+        "lon_index": 48,
+        "probability": 1.0,
+        "centroid_lat": 37.85,
+        "centroid_lon": -119.65
+      }
+    },
+    {
+      "id": "CA_0078_0029",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -121.6,
+              40.3
+            ],
+            [
+              -121.5,
+              40.3
+            ],
+            [
+              -121.5,
+              40.4
+            ],
+            [
+              -121.6,
+              40.4
+            ],
+            [
+              -121.6,
+              40.3
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 40.4,
+        "max_lon": -121.5,
+        "min_lat": 40.3,
+        "min_lon": -121.6,
+        "tile_id": "CA_0078_0029",
+        "lat_index": 78,
+        "lon_index": 29,
+        "probability": 1.0,
+        "centroid_lat": 40.35,
+        "centroid_lon": -121.55
+      }
+    },
+    {
+      "id": "CA_0077_0028",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -121.7,
+              40.2
+            ],
+            [
+              -121.6,
+              40.2
+            ],
+            [
+              -121.6,
+              40.3
+            ],
+            [
+              -121.7,
+              40.3
+            ],
+            [
+              -121.7,
+              40.2
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 40.3,
+        "max_lon": -121.6,
+        "min_lat": 40.2,
+        "min_lon": -121.7,
+        "tile_id": "CA_0077_0028",
+        "lat_index": 77,
+        "lon_index": 28,
+        "probability": 0.9333333373069763,
+        "centroid_lat": 40.25,
+        "centroid_lon": -121.65
+      }
+    },
+    {
+      "id": "CA_0077_0029",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -121.6,
+              40.2
+            ],
+            [
+              -121.5,
+              40.2
+            ],
+            [
+              -121.5,
+              40.3
+            ],
+            [
+              -121.6,
+              40.3
+            ],
+            [
+              -121.6,
+              40.2
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 40.3,
+        "max_lon": -121.5,
+        "min_lat": 40.2,
+        "min_lon": -121.6,
+        "tile_id": "CA_0077_0029",
+        "lat_index": 77,
+        "lon_index": 29,
+        "probability": 0.9333333373069763,
+        "centroid_lat": 40.25,
+        "centroid_lon": -121.55
+      }
+    },
+    {
+      "id": "CA_0018_0059",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -118.6,
+              34.3
+            ],
+            [
+              -118.5,
+              34.3
+            ],
+            [
+              -118.5,
+              34.4
+            ],
+            [
+              -118.6,
+              34.4
+            ],
+            [
+              -118.6,
+              34.3
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 34.4,
+        "max_lon": -118.5,
+        "min_lat": 34.3,
+        "min_lon": -118.6,
+        "tile_id": "CA_0018_0059",
+        "lat_index": 18,
+        "lon_index": 59,
+        "probability": 0.8703703880310059,
+        "centroid_lat": 34.35,
+        "centroid_lon": -118.55
+      }
+    },
+    {
+      "id": "CA_0021_0073",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -117.2,
+              34.6
+            ],
+            [
+              -117.1,
+              34.6
+            ],
+            [
+              -117.1,
+              34.7
+            ],
+            [
+              -117.2,
+              34.7
+            ],
+            [
+              -117.2,
+              34.6
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 34.7,
+        "max_lon": -117.1,
+        "min_lat": 34.6,
+        "min_lon": -117.2,
+        "tile_id": "CA_0021_0073",
+        "lat_index": 21,
+        "lon_index": 73,
+        "probability": 0.8703703880310059,
+        "centroid_lat": 34.65,
+        "centroid_lon": -117.15
+      }
+    },
+    {
+      "id": "CA_0042_0058",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -118.7,
+              36.7
+            ],
+            [
+              -118.6,
+              36.7
+            ],
+            [
+              -118.6,
+              36.8
+            ],
+            [
+              -118.7,
+              36.8
+            ],
+            [
+              -118.7,
+              36.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 36.8,
+        "max_lon": -118.6,
+        "min_lat": 36.7,
+        "min_lon": -118.7,
+        "tile_id": "CA_0042_0058",
+        "lat_index": 42,
+        "lon_index": 58,
+        "probability": 0.8703703880310059,
+        "centroid_lat": 36.75,
+        "centroid_lon": -118.65
+      }
+    },
+    {
+      "id": "CA_0055_0023",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.2,
+              38.0
+            ],
+            [
+              -122.1,
+              38.0
+            ],
+            [
+              -122.1,
+              38.1
+            ],
+            [
+              -122.2,
+              38.1
+            ],
+            [
+              -122.2,
+              38.0
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 38.1,
+        "max_lon": -122.1,
+        "min_lat": 38.0,
+        "min_lon": -122.2,
+        "tile_id": "CA_0055_0023",
+        "lat_index": 55,
+        "lon_index": 23,
+        "probability": 0.8703703880310059,
+        "centroid_lat": 38.05,
+        "centroid_lon": -122.15
+      }
+    },
+    {
+      "id": "CA_0063_0038",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -120.7,
+              38.8
+            ],
+            [
+              -120.6,
+              38.8
+            ],
+            [
+              -120.6,
+              38.9
+            ],
+            [
+              -120.7,
+              38.9
+            ],
+            [
+              -120.7,
+              38.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 38.9,
+        "max_lon": -120.6,
+        "min_lat": 38.8,
+        "min_lon": -120.7,
+        "tile_id": "CA_0063_0038",
+        "lat_index": 63,
+        "lon_index": 38,
+        "probability": 0.8703703880310059,
+        "centroid_lat": 38.85,
+        "centroid_lon": -120.65
+      }
+    },
+    {
+      "id": "CA_0063_0090",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -115.5,
+              38.8
+            ],
+            [
+              -115.4,
+              38.8
+            ],
+            [
+              -115.4,
+              38.9
+            ],
+            [
+              -115.5,
+              38.9
+            ],
+            [
+              -115.5,
+              38.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 38.9,
+        "max_lon": -115.4,
+        "min_lat": 38.8,
+        "min_lon": -115.5,
+        "tile_id": "CA_0063_0090",
+        "lat_index": 63,
+        "lon_index": 90,
+        "probability": 0.8703703880310059,
+        "centroid_lat": 38.85,
+        "centroid_lon": -115.45
+      }
+    },
+    {
+      "id": "CA_0092_0001",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -124.4,
+              41.7
+            ],
+            [
+              -124.3,
+              41.7
+            ],
+            [
+              -124.3,
+              41.8
+            ],
+            [
+              -124.4,
+              41.8
+            ],
+            [
+              -124.4,
+              41.7
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 41.8,
+        "max_lon": -124.3,
+        "min_lat": 41.7,
+        "min_lon": -124.4,
+        "tile_id": "CA_0092_0001",
+        "lat_index": 92,
+        "lon_index": 1,
+        "probability": 0.0,
+        "centroid_lat": 41.75,
+        "centroid_lon": -124.35
+      }
+    },
+    {
+      "id": "CA_0093_0000",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -124.5,
+              41.8
+            ],
+            [
+              -124.4,
+              41.8
+            ],
+            [
+              -124.4,
+              41.9
+            ],
+            [
+              -124.5,
+              41.9
+            ],
+            [
+              -124.5,
+              41.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 41.9,
+        "max_lon": -124.4,
+        "min_lat": 41.8,
+        "min_lon": -124.5,
+        "tile_id": "CA_0093_0000",
+        "lat_index": 93,
+        "lon_index": 0,
+        "probability": 0.0,
+        "centroid_lat": 41.85,
+        "centroid_lon": -124.45
+      }
+    },
+    {
+      "id": "CA_0093_0001",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -124.4,
+              41.8
+            ],
+            [
+              -124.3,
+              41.8
+            ],
+            [
+              -124.3,
+              41.9
+            ],
+            [
+              -124.4,
+              41.9
+            ],
+            [
+              -124.4,
+              41.8
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 41.9,
+        "max_lon": -124.3,
+        "min_lat": 41.8,
+        "min_lon": -124.4,
+        "tile_id": "CA_0093_0001",
+        "lat_index": 93,
+        "lon_index": 1,
+        "probability": 0.0,
+        "centroid_lat": 41.85,
+        "centroid_lon": -124.35
+      }
+    },
+    {
+      "id": "CA_0094_0000",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -124.5,
+              41.9
+            ],
+            [
+              -124.4,
+              41.9
+            ],
+            [
+              -124.4,
+              42.0
+            ],
+            [
+              -124.5,
+              42.0
+            ],
+            [
+              -124.5,
+              41.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 42.0,
+        "max_lon": -124.4,
+        "min_lat": 41.9,
+        "min_lon": -124.5,
+        "tile_id": "CA_0094_0000",
+        "lat_index": 94,
+        "lon_index": 0,
+        "probability": 0.0,
+        "centroid_lat": 41.95,
+        "centroid_lon": -124.45
+      }
+    },
+    {
+      "id": "CA_0094_0001",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -124.4,
+              41.9
+            ],
+            [
+              -124.3,
+              41.9
+            ],
+            [
+              -124.3,
+              42.0
+            ],
+            [
+              -124.4,
+              42.0
+            ],
+            [
+              -124.4,
+              41.9
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "max_lat": 42.0,
+        "max_lon": -124.3,
+        "min_lat": 41.9,
+        "min_lon": -124.4,
+        "tile_id": "CA_0094_0001",
+        "lat_index": 94,
+        "lon_index": 1,
+        "probability": 0.0,
+        "centroid_lat": 41.95,
+        "centroid_lon": -124.35
+      }
+    }
+  ]
+}

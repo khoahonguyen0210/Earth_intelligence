@@ -20,11 +20,11 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Task 6.2 bridge to the Python forecast pipeline: a synchronous
- * subprocess call per job, the same interim pattern PythonAnalysisRunner
- * already uses for analysis. Task 6.5 moved the caller off the request
- * thread into ForecastWorker; Task 6.6 added the timeout/classification
- * below (see docs/forecast-retry-and-idempotency.md).
+ * Bridges to the Python forecast pipeline with a synchronous subprocess
+ * call per job, the same pattern PythonAnalysisRunner uses for analysis.
+ * The call runs on ForecastWorker's thread, not the request thread, and
+ * classifies failures as transient or permanent against a timeout (see
+ * docs/forecast-retry-and-idempotency.md).
  *
  * stdout/stderr are drained on background threads while the main thread
  * waits on the process with a timeout, rather than reading them
@@ -34,7 +34,7 @@ import tools.jackson.databind.ObjectMapper;
  * sufficiently large forecast payload (a full California grid
  * FeatureCollection easily can be).
  *
- * Task 13.3: each run is a `forecast.python` child span. The Python
+ * Each run is a `forecast.python` child span. The Python
  * process is not itself traced (docs/tracing.md); its own stage timings
  * (data_load, model_load, model_inference, total) are tagged onto this
  * span instead, and a failed run's span carries its error code.
@@ -130,7 +130,7 @@ public class PythonForecastRunner implements ForecastRunner {
     }
 
     /**
-     * Task 13.2: the Python side's optional `timings_ms` object
+     * The Python side's optional `timings_ms` object
      * (query/run_forecast.py). Anything missing or non-numeric is
      * dropped rather than failing a forecast that otherwise succeeded --
      * timings are observability, not part of the result.

@@ -7,9 +7,8 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Durable Postgres-backed storage for the Ask Earth page's queries --
- * mirrors AnalysisStore/ForecastStore exactly. Each call is a child span
- * (Task 13.3's pattern for a store, applied here from the start since
- * this table is new as of Task 14.1).
+ * mirrors AnalysisStore/ForecastStore exactly. Each call is a child
+ * span, the same pattern those stores use.
  */
 @Repository
 public class EarthQueryStore {

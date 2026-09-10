@@ -107,9 +107,9 @@ def load_sample_rows(
     validation_cutoff: datetime,
     test_cutoff: datetime,
 ) -> list[DatasetRow]:
-    """Loads the real Phase 1 sample data (the only real historical data
-    the project has ingested so far) and builds dataset rows for the
-    given cutoffs."""
+    """Loads the real sample data (the only real historical data the
+    project has ingested so far) and builds dataset rows for the given
+    cutoffs."""
     firms_config = load_firms_config()
     firms_records = parse_firms_records(
         DEFAULT_RAW_FIRMS_PATH.read_text(encoding="utf-8")

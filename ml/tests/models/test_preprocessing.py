@@ -80,11 +80,11 @@ def test_missing_value_is_imputed_with_train_median():
 
 
 def test_transform_uses_train_statistics_not_the_input_rows_own_distribution():
-    """Closes Task 3.6's deferred leakage check: 'learned preprocessing
-    uses training data only'. If transform() incorrectly recomputed
-    statistics from whatever rows it was given (instead of always using
-    the train-fit preprocessor), a single wildly-different-valued row
-    would self-normalize to 0. It must not."""
+    """Verifies 'learned preprocessing uses training data only': if
+    transform() incorrectly recomputed statistics from whatever rows it
+    was given (instead of always using the train-fit preprocessor), a
+    single wildly-different-valued row would self-normalize to 0. It
+    must not."""
     train_rows = [
         _row("A", 0, previous_24h_count=0),
         _row("B", 0, previous_24h_count=0),
@@ -158,8 +158,8 @@ def test_feature_names_length_matches_transform_width():
 
 
 def test_fit_preprocessor_with_restricted_feature_subset():
-    """Task 5.1's weather ablation needs to fit against a deliberate
-    subset of features while keeping the rest of the pipeline identical."""
+    """A weather ablation needs to fit against a deliberate subset of
+    features while keeping the rest of the pipeline identical."""
     subset = ("previous_24h_count", "previous_72h_count")
     rows = [
         _row("A", 0, previous_24h_count=10),

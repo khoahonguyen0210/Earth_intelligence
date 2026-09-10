@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 # Shared fragments -- every tool that takes a region/time window uses the
-# exact same shape Task 2.1 already locked (query.schema.RegionSpec/
-# TimeRangeSpec), not a second, planner-specific region format.
+# exact same shape already locked by query.schema.RegionSpec/
+# TimeRangeSpec, not a second, planner-specific region format.
 REGION_SPEC_SCHEMA: dict[str, Any] = {
     "type": "object",
     "description": (
@@ -45,18 +45,18 @@ TIME_RANGE_SPEC_SCHEMA: dict[str, Any] = {
 
 @dataclass(frozen=True)
 class ToolSchema:
-    """One entry in the planner's fixed tool surface (Task 7.1's "no
-    arbitrary code execution": six named, bounded operations, nothing
-    that takes a code string or shell command).
+    """One entry in the planner's fixed tool surface ("no arbitrary code
+    execution": six named, bounded operations, nothing that takes a code
+    string or shell command).
 
     `returns`/`output_fields` document the result shape for the
-    validator (Task 7.2) and whoever wires up real dispatch (Tasks
-    7.3/8.x); neither is part of the Claude tool wire format, which only
-    has name/description/input_schema/strict -- see
+    validator and whoever wires up real dispatch; neither is part of the
+    Claude tool wire format, which only has
+    name/description/input_schema/strict -- see
     to_claude_tool_definition. `output_fields` is the top-level key set
     of a successful result, used to check a later step's reference to
     "field X of an earlier step's output" actually names something that
-    step produces (Task 7.2's "workflow dependencies" check).
+    step produces (the validator's "workflow dependencies" check).
     """
 
     name: str

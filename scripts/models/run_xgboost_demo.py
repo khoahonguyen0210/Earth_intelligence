@@ -1,7 +1,7 @@
-"""Live demo of Task 4.3's XGBoost baseline against the real Task 3.7
-dataset.
+"""Live demo of the XGBoost baseline against the real dataset built by
+the forecast pipeline.
 
-Honesty note: same real limitation as Tasks 4.1/4.2's demos -- the
+Honesty note: same real limitation as the other baseline demos -- the
 project has only ingested real historical data for one real day
 (2024-08-15, TEST split), so both the train and validation splits have
 zero real positive examples. XGBoost's early-stopping step genuinely

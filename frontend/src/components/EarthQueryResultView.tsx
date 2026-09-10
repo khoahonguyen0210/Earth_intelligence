@@ -48,11 +48,11 @@ function isForecastJobReference(
 }
 
 /**
- * One executed step's contribution to the answer -- the handbook's
- * "numbers"/"map" (Task 14.2), rendered from the real result shape
- * run_ask_earth.py actually produced, never fabricated. A run_forecast
- * step only ever creates a job here (docs/forecast-api-contract.md); its
- * real risk grid is Task 14.3's own forecast map, not duplicated here.
+ * One executed step's contribution to the answer -- the "numbers"/"map"
+ * view, rendered from the real result shape run_ask_earth.py actually
+ * produced, never fabricated. A run_forecast step only ever creates a
+ * job here (docs/forecast-api-contract.md); its real risk grid is
+ * rendered by the forecast map component, not duplicated here.
  */
 function FactBody({ result }: { result: EarthQueryFactResult }) {
   if (isCountResult(result)) {

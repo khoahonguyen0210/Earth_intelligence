@@ -4,8 +4,8 @@ import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
 
 /**
- * Task 13.1: a failure carries a stable ErrorCode for the structured
- * logs; like ForecastOutcome's, it is not persisted or returned by the API.
+ * A failure carries a stable ErrorCode for the structured logs; like
+ * ForecastOutcome's, it is not persisted or returned by the API.
  */
 public record AnalysisOutcome(boolean success, Object result, Object evidence, String error, ErrorCode errorCode) {
 
@@ -17,7 +17,7 @@ public record AnalysisOutcome(boolean success, Object result, Object evidence, S
         return new AnalysisOutcome(false, null, null, error, errorCode);
     }
 
-    /** Task 13.4: see ForecastOutcome.redacted -- the error is stored and returned, not only logged. */
+    /** See ForecastOutcome.redacted -- the error is stored and returned, not only logged. */
     public AnalysisOutcome redacted(SecretRedactor redactor) {
         return error == null ? this : new AnalysisOutcome(success, result, evidence, redactor.redact(error), errorCode);
     }

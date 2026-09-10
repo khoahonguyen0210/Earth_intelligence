@@ -10,21 +10,21 @@ import java.util.Map;
  * (the Python side's forecast_result_to_dict already embeds it), not a
  * sibling field.
  *
- * Task 6.6: a failure additionally says whether it is transient -- a
- * dependency problem (couldn't start the Python process, it timed out)
- * that a retry might resolve -- versus permanent -- a problem with this
+ * A failure additionally says whether it is transient -- a dependency
+ * problem (couldn't start the Python process, it timed out) that a
+ * retry might resolve -- versus permanent -- a problem with this
  * particular request/data that retrying would only reproduce. Only
  * ForecastWorker acts on the distinction (see docs/forecast-retry-and-idempotency.md);
  * a successful outcome is never transient.
  *
- * Task 13.1: a failure also carries a stable ErrorCode for the
- * structured logs. It is not persisted or returned by the API -- the
- * human-readable error text still is, unchanged.
+ * A failure also carries a stable ErrorCode for the structured logs. It
+ * is not persisted or returned by the API -- the human-readable error
+ * text still is, unchanged.
  *
- * Task 13.2: a success may carry the Python pipeline's own per-stage
- * wall-clock timings (`timings_ms`: data_load, model_fit,
- * model_inference, total), which ForecastWorker records as metrics.
- * Like errorCode, they are never persisted or returned to API clients.
+ * A success may carry the Python pipeline's own per-stage wall-clock
+ * timings (`timings_ms`: data_load, model_fit, model_inference, total),
+ * which ForecastWorker records as metrics. Like errorCode, they are
+ * never persisted or returned to API clients.
  */
 public record ForecastOutcome(
         boolean success,
@@ -51,9 +51,9 @@ public record ForecastOutcome(
     }
 
     /**
-     * Task 13.4: the same outcome with its error text passed through the
-     * redactor -- the text is Python's/stderr's, not the backend's, and
-     * it is stored and returned to API clients, not only logged.
+     * The same outcome with its error text passed through the redactor
+     * -- the text is Python's/stderr's, not the backend's, and it is
+     * stored and returned to API clients, not only logged.
      */
     public ForecastOutcome redacted(SecretRedactor redactor) {
         return error == null

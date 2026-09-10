@@ -20,12 +20,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Task 13.4: per-client rate limits on the routes that start real work
- * -- POST /forecasts queues a Python job that can run for minutes,
- * POST /analyses holds a request thread for a Python subprocess, and
- * (Task 14.1) POST /queries holds one for a real LLM call plus a whole
- * plan's execution, including a possible run_forecast step. Reads are
- * not limited.
+ * Per-client rate limits on the routes that start real work -- POST
+ * /forecasts queues a Python job that can run for minutes, POST
+ * /analyses holds a request thread for a Python subprocess, and POST
+ * /queries holds one for a real LLM call plus a whole plan's execution,
+ * including a possible run_forecast step. Reads are not limited.
  *
  * A fixed one-minute window per client IP and route, counted in the
  * Redis every replica already shares, so the limit holds across

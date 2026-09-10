@@ -98,8 +98,7 @@ def test_run_baseline_benchmark_reports_failure_honestly(tmp_path):
     honestly fail -- but climatology has no such requirement (it just
     computes an empirical rate, well-defined even for one class), so it
     genuinely succeeds. This exact split mirrors what actually happens
-    against the project's real sample data (see the Task 4.1-4.5 demo
-    scripts)."""
+    against the project's real sample data."""
     single_class_train = [_row("A", 0, 0, "train"), _row("B", 0, 10, "train")]
 
     rows = run_baseline_benchmark(

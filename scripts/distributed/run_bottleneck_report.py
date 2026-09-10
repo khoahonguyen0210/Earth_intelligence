@@ -37,7 +37,7 @@ def main() -> None:
         landcover_path=LANDCOVER_PATH,
     )
 
-    # Task 9.2's real one-worker run supplies the real per-tile compute
+    # The real one-worker run supplies the real per-tile compute
     # cost the "cpu" candidate is judged against.
     baseline = run_distributed_inference(workload, num_workers=1, context=context)
 

@@ -52,7 +52,7 @@ export async function getAnalysisResult(
   return body as ResultResponse;
 }
 
-// Task 14.1: the Ask Earth page's own calls -- POST /queries is
+// The Ask Earth page's own calls -- POST /queries is
 // synchronous (no job queue, like /analyses), so a caller awaits it and
 // then fetches the result in sequence, exactly like
 // createAnalysis/getAnalysisResult above.
@@ -85,10 +85,10 @@ export async function getEarthQueryResult(id: string): Promise<EarthQueryResultR
   return body as EarthQueryResultResponse;
 }
 
-// Task 14.3: fetches a forecast job's real result grid once it has
+// Fetches a forecast job's real result grid once it has
 // SUCCEEDED (docs/forecast-api-contract.md). Polling the job's own
 // status (PENDING/RUNNING/...) until it reaches a terminal state is
-// Task 14.4's job-status UI, not this call.
+// the job-status UI's job, not this call.
 export async function getForecastResult(id: string): Promise<ForecastResultResponse> {
   const response = await fetch(`${API_BASE_URL}/forecasts/${id}/result`);
   const body = await response.json();
@@ -101,8 +101,8 @@ export async function getForecastResult(id: string): Promise<ForecastResultRespo
   return body as ForecastResultResponse;
 }
 
-// Task 14.4: the direct forecast job path -- POST /forecasts is
-// asynchronous (Task 6.5's Redis queue + worker), so a caller submits a
+// The direct forecast job path -- POST /forecasts is
+// asynchronous (a Redis queue + worker), so a caller submits a
 // job here and polls getForecastStatus separately until it reaches a
 // terminal state, unlike createAnalysis/createEarthQuery above.
 export async function createForecast(request: ForecastRequest): Promise<ForecastSummary> {

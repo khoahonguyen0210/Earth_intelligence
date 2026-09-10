@@ -9,7 +9,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * The JPA row shape for the analyses table (Task 6.3). request/result/
+ * The JPA row shape for the analyses table. request/result/
  * evidence are stored as raw JSON text in jsonb columns -- AnalysisStore
  * does the Analysis record <-> JSON conversion, so this class is a pure
  * persistence detail the rest of the analysis package never sees.

@@ -14,35 +14,35 @@ import org.slf4j.MDC;
 import org.slf4j.event.Level;
 
 /**
- * Task 8.3: walks a Workflow's nodes to completion in dependency order,
- * dispatching each one through a WorkflowTaskDispatcher once Task 8.2's
- * state machine says it may run, and recording the real outcome.
+ * Walks a Workflow's nodes to completion in dependency order,
+ * dispatching each one through a WorkflowTaskDispatcher once the state
+ * machine says it may run, and recording the real outcome.
  *
- * Synchronous and single-call, not queue-backed: unlike ForecastWorker
- * (Task 6.5), which polls a Redis queue across separate scheduled
- * invocations, `execute` runs a whole workflow to a fixed point (every
- * node reaches a terminal state) in one call, retrying in-line rather
- * than re-enqueueing. This is the right shape to prove the DAG-walking
- * algorithm itself against the handbook's own example DAG (get_data ->
- * validate -> build_features -> run_forecast, fanning out to
- * get_result_evidence/generate_map); wiring this into a real async,
- * restart-safe queue the way ForecastWorker already is for a single job
- * is later work, not this task's -- see docs/workflow-execution.md.
+ * Synchronous and single-call, not queue-backed: unlike ForecastWorker,
+ * which polls a Redis queue across separate scheduled invocations,
+ * `execute` runs a whole workflow to a fixed point (every node reaches
+ * a terminal state) in one call, retrying in-line rather than
+ * re-enqueueing. This is the right shape to prove the DAG-walking
+ * algorithm itself (get_data -> validate -> build_features ->
+ * run_forecast, fanning out to get_result_evidence/generate_map);
+ * wiring this into a real async, restart-safe queue the way
+ * ForecastWorker already is for a single job remains future work -- see
+ * docs/workflow-execution.md.
  *
  * A node whose dependency did not succeed is marked CANCELLED (not
  * FAILED): it was never itself attempted, so it never actually failed --
  * the real failure already lives on the dependency's own node.
  *
- * Task 13.1: every log line written during execute() carries
- * `workflow_id` (MDC); each node attempt that ends logs one
- * workflow_node_succeeded / workflow_node_retry_scheduled /
- * workflow_node_failed event, and the run ends with workflow_finished.
+ * Every log line written during execute() carries `workflow_id` (MDC);
+ * each node attempt that ends logs one workflow_node_succeeded /
+ * workflow_node_retry_scheduled / workflow_node_failed event, and the
+ * run ends with workflow_finished.
  *
- * Task 13.3: execute() is a `workflow.execute` span (a new trace unless
- * one is already running, e.g. an HTTP request that runs a workflow), and
- * each node attempt is a `workflow.node` child of it, tagged with the
- * task and its outcome -- so a trace shows the DAG's real execution
- * order, retries included (docs/tracing.md).
+ * execute() is a `workflow.execute` span (a new trace unless one is
+ * already running, e.g. an HTTP request that runs a workflow), and each
+ * node attempt is a `workflow.node` child of it, tagged with the task
+ * and its outcome -- so a trace shows the DAG's real execution order,
+ * retries included (docs/tracing.md).
  */
 public class WorkflowExecutor {
 
@@ -69,8 +69,8 @@ public class WorkflowExecutor {
 
     /**
      * Runs `workflow` to completion. Throws IllegalArgumentException if
-     * `workflow.validate()` (Task 8.1) reports any structural problem --
-     * execution never starts on a workflow that isn't really a DAG.
+     * `workflow.validate()` reports any structural problem -- execution
+     * never starts on a workflow that isn't really a DAG.
      */
     public Workflow execute(Workflow workflow) {
         List<String> structuralErrors = workflow.validate();
@@ -143,16 +143,15 @@ public class WorkflowExecutor {
     private WorkflowNode advance(WorkflowNode node, Map<String, WorkflowNode> nodesByTaskId) {
         return switch (node.status()) {
             case PENDING -> advancePending(node, nodesByTaskId);
-            // Both READY and RETRYING have a legal edge straight to RUNNING
-            // (Task 8.2) -- runNode makes that one transition itself.
+            // Both READY and RETRYING have a legal edge straight to
+            // RUNNING -- runNode makes that one transition itself.
             case READY, RETRYING -> runNode(node);
             // A node already RUNNING when execute() is first called cannot
             // be this call's own doing -- within one execute() call, RUNNING
             // is always resolved to a terminal-ish status before returning
             // (see runNode). It can only be a leftover from a process that
-            // crashed mid-dispatch (Task 8.4's own "restart and recover"
-            // requirement) -- treat it as an interrupted attempt: retry it,
-            // the same as any other transient failure would be.
+            // crashed mid-dispatch -- treat it as an interrupted attempt:
+            // retry it, the same as any other transient failure would be.
             case RUNNING -> runNode(WorkflowStateMachine.transition(node, Status.RETRYING, clock.instant()));
             default -> node; // terminal states never change
         };
@@ -222,7 +221,7 @@ public class WorkflowExecutor {
                 .log(error == null ? "workflow node succeeded" : "workflow node failed: {}", error);
     }
 
-    /** Validates the transition (Task 8.2) before recording an outcome that carries more than just status. */
+    /** Validates the transition before recording an outcome that carries more than just status. */
     private WorkflowNode applyOutcome(WorkflowNode node, Status status, String outputRef, String error) {
         Instant now = clock.instant();
 
