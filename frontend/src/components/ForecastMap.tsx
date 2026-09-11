@@ -24,6 +24,29 @@ const RISK_RAMP = [
   "#0d366b",
 ];
 
+// A plain-language reading of the real probability, shown alongside the
+// exact number (never in place of it) -- the same "fold real values into
+// a readable label without hiding the raw number" pattern ForecastPanel's
+// own status badge already uses for job status.
+function riskLevel(probability: number): string {
+  if (probability >= 0.6) return "Severe";
+  if (probability >= 0.3) return "High";
+  if (probability >= 0.1) return "Moderate";
+  return "Low";
+}
+
+function formatDateTime(isoString: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC",
+    }).format(new Date(isoString)) + " UTC";
+  } catch {
+    return isoString;
+  }
+}
+
 function colorForProbability(value: number, min: number, max: number): string {
   if (max <= min) {
     return RISK_RAMP[Math.floor(RISK_RAMP.length / 2)];
@@ -102,9 +125,20 @@ export function ForecastMap({ result }: ForecastMapProps) {
     (a, b) => b.properties.probability - a.properties.probability,
   );
 
+  const regionName = evidence.region_label ?? evidence.region_kind;
+
   return (
     <section aria-label="Forecast map">
       <h3>Wildfire risk forecast</h3>
+      <p className="forecast-summary">
+        <strong>{riskLevel(maxProbability)} risk</strong> in the highest-risk area of{" "}
+        {regionName} &mdash; up to <strong>{(maxProbability * 100).toFixed(1)}%</strong>{" "}
+        estimated probability of a wildfire starting, for the {forecast_window.hours}{" "}
+        hours from {formatDateTime(forecast_window.start)} to{" "}
+        {formatDateTime(forecast_window.end)}.
+        Darker cells on the map below are higher risk; exact numbers for every area are
+        in the table underneath it.
+      </p>
 
       <svg
         role="img"
@@ -146,16 +180,30 @@ export function ForecastMap({ result }: ForecastMapProps) {
       <RiskLegend min={minProbability} max={maxProbability} />
 
       <dl>
-        <dt>Model</dt>
-        <dd>{model_version}</dd>
-        <dt>Data cutoff</dt>
-        <dd>{data_cutoff}</dd>
-        <dt>Forecast window</dt>
+        <dt>Data as of</dt>
         <dd>
-          {forecast_window.start} &ndash; {forecast_window.end} ({forecast_window.hours}h)
+          {formatDateTime(data_cutoff)}{" "}
+          <span className="dd-raw">({data_cutoff})</span>
         </dd>
+        <dt>Forecast covers</dt>
+        <dd>
+          {formatDateTime(forecast_window.start)} &ndash; {formatDateTime(forecast_window.end)}{" "}
+          ({forecast_window.hours}h)
+          <br />
+          <span className="dd-raw">
+            {forecast_window.start} &ndash; {forecast_window.end}
+          </span>
+        </dd>
+        <dt>Model version</dt>
+        <dd>{model_version}</dd>
         <dt>Calibration method</dt>
-        <dd>{calibration.method}</dd>
+        <dd>
+          {calibration.method}{" "}
+          <span className="dd-hint">
+            &mdash; predicted probabilities are adjusted so they match how often
+            fires actually occurred at that predicted level in real historical data
+          </span>
+        </dd>
       </dl>
 
       {calibration.table.length > 0 && (

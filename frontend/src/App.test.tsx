@@ -22,9 +22,10 @@ describe("App", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /AI Earth Intelligence & Forecasting Engine/i,
+        name: /ask earth a question/i,
       }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ai earth intelligence/i })).toBeInTheDocument();
 
     expect(await screen.findByText("Backend: UP")).toBeInTheDocument();
   });

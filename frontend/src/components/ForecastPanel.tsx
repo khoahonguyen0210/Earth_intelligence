@@ -47,7 +47,11 @@ function StatusBadge({ backendStatus }: { backendStatus: string }) {
   const badge = STATUS_BADGE[displayStatus];
 
   return (
-    <p role="status" aria-label="Forecast job status">
+    <p
+      role="status"
+      aria-label="Forecast job status"
+      className={`status-badge status-${displayStatus}`}
+    >
       <svg width={16} height={16} aria-hidden="true">
         <text x={8} y={12} textAnchor="middle" fontSize={13} fill={badge.color}>
           {badge.glyph}

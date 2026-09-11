@@ -1,23 +1,27 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* National Geographic-inspired palette: near-black documentary
+     backdrop, warm off-white body copy, and the brand's own signature
+     yellow reserved for the frame motif, kickers, and calls to action. */
+  --ng-yellow: #ffcc00;
+  --ng-ember: #ff5a1f;
 
+  --text: #cbc6ba;
+  --text-h: #f6f3ea;
+  --bg: #0b0b0a;
+  --bg-raised: #151412;
+  --border: #2c2a24;
+  --code-bg: #1a1917;
+  --accent: var(--ng-yellow);
+  --accent-ink: #16130a;
+  --shadow: rgba(0, 0, 0, 0.5) 0 10px 30px -8px;
+
+  --serif: Georgia, 'Times New Roman', Cambria, serif;
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  font: 17px/155% var(--sans);
+  letter-spacing: 0.1px;
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -30,69 +34,109 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+* {
+  box-sizing: border-box;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
   margin: 0;
+  background: var(--bg);
+}
+
+/* The navbar is sticky, so a same-page anchor jump (the hero's "Ask
+   Earth a question" CTA) needs this much breathing room above the
+   target or the navbar covers its heading. */
+#ask-earth {
+  scroll-margin-top: 84px;
+}
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
+h2,
+h3 {
+  font-family: var(--serif);
+  font-weight: 700;
   color: var(--text-h);
+  letter-spacing: -0.3px;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
+  font-size: 52px;
+  line-height: 106%;
+  margin: 16px 0 0;
   @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+    font-size: 34px;
   }
 }
+
 h2 {
-  font-size: 24px;
+  font-size: 26px;
   line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   @media (max-width: 1024px) {
-    font-size: 20px;
+    font-size: 22px;
   }
 }
+
+h3 {
+  font-size: 19px;
+  margin: 0 0 4px;
+}
+
+h4 {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+  margin: 20px 0 6px;
+}
+
 p {
   margin: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* The editorial "kicker": a small, bold, tracked-out uppercase label in
+   the brand yellow, set above a headline -- Nat Geo's signature way of
+   naming a section before the big serif title underneath it. */
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2.4px;
+  color: var(--accent);
+}
+
+.kicker::before {
+  content: '';
+  width: 22px;
+  height: 3px;
+  background: var(--accent);
 }
 
 code,
@@ -104,8 +148,13 @@ code,
 }
 
 code {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 135%;
-  padding: 4px 8px;
+  padding: 2px 6px;
   background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+button {
+  font: inherit;
 }

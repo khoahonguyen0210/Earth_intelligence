@@ -51,7 +51,7 @@ export function AskEarthForm({ onSubmit, disabled }: AskEarthFormProps) {
   }
 
   return (
-    <div>
+    <div className="ask-earth">
       <form onSubmit={handleSubmit}>
         <label htmlFor="ask-earth-question">Ask Earth a question</label>
         <textarea
