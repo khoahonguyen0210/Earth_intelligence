@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.region.RegionStore;
 import com.example.backend.tracing.Spans;
 import com.example.backend.tracing.TestTracing;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -72,7 +73,7 @@ class ForecastTracingTest {
 
     private ForecastWorker worker(ForecastRunner runner) {
         return new ForecastWorker(queue, store, runner, 3, SecretRedactor.of(SECRET),
-                new ForecastMetrics(new SimpleMeterRegistry(), queue), spans, 0);
+                new ForecastMetrics(new SimpleMeterRegistry(), queue), spans, 0, RegionStore.noop());
     }
 
     /** Submits a forecast inside a stand-in for Spring's HTTP server span; returns the job id. */

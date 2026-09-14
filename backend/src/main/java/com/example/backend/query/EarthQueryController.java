@@ -1,12 +1,15 @@
 package com.example.backend.query;
 
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.region.RegionStore;
 import com.example.backend.tracing.Spans;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -45,18 +48,21 @@ public class EarthQueryController {
     private final SecretRedactor redactor;
     private final MeterRegistry meterRegistry;
     private final Spans spans;
+    private final RegionStore regionStore;
 
     public EarthQueryController(
             EarthQueryRunner runner,
             EarthQueryStore store,
             SecretRedactor redactor,
             MeterRegistry meterRegistry,
-            Spans spans) {
+            Spans spans,
+            RegionStore regionStore) {
         this.runner = runner;
         this.store = store;
         this.redactor = redactor;
         this.meterRegistry = meterRegistry;
         this.spans = spans;
+        this.regionStore = regionStore;
     }
 
     @PostMapping("/queries")
@@ -84,6 +90,7 @@ public class EarthQueryController {
             store.save(query);
 
             if (outcome.success()) {
+                recordRegions(outcome.result());
                 log.atInfo()
                         .addKeyValue("event", "earth_query_succeeded")
                         .addKeyValue("earth_query_id", id)
@@ -103,6 +110,17 @@ public class EarthQueryController {
             return ResponseEntity.created(URI.create("/queries/" + id))
                     .body(new EarthQuerySummaryResponse(query.id(), query.status().name()));
         });
+    }
+
+    /** Each fact carries its own resolved region (query.evidence's shape); a question can touch more than one. */
+    private void recordRegions(Object result) {
+        if (result instanceof Map<?, ?> resultMap && resultMap.get("facts") instanceof List<?> facts) {
+            for (Object fact : facts) {
+                if (fact instanceof Map<?, ?> factMap) {
+                    regionStore.recordFrom(factMap.get("evidence"));
+                }
+            }
+        }
     }
 
     @GetMapping("/queries/{id}")

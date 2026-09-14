@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.region.RegionStore;
 import com.example.backend.tracing.Spans;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.HashMap;
@@ -38,7 +39,8 @@ class EarthQueryControllerTest {
     }
 
     private static EarthQueryController newController(EarthQueryRunner runner) {
-        return new EarthQueryController(runner, newStore(), SecretRedactor.of(), new SimpleMeterRegistry(), Spans.noop());
+        return new EarthQueryController(
+                runner, newStore(), SecretRedactor.of(), new SimpleMeterRegistry(), Spans.noop(), RegionStore.noop());
     }
 
     private static EarthQueryStore newStore() {
@@ -144,7 +146,7 @@ class EarthQueryControllerTest {
         EarthQueryController controller = new EarthQueryController(
                 new StubRunner(EarthQueryOutcome.failure(ErrorCode.PYTHON_FAILED,
                         "HTTPError for https://firms.modaps.eosdis.nasa.gov/api/area/csv/" + secret + "/x")),
-                newStore(), SecretRedactor.of(secret), new SimpleMeterRegistry(), Spans.noop());
+                newStore(), SecretRedactor.of(secret), new SimpleMeterRegistry(), Spans.noop(), RegionStore.noop());
 
         String id = controller.createQuery(VALID_REQUEST).getBody().id();
         EarthQueryController.ErrorResponse body = (EarthQueryController.ErrorResponse) controller.getResult(id).getBody();

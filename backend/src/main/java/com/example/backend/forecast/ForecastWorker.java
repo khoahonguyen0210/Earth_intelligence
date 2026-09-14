@@ -1,8 +1,10 @@
 package com.example.backend.forecast;
 
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.region.RegionStore;
 import com.example.backend.tracing.Spans;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +64,7 @@ public class ForecastWorker {
     private final ForecastMetrics metrics;
     private final Spans spans;
     private final Duration errorBackoff;
+    private final RegionStore regionStore;
     private volatile boolean dependencyDown;
 
     public ForecastWorker(
@@ -72,7 +75,8 @@ public class ForecastWorker {
             SecretRedactor redactor,
             ForecastMetrics metrics,
             Spans spans,
-            @Value("${forecast.worker.error-backoff-ms}") long errorBackoffMs) {
+            @Value("${forecast.worker.error-backoff-ms}") long errorBackoffMs,
+            RegionStore regionStore) {
         this.queue = queue;
         this.store = store;
         this.runner = runner;
@@ -81,6 +85,7 @@ public class ForecastWorker {
         this.metrics = metrics;
         this.spans = spans;
         this.errorBackoff = Duration.ofMillis(errorBackoffMs);
+        this.regionStore = regionStore;
     }
 
     @Scheduled(fixedDelay = 100)
@@ -183,6 +188,9 @@ public class ForecastWorker {
 
         if (outcome.success()) {
             store.save(attempted.withOutcome(outcome));
+            if (outcome.result() instanceof Map<?, ?> resultMap) {
+                regionStore.recordFrom(resultMap.get("evidence"));
+            }
             metrics.recordAttempt("succeeded", durationNanos);
             metrics.recordStageTimings(outcome.timingsMs());
             spans.tag("job.outcome", "succeeded");

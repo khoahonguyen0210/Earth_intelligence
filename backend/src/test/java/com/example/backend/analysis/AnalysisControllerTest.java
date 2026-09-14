@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.region.RegionStore;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +47,7 @@ class AnalysisControllerTest {
      * exercising the store's real JSON conversion logic.
      */
     private static AnalysisController newController(AnalysisRunner runner) {
-        return new AnalysisController(runner, newStore(), SecretRedactor.of(), new SimpleMeterRegistry());
+        return new AnalysisController(runner, newStore(), SecretRedactor.of(), new SimpleMeterRegistry(), RegionStore.noop());
     }
 
     private static AnalysisStore newStore() {
@@ -145,7 +146,7 @@ class AnalysisControllerTest {
         AnalysisController controller = new AnalysisController(
                 new StubRunner(AnalysisOutcome.failure(ErrorCode.PYTHON_FAILED,
                         "HTTPError for https://firms.modaps.eosdis.nasa.gov/api/area/csv/" + secret + "/x")),
-                newStore(), SecretRedactor.of(secret), new SimpleMeterRegistry());
+                newStore(), SecretRedactor.of(secret), new SimpleMeterRegistry(), RegionStore.noop());
 
         String id = controller.createAnalysis(VALID_REQUEST).getBody().id();
         AnalysisController.ErrorResponse body = (AnalysisController.ErrorResponse) controller.getResult(id).getBody();

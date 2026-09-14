@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.region.RegionStore;
 import com.example.backend.tracing.Spans;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
@@ -108,7 +109,7 @@ class ForecastMetricsTest {
                     "not_a_stage", 1.0));
         };
 
-        new ForecastWorker(queue, store, runner, 3, SecretRedactor.of(), metrics, Spans.noop(), 0).pollOnce();
+        new ForecastWorker(queue, store, runner, 3, SecretRedactor.of(), metrics, Spans.noop(), 0, RegionStore.noop()).pollOnce();
 
         assertEquals(1.0, busyDuringRun[0]);
         assertEquals(0.0, gauge("forecast.worker.busy"));
@@ -127,7 +128,7 @@ class ForecastMetricsTest {
         queue.enqueue("job-2");
         ForecastWorker worker = new ForecastWorker(queue, store,
                 request -> ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "timed out"),
-                2, SecretRedactor.of(), metrics, Spans.noop(), 0);
+                2, SecretRedactor.of(), metrics, Spans.noop(), 0, RegionStore.noop());
 
         worker.pollOnce(); // attempt 1: retried
         worker.pollOnce(); // attempt 2 of 2: terminal

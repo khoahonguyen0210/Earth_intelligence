@@ -1,6 +1,7 @@
 package com.example.backend.analysis;
 
 import com.example.backend.logging.SecretRedactor;
+import com.example.backend.region.RegionStore;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import jakarta.validation.Valid;
@@ -35,13 +36,19 @@ public class AnalysisController {
     private final AnalysisStore store;
     private final SecretRedactor redactor;
     private final MeterRegistry meterRegistry;
+    private final RegionStore regionStore;
 
     public AnalysisController(
-            AnalysisRunner runner, AnalysisStore store, SecretRedactor redactor, MeterRegistry meterRegistry) {
+            AnalysisRunner runner,
+            AnalysisStore store,
+            SecretRedactor redactor,
+            MeterRegistry meterRegistry,
+            RegionStore regionStore) {
         this.runner = runner;
         this.store = store;
         this.redactor = redactor;
         this.meterRegistry = meterRegistry;
+        this.regionStore = regionStore;
     }
 
     @PostMapping("/analyses")
@@ -68,6 +75,7 @@ public class AnalysisController {
         // Analysis runs synchronously on the request thread (no queue), so
         // its line shares the request's request_id directly.
         if (outcome.success()) {
+            regionStore.recordFrom(outcome.evidence());
             log.atInfo()
                     .addKeyValue("event", "analysis_succeeded")
                     .addKeyValue("analysis_id", id)
