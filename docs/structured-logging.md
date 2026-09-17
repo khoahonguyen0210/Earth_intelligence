@@ -1,7 +1,6 @@
 # Structured Logging — LOCKED
 
-This document freezes the structured logging design per Task 13.1 of the
-Execution Handbook, the first task of Phase 13. It is not a
+This document freezes the structured logging design. It is not a
 brainstorming document.
 
 Before this task the backend had **no logging at all**: no logger in
@@ -101,7 +100,7 @@ OUTPUT_PARSE_FAILED   exit 0 but stdout was not the expected JSON               
 OUTPUT_READ_FAILED    stdout/stderr could not be read back                       permanent
 ```
 
-The transient/permanent split is the one Task 6.6 already made
+The transient/permanent split is the one already made
 (`docs/forecast-retry-and-idempotency.md`). The codes are only added
 alongside it. The code lives on `ForecastOutcome`/`AnalysisOutcome`
 and is **not** persisted or returned by the API. The human-readable

@@ -1,16 +1,3 @@
-"""Builds the real historical benchmark dataset one cutoff at a time.
-
-`build_dataset` is the locked definition of a dataset row. It scans
-every observation for every cutoff, which is fine for one day of
-data and quadratic for six fire seasons. This module does not
-reimplement any of it: for each cutoff it calls `build_dataset` itself,
-passing only the observations whose time can affect that cutoff's row --
-the 30-day fire-history lookback plus the 24-hour label window -- and the
-ERA5-Land records in the same lookback. Rows are therefore identical to
-one big `build_dataset` call over the full history
-(test_historical_dataset.py checks exactly that), at linear cost.
-"""
-
 from __future__ import annotations
 
 import bisect
@@ -88,8 +75,7 @@ class ERA5History:
     A cutoff's lookback can reach into the previous month (a July 2
     cutoff's latest record may be June 29), so each lookup reads the
     cutoff's month and the one before it. Only those two months stay
-    parsed: a month file holds ~10k grid points per hour, and keeping all
-    30 would cost several GB."""
+    parsed."""
 
     def __init__(self, history_dir: Path):
         self._history_dir = history_dir
@@ -103,10 +89,7 @@ class ERA5History:
         return self._months[key]
 
     def for_cutoff(self, cutoff: datetime) -> list[ERA5Record]:
-        """Records in the cutoff's lookback with valid_time <= cutoff. For
-        a benchmark cutoff the cutoff hour itself is in the history
-        (required_era5_requests), so for each tile the latest such record
-        -- the one environmental_features.py uses -- is at the cutoff."""
+        """Records in the cutoff's lookback with valid_time <= cutoff."""
         current = (cutoff.year, cutoff.month)
         previous = (cutoff.year - 1, 12) if cutoff.month == 1 else (cutoff.year, cutoff.month - 1)
         for key in list(self._months):

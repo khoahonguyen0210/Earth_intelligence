@@ -25,11 +25,6 @@ GEOGRAPHY_BBOX = (-119.8, 37.2, -119.4, 37.6)
 DEM_PATH = Path("data/raw/geography/dem_sample.tif")
 LANDCOVER_PATH = Path("data/raw/geography/landcover_sample.tif")
 
-# Small on purpose: these tests exercise the real pipeline (real sample
-# data, a real XGBoost fit, real multiprocessing) end to end, not a fast
-# mock -- kept tiny (well under the full 500-tile frozen workload) so the
-# suite stays fast. The real baseline number comes from
-# scripts/distributed/run_baseline.py against the full frozen workload.
 SMALL_WORKLOAD_SIZE = 6
 
 
@@ -39,10 +34,6 @@ def _small_workload() -> DistributedWorkload:
 
 @pytest.fixture(scope="module")
 def context() -> RunContext:
-    # module-scoped: real data loading + a real model fit is expensive
-    # enough that every test in this file should share one, exercising
-    # the same RunContext-reuse property the distributed run itself
-    # relies on.
     return prepare_run_context(
         raw_firms_path=RAW_FIRMS_PATH,
         raw_era5_path=RAW_ERA5_PATH,
@@ -83,8 +74,6 @@ def _all_single_class(rows, target: int):
 
 
 def test_fit_baseline_model_falls_back_on_the_known_single_class_gap():
-    # The real demo cutoffs' rows have zero real positive labels (every
-    # label is 0) -- this must not raise, it must fall back, and say so.
     single_class_train = _all_single_class(
         synthetic_timing_rows(20, "train"), target=0
     )
@@ -134,9 +123,6 @@ def test_run_distributed_inference_uses_fewer_workers_than_requested_if_needed(c
 
 
 def test_run_distributed_inference_does_not_mutate_the_shared_context(context):
-    # The same prepared RunContext (data + fitted model) must back every
-    # worker-count run in a sweep unchanged -- a second call must not
-    # have altered it.
     workload = _small_workload()
     model_before = context.model
 

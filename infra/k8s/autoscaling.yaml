@@ -1,7 +1,7 @@
-# Task 11.4: KEDA (installed separately, see docs/autoscaling.md) reads
+# KEDA (installed separately, see docs/autoscaling.md) reads
 # the real Redis list forecast.python jobs live in
 # (RedisForecastQueue.java's opsForList, key "forecast-jobs" --
-# application.properties' forecast.queue.key default, Task 6.5) directly
+# application.properties' forecast.queue.key default) directly
 # via its built-in `redis` scaler, no Prometheus/custom-metrics pipeline
 # needed for this one signal.
 #
@@ -10,8 +10,8 @@
 # worker deployment), so scaling to zero on an empty queue -- normal
 # scale-to-zero for a pure worker -- would take the whole API down.
 #
-# maxReplicaCount is 2, not higher: Task 11.3 (docs/worker-replica-
-# scaling.md) measured this exact cluster directly and found throughput
+# maxReplicaCount is 2, not higher: docs/worker-replica-
+# scaling.md measured this exact cluster directly and found throughput
 # peaks at 2 replicas then gets *worse* than 1 replica by 8 -- kind runs
 # as a single container on one physical machine, so replicas here
 # contend for one real, fixed CPU/RAM pool rather than getting

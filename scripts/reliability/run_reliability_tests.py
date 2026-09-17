@@ -3,10 +3,7 @@
 Runs the handbook's failure scenarios against the packaged backend jar,
 the real compose Postgres and Redis containers and real processes, and
 records for each one how the failure was detected, how the system
-recovered, the job's final result, and the recovery time
-(docs/reliability-tests.md). Partial workflow failure has no HTTP entry
-point (WorkflowExecutor is not wired to a route yet) and is covered by
-WorkflowPartialFailureIntegrationTest instead.
+recovered, the job's final result, and the recovery time.
 
 Run from the repository root, with `docker compose up -d` done in
 infra/docker/ and the jar built (`./mvnw package -DskipTests` in
@@ -122,9 +119,7 @@ class Backend:
 
     def warm_up(self) -> None:
         """One job end to end, so scenarios measure a serving system, not
-        a cold JVM's first requests (JPA, Hikari, class loading): the
-        first baseline run's ten concurrent first requests all exceeded
-        the client timeout."""
+        a cold JVM's first requests (JPA, Hikari, class loading)."""
         _, body = submit("warmup")
         if isinstance(body, dict) and "forecast_id" in body:
             wait_for(body["forecast_id"], TERMINAL, 60)
@@ -156,8 +151,6 @@ def base_env(queue_key: str) -> dict[str, str]:
         "FORECAST_PYTHON_WORKDIR": str(ROOT),
         "FORECAST_PYTHON_TIMEOUT_SECONDS": str(PYTHON_TIMEOUT_SECONDS),
         "FORECAST_WORKER_MAX_ATTEMPTS": "3",
-        # Recovery settings (read only by builds that have the sweeper):
-        # scaled down so a run takes minutes, not the production defaults.
         "FORECAST_RECOVERY_INTERVAL_SECONDS": "5",
         "FORECAST_RECOVERY_RUNNING_GRACE_SECONDS": "10",
         "FORECAST_RECOVERY_QUEUED_AFTER_SECONDS": "10",
@@ -233,12 +226,6 @@ def duplicate_request(backend: Backend) -> ScenarioResult:
                            "batch_seconds": batch_seconds}
     result.detection = ["the unique index on idempotency_key; the losing inserts re-read the winner"]
     forecast_id = next(iter(ids))
-    # A generous window, not 60s: ForecastRecovery correctly requeues any
-    # globally orphaned job it finds (by design -- see docs/reliability-
-    # tests.md), and this dev environment has accumulated real orphaned
-    # rows across many earlier sessions that recovery re-surfaces every
-    # run. The job behind that backlog still finishes; it just isn't
-    # instant, the same as any system with a real backlog would show.
     final, seconds = wait_for(forecast_id, TERMINAL, 180)
     result.final_status, result.recovery_seconds = final, round(seconds, 1)
     result.recovery = "not needed: duplicates never became jobs"
@@ -263,10 +250,6 @@ def job_timeout(backend: Backend) -> list[ScenarioResult]:
     attempts = int(db_scalar(f"select attempts from forecasts where id = '{forecast_id}'"))
     once.observations = {"first_state_after_timeout": retrying, "seconds_to_retrying": round(first, 1),
                          "attempts": attempts}
-    # The poll only samples every 0.5s; a fast retry can move
-    # RETRYING -> RUNNING -> SUCCEEDED between two samples, so "retrying"
-    # may already read as the terminal state. attempts == 2 is the real,
-    # unambiguous proof that exactly one retry happened.
     once.passed = retrying in ("RETRYING", "SUCCEEDED") and final == "SUCCEEDED" and attempts == 2
 
     hang = ScenarioResult(
@@ -372,11 +355,6 @@ def malformed_earth_data() -> ScenarioResult:
         "the real analysis pipeline runs over FIRMS history files with one corrupt row",
         "FAILED once with the real parse error -- no retry, service stays up",
     )
-    # The forecast pipeline is not exercised here: run_forecast_cli.py
-    # also needs a real ERA5 history dir, a geography file and a trained
-    # model, none of which a FIRMS-only fixture can stand in for without
-    # building a second, unrelated fixture -- and the analysis path alone
-    # already proves the property this scenario exists to check.
     fixture = Path(tempfile.mkdtemp(prefix="ai-earth-malformed-"))
     history = fixture / "data" / "raw" / "firms" / "history"
     history.mkdir(parents=True)
@@ -384,8 +362,6 @@ def malformed_earth_data() -> ScenarioResult:
               "confidence,version,bright_ti5,frp,daynight\n")
     good = "37.5,-120.5,330.1,0.4,0.4,2024-08-02,1030,N,VIIRS,n,2,290.0,5.1,D\n"
     corrupt = "not-a-latitude,-120.5,330.1,0.4,0.4,2024-08-03,1030,N,VIIRS,n,2,290.0,5.1,D\n"
-    # 5-day span files covering the forecast's 30-day lookback and the
-    # analysis period, all valid, plus one overlapping file with a corrupt row.
     for offset in range(0, 50, 5):
         start = date(2024, 7, 6) + timedelta(days=offset)
         (history / f"VIIRS_SNPP_SP_{start.isoformat()}_5d.csv").write_text(header + good, encoding="utf-8")
@@ -411,8 +387,6 @@ def malformed_earth_data() -> ScenarioResult:
             analysis_status = summary.get("status") if isinstance(summary, dict) else None
             _, res = http("GET", f"/results/{analysis_id}")
             analysis_error = res.get("error") if isinstance(res, dict) else None
-        # A second, well-formed request right after, on the same running
-        # service: the corrupt row must not have wedged anything else.
         code2, ok = http("POST", "/analyses", {
             "question": "fires in California, again", "intent": "count",
             "region": {"kind": "named", "value": "california"},
@@ -432,12 +406,6 @@ def malformed_earth_data() -> ScenarioResult:
         }
         result.detection = ["Python raises on the corrupt row -> exit 1 -> PYTHON_FAILED (permanent, 422)"]
         result.recovery = "not retried (analysis is synchronous, one attempt only); other requests unaffected"
-        # Found, not fixed here: the real error ("could not convert string
-        # to float: 'not-a-latitude'") names neither the file nor the row
-        # that failed to parse -- data/firms.py raises the bare ValueError
-        # from float() as-is. Worth adding file/row context in a later
-        # data-loading task; this harness checks what the product actually
-        # does today (fails cleanly once, and does not affect other requests).
         service_up = result.observations["readyz_after"] == 200
         result.passed = (
             code == 201 and analysis_status == "FAILED" and bool(analysis_error)

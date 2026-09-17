@@ -2,7 +2,7 @@
 
 Reads Copernicus GLO-30 (30 m) and ESA WorldCover v200 (1/8 overview)
 COGs tile by tile from their public AWS buckets and writes one CSV row
-per 0.1-degree cell, plus provenance. See docs/historical-dataset.md.
+per 0.1-degree cell, plus provenance.
 
     python scripts/data/build_statewide_geography.py
 """

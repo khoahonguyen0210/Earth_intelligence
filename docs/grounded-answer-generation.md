@@ -1,9 +1,8 @@
 # Grounded Answer Generation — LOCKED
 
-This document freezes grounded answer generation per Task 7.4 of the
-Execution Handbook, the last task of Phase 7. It is not a brainstorming
-document. It builds on `docs/plan-validator.md` (Task 7.2) and
-`docs/natural-language-planner.md` (Task 7.3) rather than redefining
+This document freezes grounded answer generation. It is not a
+brainstorming document. It builds on `docs/plan-validator.md` and
+`docs/natural-language-planner.md` rather than redefining
 either.
 
 ## Scope: this task consumes execution results, it does not produce them
@@ -11,8 +10,8 @@ either.
 "The final answer can summarize only execution results + evidence"
 presupposes those results already exist. Actually executing a validated
 `Plan` -- turning each step into a real tool call, resolving
-`$step_id.field` references to real values -- is Phase 8's workflow
-engine, a later, separate set of tasks (DAG schema, state machine,
+`$step_id.field` references to real values -- is the job of a later
+workflow engine, a separate set of tasks (DAG schema, state machine,
 execution, persistence). Building even a minimal version of that here
 would be implementing future task content, which the handbook's own
 task-implementation prompt (`docs/PROMPT_SYSTEM.md` §4) rules out.
@@ -28,11 +27,11 @@ class StepResult:
     evidence: dict[str, Any] | None = None
 ```
 
-This is the minimal shape Task 7.4 needs, not a preview of Phase 8's
-real result type. `tests/planner/test_generate_answer.py` never
+This is the minimal shape needed here, not a preview of the later
+workflow engine's real result type. `tests/planner/test_generate_answer.py` never
 fabricates a `StepResult`'s `result`/`evidence` by hand-typing a
 plausible-looking dict -- every test builds one from genuine calls to
-the real Task 2.4/2.6 functions (`query.statistics.count`,
+the real underlying functions (`query.statistics.count`,
 `query.evidence.build_evidence`), so the fixtures are real values, not
 guesses at what those functions might return.
 
@@ -67,7 +66,7 @@ and a user message listing only the real facts assembled by
 grounding mechanism: constraining what's *in the prompt* to only real,
 already-computed values, not a post-hoc check on what the model wrote.
 There is no automated verification that the returned text only restates
-the given facts (unlike Task 7.2's plan validator, there is no
+the given facts (unlike the plan validator, there is no
 "answer validator" task in the handbook for this stage) -- accepted as
 a real, honestly-documented limitation rather than something silently
 assumed solved.
@@ -82,9 +81,9 @@ that fails the test if the model is ever invoked in that case.
 ## What this document does not define
 
 Nothing here executes a plan or produces a real `StepResult` for a real
-question -- that is Phase 8's job. There is no CLI script for this task
-(unlike Task 7.3's `run_planner_cli.py`): a real end-to-end demo needs a
-real executed plan to summarize, which does not exist until Phase 8
-lands. Once it does, whatever calls Phase 8's workflow engine to run a
+question -- that is the later workflow engine's job. There is no CLI script for this task
+(unlike the natural-language planner's `run_planner_cli.py`): a real end-to-end demo needs a
+real executed plan to summarize, which does not exist until that
+workflow engine lands. Once it does, whatever calls that workflow engine to run a
 validated `Plan` is also the natural caller of `generate_answer`, one
 `StepResult` per completed step.

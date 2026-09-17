@@ -1,16 +1,16 @@
 # Integration Test Pass — LOCKED
 
-This document records the Task 15.2 integration test pass, the second
-task of Phase 15. It is not a brainstorming document.
+This document records the integration test pass. It is not a
+brainstorming document.
 
-Task 15.2 asks for the real boundaries to be tested: Spring API ↔
+It asks for the real boundaries to be tested: Spring API ↔
 PostgreSQL/PostGIS, ↔ Redis, ↔ object storage, ↔ Python worker. This
 codebase has no separate unit-vs-integration test tier to run
-independently -- Task 6.3 removed the last mocked-datasource path
+independently -- an earlier change removed the last mocked-datasource path
 (`BackendApplicationTests` needs a live datasource to even boot Spring),
 and every subsequent phase kept that decision rather than reintroducing
-a fake-infrastructure tier. So `./mvnw test` (the same command Task 15.1
-already ran) *is* the integration test pass for the backend; this task
+a fake-infrastructure tier. So `./mvnw test` (the same command the unit
+test pass already ran) *is* the integration test pass for the backend; this task
 is the check that it actually exercises all four boundaries, not a
 second, separate test run.
 
@@ -39,7 +39,7 @@ Spring API <-> object storage
     against real local MinIO. This is the one boundary with no
     production caller to integration-test through a full request --
     see "What this does not cover" below; it is not an oversight, it is
-    Task 6.4's own documented scope (docs/object-storage-contract.md:
+    the object storage contract's own documented scope (docs/object-storage-contract.md:
     "No Java caller writes through this abstraction yet").
 
 Spring API <-> Python worker
@@ -59,8 +59,8 @@ Spring API <-> Python worker
 ## Results
 
 One clean run, `./mvnw clean test`, against the same local
-`docker compose up -d` stack (Postgres/PostGIS, Redis, MinIO) Task 15.1
-used:
+`docker compose up -d` stack (Postgres/PostGIS, Redis, MinIO) the unit
+test pass used:
 
 ```text
 173 passed, 0 failed, 0 errors
@@ -82,7 +82,8 @@ ports, and `target/` with itself.
 ## What this does not cover
 
 - **Object storage has no boundary test through a real request**,
-  because nothing in the product calls it yet (Task 6.4's own documented
+  because nothing in the product calls it yet (the object storage
+  contract's own documented
   decision, not a gap this task invents scope to close). `S3ObjectStoreTest`
   is the honest ceiling of what can be integration-tested today: the
   abstraction against real MinIO, not a controller-to-MinIO round trip
@@ -97,11 +98,11 @@ ports, and `target/` with itself.
   by `PythonForecastRunnerTest`/`PythonEarthQueryRunnerTest` against
   fixture scripts speaking the identical protocol. Building a fixture
   that runs the real CLI with a real trained model and real FIRMS/ERA5/
-  geography data was already tried and dropped at Task 13.5
+  geography data was already tried and dropped
   (`docs/reliability-tests.md`, "malformed-data forecast leg") for the
   same reason: it needs a full model-plus-data fixture a directory of
   sample rows can't stand in for. Not reattempted here.
 - **No Kubernetes-level or Docker-Compose-level integration test.**
-  Those exist already, one layer up (Tasks 10.3, 11.3, 13.5) and are out
+  Those exist already, one layer up, and are out
   of scope for this task, which is specifically the Spring API's own
   boundaries.

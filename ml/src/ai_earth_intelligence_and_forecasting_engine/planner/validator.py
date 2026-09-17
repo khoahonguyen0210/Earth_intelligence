@@ -22,31 +22,10 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
     normalize_time_range,
 )
 
-# A later step's input may reference an earlier step's real output with a
-# plain string "$<step_id>.<field>" instead of a literal value -- e.g.
-# get_result_evidence's result_id referencing "$forecast.forecast_id"
-# after an earlier step named "forecast" ran run_forecast. This is
-# intentionally just a string (not a nested object marker): every field
-# in this tool surface that plausibly needs a cross-step value
-# (result_id) is itself string-typed, so a reference already satisfies
-# that field's JSON Schema type with no special-casing required in the
-# schema-shape check below. Resolving it to a real value is the
-# execution layer's job; this module only checks the reference is
-# well-formed.
 _STEP_REF_PATTERN = re.compile(r"^\$(?P<step_id>[^.]+)\.(?P<field>.+)$")
 
-# Bounds on what a model-written plan may ask for, enforced here rather
-# than trusted to the prompt. Real plans are small -- the documented
-# example DAG has 6 nodes and no planner-benchmark case needs more than
-# 2 matching steps -- so 8 steps
-# only ever stops a runaway plan, whose every step could start real work
-# (a run_forecast step queues a Python job). A step id is a short
-# identifier, since it is echoed into later steps' "$step_id.field"
-# references and into logs. The question bound matches the API's own
-# (RequestShape.MAX_QUESTION on the backend).
 MAX_PLAN_STEPS = 8
 MAX_QUESTION_CHARS = 1_000
-# fullmatch, not match with "$": "$" also matches before a trailing newline.
 _STEP_ID_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,31}")
 
 
@@ -92,13 +71,6 @@ def _find_step_refs(value: Any) -> list[tuple[str, str]]:
 
 
 def validate_plan(plan: Plan) -> list[str]:
-    """Returns a list of human-readable error messages; a valid plan
-    returns an empty list. Checks: tool name, input schema, region, time
-    range, allowed operations
-    (calculate_statistics.operation), parameter ranges (bbox/coordinates/
-    named-region/cutoff validity), and workflow dependencies (depends_on
-    and $step.field references both point to a real, earlier step whose
-    tool actually produces that field)."""
     if not plan.steps:
         return ["a plan must have at least one step"]
 
@@ -142,7 +114,6 @@ def _validate_step(
 ) -> list[str]:
     prefix = f"step {step.step_id!r}"
 
-    # 1. tool name
     if step.tool not in TOOL_NAMES:
         return [
             f"{prefix}: unknown tool {step.tool!r}. Known tools: {sorted(TOOL_NAMES)}"
@@ -150,8 +121,6 @@ def _validate_step(
 
     tool = get_tool_schema(step.tool)
 
-    # 2. input schema (also covers 5. allowed operations, via the tool's
-    # own operation enum)
     try:
         jsonschema.validate(instance=step.input, schema=tool.input_schema)
     except jsonschema.exceptions.ValidationError as error:
@@ -162,19 +131,15 @@ def _validate_step(
 
     errors: list[str] = []
 
-    # 3 + 6. region (parameter ranges: bbox/coordinates/named-region validity)
     if "region" in step.input:
         errors.extend(_validate_region_literal(prefix, step.input["region"]))
 
-    # 4 + 6. time range (parameter ranges: start-before-end, parseable)
     if "time_range" in step.input:
         errors.extend(_validate_time_range_literal(prefix, step.input["time_range"]))
 
-    # 6. parameter ranges: run_forecast's cutoff
     if "cutoff" in step.input:
         errors.extend(_validate_cutoff_literal(prefix, step.input["cutoff"]))
 
-    # 7. workflow dependencies
     errors.extend(_validate_depends_on(step, prefix, index, step_index))
     errors.extend(_validate_step_refs(step, prefix, index, plan, step_index))
 
@@ -182,9 +147,6 @@ def _validate_step(
 
 
 def _validate_region_literal(prefix: str, region_value: Any) -> list[str]:
-    # No step-reference check here: region's schema type is "object", so
-    # a $ref string could never have passed the input-schema validation
-    # this runs after -- only cutoff (string-typed) can actually carry one.
     try:
         normalize_region(
             RegionSpec(kind=region_value["kind"], value=region_value["value"])

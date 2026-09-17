@@ -1,34 +1,3 @@
-"""Real dispatch of a validated Plan's steps -- the piece
-`docs/planner-tool-schemas.md` left for "whoever wires up real dispatch"
-and `generate_answer` explicitly deferred to the workflow engine that
-would actually execute a Plan and produce these for real. Every one of
-the six locked tools maps to the exact existing function
-`docs/planner-tool-schemas.md` already names -- no new computation is
-invented here, only wiring:
-
-    resolve_region        -> query.region.normalize_region
-    get_data               -> real record counts + real provenance
-    calculate_statistics   -> query.run_analysis (operation != "map")
-    generate_map           -> query.run_analysis (operation == "map")
-    run_forecast           -> the real POST /forecasts, polled to a
-                              terminal status (not a direct Python call:
-                              this goes through the real async job --
-                              retries, idempotency, tracing, recovery --
-                              the backend's already-built job system, not
-                              a shortcut around it)
-    get_result_evidence    -> GET /forecasts/{id}/result's own evidence
-                              (the only tool a plan can validly reference
-                              this way -- see generate_plan's system
-                              prompt: calculate_statistics/generate_map
-                              already return their evidence inline)
-
-`execute_plan` runs a Plan's steps in dependency order, resolving
-`$step_id.field` references against earlier steps' real outputs, and
-never fabricates a result for a step whose dependency failed -- it
-raises, the same "no result without its real inputs" rule
-`run_analysis`/`run_forecast` already enforce.
-"""
-
 from __future__ import annotations
 
 import time
@@ -73,12 +42,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
 DEFAULT_FIRMS_HISTORY_DIR = Path("data/raw/firms/history")
 DEFAULT_ERA5_HISTORY_DIR = Path("data/raw/era5/history")
 
-# calculate_statistics's operation enum matches run_analysis's
-# SUPPORTED_OPERATIONS minus "map" exactly (checked by
-# tests/planner/test_tools.py), so "count"/"daily_aggregate"/
-# "weekly_aggregate" always need intent "aggregate" except "count" -> a
-# plain "count" intent, matching what a hand-built structured query would
-# already say for the same operation.
 _INTENT_FOR_OPERATION = {
     "count": "count",
     "daily_aggregate": "aggregate",
@@ -97,13 +60,10 @@ class StepFailed(Exception):
 
 @dataclass(frozen=True)
 class Backend:
-    """Where run_forecast/get_result_evidence reach the real backend --
-    the same process this dispatcher's own CLI is a subprocess of
-    (docs/ask-earth.md). poll_interval_seconds/max_wait_seconds bound how
-    long one run_forecast step waits for a terminal status; the API
-    itself already bounds a single Python attempt
-    (forecast.python.timeout-seconds) and the number of attempts
-    (forecast.worker.max-attempts) -- see docs/forecast-retry-and-idempotency.md.
+    """Where run_forecast/get_result_evidence reach the real backend.
+
+    poll_interval_seconds/max_wait_seconds bound how long one
+    run_forecast step waits for a terminal status.
     """
 
     base_url: str
@@ -155,11 +115,6 @@ def dispatch_get_data(step_input: dict[str, Any]) -> dict[str, Any]:
         }
 
     if dataset == "era5_land":
-        # ERA5-Land is a point-in-time reanalysis grid, not a ranged
-        # count: "as of the end of the requested window" is the same
-        # reading run_forecast's own cutoff already uses. for_cutoff
-        # returns every grid cell in its lookback window regardless of
-        # region, so the requested bbox is applied here.
         region = _resolve_region_input(step_input["region"])
         west, south, east, north = region.bbox
         records = [
@@ -204,9 +159,7 @@ def dispatch_calculate_statistics(
     question: str, step_input: dict[str, Any]
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Returns (result, evidence) separately: result stays exactly the
-    shape output_fields promises ({count}/{daily}/{weekly}), so a later
-    step's "$step.count"-style reference resolves cleanly against it,
-    with evidence tracked alongside rather than mixed into the same dict."""
+    shape output_fields promises ({count}/{daily}/{weekly})."""
     payload = _run_analysis_step(question, step_input, step_input["operation"])
     return payload["result"], payload["evidence"]
 
@@ -267,11 +220,9 @@ def dispatch_run_forecast(
 def dispatch_get_result_evidence(
     step_input: dict[str, Any], backend: Backend
 ) -> dict[str, Any]:
-    """docs/forecast-api-contract.md guarantees GET /forecasts/{id}/result
-    is 200 only for a SUCCEEDED forecast, and a SUCCEEDED forecast always
-    carries both result and evidence together -- a 409 (not finished
-    yet) or 422 (FAILED) raises via raise_for_status() instead, the same
-    as any other real HTTP failure this dispatcher surfaces."""
+    """GET /forecasts/{id}/result is 200 only for a SUCCEEDED forecast; a
+    409 (not finished yet) or 422 (FAILED) raises via raise_for_status()
+    instead."""
     forecast_id = step_input["result_id"]
     response = requests.get(
         f"{backend.base_url}/forecasts/{forecast_id}/result", timeout=10
@@ -359,11 +310,9 @@ class PlanExecution:
 def execute_plan(plan: Plan, backend: Backend) -> PlanExecution:
     """Runs every step of an already-validated Plan (validate_plan_or_raise
     must have passed first) in dependency order. A step whose dependency
-    failed -- by depends_on, or by referencing a failed step's field --
-    is never attempted, the same "cancelled, not fabricated" rule
-    WorkflowExecutor already enforces, and the whole call raises
-    StepFailed naming every failure, rather than silently producing a
-    partial answer."""
+    failed is never attempted, and the whole call raises StepFailed
+    naming every failure, rather than silently producing a partial
+    answer."""
     outputs: dict[str, dict[str, Any]] = {}
     evidence: dict[str, dict[str, Any]] = {}
     failed: dict[str, str] = {}

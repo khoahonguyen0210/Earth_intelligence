@@ -1,10 +1,8 @@
 # Workflow State Machine — LOCKED
 
-This document freezes the workflow state machine per Task 8.2 of the
-Execution Handbook. It is not a brainstorming document. It builds on
-`docs/workflow-dag-schema.md` (Task 8.1) rather than redefining it, and
-Task 8.3 (DAG execution) drives real nodes through this machine rather
-than inventing its own transition rules.
+This document freezes the workflow state machine. It is not a
+brainstorming document. It builds on
+`docs/workflow-dag-schema.md` rather than redefining it, and the DAG execution work drives real nodes through this machine rather than inventing its own transition rules.
 
 ## The transition table (fixed)
 
@@ -25,10 +23,10 @@ backend/src/main/java/com/example/backend/workflow/IllegalStateTransitionExcepti
 
 ## Why PENDING never goes straight to RUNNING
 
-A `WorkflowNode` (Task 8.1) can have dependencies a plain `Forecast`
-(Task 6.1-6.6) never has. `READY` is the state that records "this
+A `WorkflowNode` can have dependencies a plain `Forecast`
+never has. `READY` is the state that records "this
 node's dependencies have all resolved, it may now be dispatched" --
-collapsing it into `PENDING` would lose the one fact Task 8.3's
+collapsing it into `PENDING` would lose the one fact the DAG-execution
 scheduler actually needs to decide what to run next. This is also
 exactly why `Forecast.Status` (six states, no `READY`) and
 `WorkflowNode.Status` (seven states, `READY` included) differ: a
@@ -41,7 +39,7 @@ same assumption.
 
 A retry re-dispatches a node whose dependencies were already satisfied
 once; it does not need to re-check them. This mirrors real, already-
-shipped precedent: `ForecastWorker.process` (Task 6.5/6.6) already
+shipped precedent: `ForecastWorker.process` already
 treats `PENDING` and `RETRYING` as equally eligible to become `RUNNING`
 for a `Forecast`. Losing the same shortcut for `WorkflowNode` would
 handle a retry inconsistently with a job the project already runs in
@@ -49,9 +47,10 @@ production-shaped code.
 
 ## Why cancellation is legal from every non-terminal state
 
-The handbook's own reliability language -- Task 6.6's "worker timeout ->
-recover/retry", Task 9.5's fault-injection expectations that a
-controlled kill still reaches "a correct terminal state" -- assumes
+The handbook's own reliability language -- the retry/timeout/
+idempotency work's "worker timeout -> recover/retry", and the
+fault-injection tests' expectation that a controlled kill still reaches
+"a correct terminal state" -- assumes
 in-flight and queued work can both be stopped, not only work that
 hasn't started yet. Restricting `CANCELLED` to just `PENDING`/`READY`
 would leave no legal way to record "this was cancelled while running,"
@@ -64,7 +63,7 @@ around.
 meant to change a node's status: it raises
 `IllegalStateTransitionException` on an illegal request rather than
 silently applying it -- the same "cannot bypass the validator" property
-Task 7.2's plan validator already guarantees for a `Plan`.
+the plan validator already guarantees for a `Plan`.
 `tests/workflow/WorkflowStateMachineTest.java` checks the full 7x7
 state-pair cross-product against the exact table above (not spot
 checks), plus that every terminal state truly has zero legal outgoing
@@ -76,9 +75,9 @@ state, and the attempted state.
 
 Nothing here decides *when* a real node should transition -- computing
 "all of this node's dependencies have SUCCEEDED, so it may become
-READY" or "this failure was transient, retry it" is Task 8.3 (DAG
-execution)'s job, using the real dependency graph `Workflow.validate()`
-(Task 8.1) already proves is well-formed and the real transient/
-permanent distinction `ForecastOutcome` (Task 6.6) already established
+READY" or "this failure was transient, retry it" is the DAG-execution
+engine's job, using the real dependency graph `Workflow.validate()`
+already proves is well-formed and the real transient/
+permanent distinction `ForecastOutcome` already established
 for a single job. This task only fixes which transitions are legal once
 something else decides to attempt one.

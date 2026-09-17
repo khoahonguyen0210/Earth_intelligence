@@ -88,12 +88,8 @@ def profile_input_files(paths: dict[str, Path]) -> list[InputFileProfile]:
 def synthetic_timing_rows(n: int, split: str) -> list[DatasetRow]:
     """Realistically-shaped, deterministic rows used only to measure
     training/inference wall-time and memory when the real split cannot
-    support a fit (see harness.py's documented single-class data gap:
-    the real train/validation splits currently have zero real historical
-    positive examples). Both classes are present by construction. These
-    rows are never used to compute or report an accuracy metric -- only
-    computational cost, which depends on data volume and shape, not on
-    whether the labels are scientifically real."""
+    support a fit. Both classes are present by construction. These rows
+    are never used to compute or report an accuracy metric."""
     rng = np.random.default_rng(20240815)
     cutoff = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
@@ -158,12 +154,8 @@ def profile_model(
     experiment_prefix: str = "computation_profile_v1",
 ) -> ModelProfile:
     """Training/inference time and memory for one model. Reuses
-    harness.py's already-tested fit/predict dispatch and timing capture
-    entirely -- this function only adds memory measurement and, when the
-    real split cannot support a fit, a synthetic-shaped-data fallback so
-    computational cost can still be measured (see synthetic_timing_rows
-    for why that is not the same thing as fabricating an accuracy
-    result)."""
+    harness.py's fit/predict dispatch and timing capture; falls back to
+    synthetic-shaped data when the real split cannot support a fit."""
     succeeded, error, config_path, peak_memory_mb = _run_and_measure_memory(
         model_name,
         f"{experiment_prefix}_{model_name}",

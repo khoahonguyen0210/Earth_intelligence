@@ -1,7 +1,7 @@
 # Metrics — LOCKED
 
-This document freezes the metrics design per Task 13.2 of the Execution
-Handbook. It is not a brainstorming document.
+This document freezes the metrics design. It is not a brainstorming
+document.
 
 ## Export: Micrometer -> Prometheus text at /actuator/prometheus
 
@@ -18,8 +18,9 @@ management.metrics.distribution.percentiles-histogram.forecast.job.duration=true
 
 Histogram buckets are on for the two latency meters, so percentiles are
 computed at query time (`histogram_quantile`) across replicas, not
-pre-computed per pod. The endpoint is not public: since Task 13.4 every
-actuator endpoint is on the internal management port 8081, which no
+pre-computed per pod. The endpoint is not public: since an earlier
+security change, every actuator endpoint is on the internal management
+port 8081, which no
 Service or ALB routes (`docs/security-baseline.md`). The backend pod
 template carries the conventional `prometheus.io/scrape|path|port`
 annotations, so a Prometheus-compatible scraper in the cluster finds it.
@@ -106,7 +107,7 @@ missing timings are dropped, not treated as a failure, because they are
 observability, not part of the result.
 
 **Closed tag values only.** Every tag has a fixed, small value set:
-`outcome`, `error_code` (the Task 13.1 enum), `terminal`, `stage`
+`outcome`, `error_code` (an already-fixed enum), `terminal`, `stage`
 (whitelisted to the four names Python reports), and Spring's templated
 `uri` (`/forecasts/{id}`, never the id). No request, id, or user text
 can mint a new time series. `analysis.operation` is deliberately
@@ -116,7 +117,7 @@ can mint a new time series. `analysis.operation` is deliberately
 failure that is retried counts `terminal="false"`. The attempt that ends
 the job FAILED counts `terminal="true"`. The handbook's "job failure
 count" is the `terminal="true"` series; the other is the early warning
-that Task 6.6's retries are hiding a flaky dependency.
+that the retry/timeout/idempotency work's retries are hiding a flaky dependency.
 
 ## Tests
 

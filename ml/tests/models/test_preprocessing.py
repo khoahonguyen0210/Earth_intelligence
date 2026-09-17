@@ -96,9 +96,6 @@ def test_transform_uses_train_statistics_not_the_input_rows_own_distribution():
     transformed = transform(preprocessor, validation_rows)
 
     index = NUMERIC_FEATURE_COLUMNS.index("previous_24h_count")
-    # Train's previous_24h_count is constant (0), so StandardScaler's
-    # fallback for zero-variance columns leaves values unscaled: the
-    # transformed value should still reflect the raw 1000, not 0.
     assert transformed[0, index] == pytest.approx(1000.0)
 
 

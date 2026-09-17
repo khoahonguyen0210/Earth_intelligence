@@ -44,19 +44,8 @@ from ai_earth_intelligence_and_forecasting_engine.query.run_forecast import (
     VALIDATION_DEMO_CUTOFF,
 )
 
-# An arbitrary but fixed inference cutoff -- any real, parseable cutoff
-# measures computational cost equally well; what actually needs to be
-# held fixed across benchmark runs is the tiles/dataset/model, not which
-# specific cutoff is used for inference.
 INFERENCE_CUTOFF = datetime(2024, 8, 15, 10, 0, tzinfo=timezone.utc)
 
-# How many cells to build train/validation rows from when fitting the
-# one model every benchmark run holds fixed -- independent of whichever
-# (possibly much smaller, e.g. in a test) inference workload size is
-# requested. Fixed at a size comfortably above CalibratedClassifierCV's
-# default 5-fold cross-validation minimum, so fitting never fails purely
-# from too few *rows* on top of the already-handled too-few-*classes*
-# case (see fit_baseline_model).
 FIT_CELL_COUNT = 100
 MIN_SYNTHETIC_FIT_ROWS = 20
 
@@ -64,16 +53,7 @@ MIN_SYNTHETIC_FIT_ROWS = 20
 def fit_baseline_model(
     train_rows: list[DatasetRow], validation_rows: list[DatasetRow]
 ) -> tuple[CalibratedModel, bool]:
-    """Fits the one calibrated-XGBoost model every distributed benchmark
-    run holds fixed. Falls back to realistically-shaped synthetic rows
-    (models.profiling.synthetic_timing_rows) because the real
-    train/validation splits have zero real historical positive examples
-    in this project's small sample data, so calibration -- which needs
-    both classes present in
-    validation -- cannot fit a real model. Returns whether the fallback
-    was used, the same `used_synthetic_timing_data` distinction
-    profiling.py already reports, so a benchmark result is never silently
-    unclear about which case produced it."""
+    """Returns whether the fallback was used."""
     try:
         base_result = fit_xgboost(train_rows, validation_rows)
         return fit_calibration(base_result, validation_rows), False
@@ -92,9 +72,7 @@ def chunk_tile_ids(
     tile_ids: tuple[str, ...], num_workers: int
 ) -> list[tuple[str, ...]]:
     """Splits tile_ids into up to num_workers near-equal, contiguous,
-    non-empty chunks -- contiguous purely so which chunk a tile lands in
-    is easy to reason about, not because contiguity affects the
-    computation itself. Returns fewer than num_workers chunks rather than
+    non-empty chunks. Returns fewer than num_workers chunks rather than
     any empty ones if there are fewer tiles than workers."""
     if num_workers < 1:
         raise ValueError(f"num_workers must be >= 1, got {num_workers}")
@@ -123,14 +101,12 @@ class WorkerChunkResult:
 
 @dataclass(frozen=True)
 class ChunkTask:
-    """One worker's unit of work. A dataclass, not loose positional
-    arguments: multiprocessing.Pool.map/apply_async pass a single
-    picklable argument per call, and every field here must round-trip
-    through pickle across the process boundary regardless.
+    """One worker's unit of work; every field here must round-trip
+    through pickle across the process boundary.
 
     inject_crash is the fault-injection switch: when True, the worker
-    terminates itself immediately instead of doing any real work (see
-    process_chunk). Always False for a normal benchmark run."""
+    terminates itself immediately instead of doing any real work. Always
+    False for a normal benchmark run."""
 
     tile_ids: tuple[str, ...]
     cutoff: datetime
@@ -143,23 +119,13 @@ class ChunkTask:
 
 
 def process_chunk(task: ChunkTask) -> WorkerChunkResult:
-    """Runs inside one worker process -- the actual unit of distributed
-    work: builds real feature rows for this chunk's tiles
-    (fire-history/environmental/geography joins, all real code, real
-    sample data) and scores them with the model already fitted once in
+    """Runs inside one worker process: builds real feature rows for this
+    chunk's tiles and scores them with the model already fitted once in
     the parent. Must be a module-level name (not a closure) to be
     picklable at all under Windows' spawn start method.
 
     When task.inject_crash is set, this worker process terminates itself
-    via os._exit before doing any real work, instead of returning
-    normally or raising. os._exit (not sys.exit or raising) is
-    deliberate: it ends the process immediately with no Python-level
-    cleanup or exception propagation, the same way an external `kill -9`
-    would -- confirmed against the real interpreter that the parent
-    Pool's corresponding AsyncResult.get() then raises
-    multiprocessing.TimeoutError, never a distinct "worker died"
-    exception, which is exactly why fault-tolerant dispatch has to
-    detect failure via a timeout rather than an exception type."""
+    via os._exit before doing any real work."""
     if task.inject_crash:
         os._exit(1)
 
@@ -190,14 +156,6 @@ def process_chunk(task: ChunkTask) -> WorkerChunkResult:
 
 @dataclass(frozen=True)
 class RunContext:
-    """The real data + the one fitted model every worker-count run in a
-    single benchmark (whether a single num_workers=1 run or a full
-    1/2/4/8 sweep) shares unchanged -- prepared once by
-    prepare_run_context, not re-loaded/re-fit per run. This is what
-    actually makes "keep workload/data/model fixed" literally true
-    across a sweep: the exact same model object, not just the same
-    fitting recipe re-run each time."""
-
     observations: list
     era5_records: list
     geography_cells: list
@@ -214,22 +172,6 @@ def prepare_run_context(
     dem_path: Path,
     landcover_path: Path,
 ) -> RunContext:
-    """Loads the real sample data once and fits the one calibrated-XGBoost
-    model a whole benchmark run (or sweep of runs)
-    holds fixed. See fit_baseline_model for why fitting may fall back to
-    synthetic-shaped rows, and RunContext's own docstring for why this is
-    a separate, reusable step rather than folded into
-    run_distributed_inference.
-
-    The sample geography file covers a small fixed bounding box, not all
-    of California (`scripts/query/run_forecast_cli.py`'s own
-    GEOGRAPHY_BBOX), so most tiles drawn from the full California grid
-    will genuinely get no geography match -- DatasetRow's geography
-    fields are nullable for exactly this reason, and every other real
-    join and the real prediction call still execute in full regardless.
-    This benchmark measures computational cost, not feature
-    completeness.
-    """
     def _load_inputs() -> tuple[list, list, list]:
         observations = load_firms_observations(raw_firms_path)
         era5_records = parse_era5_records(raw_era5_path)
@@ -285,11 +227,6 @@ class DistributedRunResult:
 def run_distributed_inference(
     workload: DistributedWorkload, num_workers: int, context: RunContext
 ) -> DistributedRunResult:
-    """Every worker count shares this one real implementation and one
-    prepared RunContext rather than each reimplementing/re-preparing it:
-    a real speedup/efficiency comparison only holds if the code path and
-    the fitted model genuinely do not change between runs, only the
-    worker count."""
     chunks = chunk_tile_ids(workload.tile_ids, num_workers)
     tasks = [
         ChunkTask(

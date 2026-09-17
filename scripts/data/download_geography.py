@@ -17,9 +17,6 @@ from ai_earth_intelligence_and_forecasting_engine.data.geography import (
 def main() -> None:
     config = GeographyConfig()
 
-    # Small bounded sample in the Sierra Nevada foothills: real elevation
-    # relief for a meaningful slope check, fully inside one DEM tile and
-    # one WorldCover tile.
     bbox = (-119.8, 37.2, -119.4, 37.6)
 
     dem_output_path = Path("data/raw/geography/dem_sample.tif")

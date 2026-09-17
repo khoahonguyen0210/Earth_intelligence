@@ -11,12 +11,6 @@ if TYPE_CHECKING:
 
 MODEL = "gemini-3.1-flash-lite"
 
-# Which tools contribute a fact to a final answer, and how that fact
-# must be labeled (the observed/computed/predicted distinction).
-# resolve_region is absent: it
-# resolves geometry, it doesn't produce a fact about the world.
-# get_result_evidence is absent too: it fetches metadata about a fact
-# another step already produced, it isn't itself a fact.
 RESULT_CATEGORY_BY_TOOL: dict[str, str] = {
     "get_data": "observed",
     "calculate_statistics": "computed",
@@ -29,11 +23,7 @@ RESULT_CATEGORY_BY_TOOL: dict[str, str] = {
 class StepResult:
     """The minimal shape this module needs from one executed plan step:
     the real value a tool produced, and its evidence if it has any of
-    its own. The workflow engine is what actually executes a Plan and
-    produces these for real; this module only consumes them -- tests
-    build StepResults from genuine calls to the real underlying
-    functions (query.statistics.count, query.evidence.build_evidence,
-    ...) rather than fabricating result shapes."""
+    its own."""
 
     step_id: str
     tool: str
@@ -115,13 +105,11 @@ def _build_answer_prompt(question: str, facts: tuple[GroundedFact, ...]) -> str:
 def generate_answer(
     plan: Plan, results: dict[str, StepResult], client: genai.Client
 ) -> GroundedAnswer:
-    """Execution results + evidence -> a grounded final answer (Task
-    7.4). Only steps whose tool is in RESULT_CATEGORY_BY_TOOL and which
-    have a real StepResult contribute a fact; everything else is
-    silently excluded rather than guessed at. With no facts at all, this
-    returns a fixed "cannot answer" summary without calling the model --
-    there being nothing to summarize, there's nothing to ask an LLM to
-    write about."""
+    """Execution results + evidence -> a grounded final answer. Only steps
+    whose tool is in RESULT_CATEGORY_BY_TOOL and which have a real
+    StepResult contribute a fact; everything else is silently excluded.
+    With no facts at all, this returns a fixed "cannot answer" summary
+    without calling the model."""
     facts = _assemble_facts(plan, results)
 
     if not facts:
@@ -138,9 +126,6 @@ def generate_answer(
     try:
         text = response.text
     except ValueError as exc:
-        # See generate_plan.generate_plan: `.text` itself raises when
-        # there is no text part (e.g. safety-blocked), rather than
-        # exposing a separate refusal field to check first.
         raise ValueError(f"the answer generator refused to answer: {exc}") from exc
 
     if not text:

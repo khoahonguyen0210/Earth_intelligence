@@ -7,18 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * A Redis list used as a simple FIFO queue -- enqueue pushes onto the
- * left end, dequeue blocks popping from the right end (RPOP with a
- * timeout), so jobs come out in the order they went in. Redelivery and
- * visibility-timeout semantics for a worker that dies mid-job live in
- * ForecastWorker's retry logic and ForecastRecovery, not here.
- *
- * enqueue is a child span. dequeue is not traced: an idle worker's
- * blocking poll would otherwise produce an empty trace every poll
- * timeout, and the job's own trace starts from the traceparent on its
- * forecast row, not from the queue (docs/tracing.md).
- */
 @Component
 public class RedisForecastQueue implements ForecastQueue {
 

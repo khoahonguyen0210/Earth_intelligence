@@ -13,37 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.slf4j.event.Level;
 
-/**
- * Walks a Workflow's nodes to completion in dependency order,
- * dispatching each one through a WorkflowTaskDispatcher once the state
- * machine says it may run, and recording the real outcome.
- *
- * Synchronous and single-call, not queue-backed: unlike ForecastWorker,
- * which polls a Redis queue across separate scheduled invocations,
- * `execute` runs a whole workflow to a fixed point (every node reaches
- * a terminal state) in one call, retrying in-line rather than
- * re-enqueueing. This is the right shape to prove the DAG-walking
- * algorithm itself (get_data -> validate -> build_features ->
- * run_forecast, fanning out to get_result_evidence/generate_map);
- * wiring this into a real async, restart-safe queue the way
- * ForecastWorker already is for a single job remains future work -- see
- * docs/workflow-execution.md.
- *
- * A node whose dependency did not succeed is marked CANCELLED (not
- * FAILED): it was never itself attempted, so it never actually failed --
- * the real failure already lives on the dependency's own node.
- *
- * Every log line written during execute() carries `workflow_id` (MDC);
- * each node attempt that ends logs one workflow_node_succeeded /
- * workflow_node_retry_scheduled / workflow_node_failed event, and the
- * run ends with workflow_finished.
- *
- * execute() is a `workflow.execute` span (a new trace unless one is
- * already running, e.g. an HTTP request that runs a workflow), and each
- * node attempt is a `workflow.node` child of it, tagged with the task
- * and its outcome -- so a trace shows the DAG's real execution order,
- * retries included (docs/tracing.md).
- */
 public class WorkflowExecutor {
 
     public static final String MDC_WORKFLOW_ID = "workflow_id";
@@ -67,11 +36,6 @@ public class WorkflowExecutor {
         this(dispatcher, clock, maxAttempts, Spans.noop());
     }
 
-    /**
-     * Runs `workflow` to completion. Throws IllegalArgumentException if
-     * `workflow.validate()` reports any structural problem -- execution
-     * never starts on a workflow that isn't really a DAG.
-     */
     public Workflow execute(Workflow workflow) {
         List<String> structuralErrors = workflow.validate();
         if (!structuralErrors.isEmpty()) {
@@ -146,12 +110,6 @@ public class WorkflowExecutor {
             // Both READY and RETRYING have a legal edge straight to
             // RUNNING -- runNode makes that one transition itself.
             case READY, RETRYING -> runNode(node);
-            // A node already RUNNING when execute() is first called cannot
-            // be this call's own doing -- within one execute() call, RUNNING
-            // is always resolved to a terminal-ish status before returning
-            // (see runNode). It can only be a leftover from a process that
-            // crashed mid-dispatch -- treat it as an interrupted attempt:
-            // retry it, the same as any other transient failure would be.
             case RUNNING -> runNode(WorkflowStateMachine.transition(node, Status.RETRYING, clock.instant()));
             default -> node; // terminal states never change
         };

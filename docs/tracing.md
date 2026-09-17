@@ -1,7 +1,7 @@
 # Tracing — LOCKED
 
-This document freezes the tracing design per Task 13.3 of the Execution
-Handbook. It is not a brainstorming document.
+This document freezes the tracing design. It is not a brainstorming
+document.
 
 The handbook's chain:
 
@@ -29,7 +29,7 @@ management.otlp.metrics.export.enabled=false
 *metrics* registry. Left on, it pushes every meter to
 `localhost:4318/v1/metrics` each minute whether or not anything listens
 (the first live run logged `Publishing metrics for OtlpMeterRegistry
-every 1m`). Metrics stay Prometheus-pull as Task 13.2 locked them, so
+every 1m`). Metrics stay Prometheus-pull as already locked, so
 that registry is off. `TracingIntegrationTest` asserts that the real
 meter wiring has a Prometheus registry and no OTLP one.
 
@@ -61,7 +61,7 @@ A forecast is created on an HTTP thread and run later by
 `ForecastWorker` on its scheduled thread, possibly on another replica.
 The Redis queue carries only the forecast id. Nothing of the request's
 trace context survives the hop, so without help every job would start
-an unrelated trace. This is the same gap Task 13.1 noted for
+an unrelated trace. This is the same gap already noted for
 `request_id`.
 
 The fix: **the forecast row carries the submitting span's W3C
@@ -117,8 +117,8 @@ result    the attempt's final forecast.store.save, tagged forecast.status
 ```
 
 Tags: `job.id`, `job.attempt`, `job.outcome`
-(`succeeded`/`retry_scheduled`/`failed`), `error.code` (Task 13.1's
-`ErrorCode`), `forecast.status`, `db.system` (`postgresql`/`redis`),
+(`succeeded`/`retry_scheduled`/`failed`), `error.code` (the same
+`ErrorCode` already established), `forecast.status`, `db.system` (`postgresql`/`redis`),
 `queue.key`, `python.<stage>_ms` (the pipeline's own `timings_ms`:
 `data_load`, `model_load`, `model_inference`, `total`), `workflow.id`,
 `workflow.task_id`, `workflow.task_type`, `workflow.attempt`,
@@ -135,7 +135,7 @@ Tags: `job.id`, `job.attempt`, `job.outcome`
   gets error status all the same (`Spans.fail`). The error is recorded
   without a stack trace, which would only point at `Spans.fail` itself.
 - **Nothing sensitive reaches a span.** A trace backend is as readable
-  as the logs are, so Task 13.1's rules carry over. The attempt span's
+  as the logs are, so the same logging rules carry over. The attempt span's
   error text is the same `SecretRedactor`-redacted text as the
   `job_failed` log line. `forecast.python` records only the error code,
   never the raw Python/stderr text. Tags hold ids, codes, statuses and
@@ -154,14 +154,14 @@ lines above). The work they would have shown is already inside real
 traces as `forecast.job.attempt` and `forecast.queue.enqueue`. The
 dequeue poll is deliberately not a span. This also drops those two
 observations' automatic timers (`tasks_scheduled_execution_*`,
-`lettuce_*`), which none of Task 13.2's metrics use.
+`lettuce_*`), which none of the already-locked metrics use.
 
 ## Logs and traces join
 
 Micrometer Tracing puts the current span's ids into the MDC, and Boot's
 ECS formatter writes them on every line. So every log line written
-inside a span carries `traceId` and `spanId`, next to Task 13.1's
-`request_id`/`job_id`. Because the worker continues the request's trace,
+inside a span carries `traceId` and `spanId`, next to the already-
+established `request_id`/`job_id`. Because the worker continues the request's trace,
 its `job_*` lines carry **the HTTP request's traceId**. One id now finds
 a job's request line, every worker line for every attempt, and the
 trace itself. `request_id` alone could not do that across the queue.

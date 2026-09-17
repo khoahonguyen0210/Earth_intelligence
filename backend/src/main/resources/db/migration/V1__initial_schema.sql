@@ -1,4 +1,4 @@
--- Task 6.3 (Execution Handbook Phase 6): the persistence schema for
+-- The persistence schema for
 -- everything the handbook lists -- regions, grid cells, jobs, workflows,
 -- datasets, models, forecast metadata, evidence. See
 -- docs/persistence-schema.md for which of these tables an actual Java
@@ -7,7 +7,7 @@
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 
--- Generic async-job envelope. Task 6.5's Redis worker will drive status
+-- Generic async-job envelope. The Redis worker will drive status
 -- transitions on this table once it exists; for now nothing writes to it
 -- (analyses/forecasts below already carry their own id/status/error and
 -- are the two real request/result flows Tasks 2.7/6.2 built).
@@ -22,7 +22,7 @@ CREATE TABLE jobs (
 
 CREATE INDEX idx_jobs_job_type_status ON jobs (job_type, status);
 
--- Earth-analysis requests/results (Task 2.7), now durable instead of the
+-- Earth-analysis requests/results, now durable instead of the
 -- in-memory AnalysisStore.
 CREATE TABLE analyses (
     id VARCHAR(255) PRIMARY KEY,
@@ -46,7 +46,7 @@ CREATE TABLE forecasts (
     created_at TIMESTAMPTZ NOT NULL
 );
 
--- The named/bbox/coordinate regions a query can resolve to (Task 2.2's
+-- The named/bbox/coordinate regions a query can resolve to (the
 -- NormalizedRegion), persisted. Schema only -- see
 -- docs/persistence-schema.md.
 CREATE TABLE regions (

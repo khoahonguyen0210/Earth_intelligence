@@ -19,26 +19,6 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Bridges to the Python forecast pipeline with a synchronous subprocess
- * call per job, the same pattern PythonAnalysisRunner uses for analysis.
- * The call runs on ForecastWorker's thread, not the request thread, and
- * classifies failures as transient or permanent against a timeout (see
- * docs/forecast-retry-and-idempotency.md).
- *
- * stdout/stderr are drained on background threads while the main thread
- * waits on the process with a timeout, rather than reading them
- * sequentially after waiting: a process whose combined output exceeds
- * the OS pipe buffer will block on its own write call until something
- * reads, so waiting for exit before reading would deadlock on any
- * sufficiently large forecast payload (a full California grid
- * FeatureCollection easily can be).
- *
- * Each run is a `forecast.python` child span. The Python
- * process is not itself traced (docs/tracing.md); its own stage timings
- * (data_load, model_load, model_inference, total) are tagged onto this
- * span instead, and a failed run's span carries its error code.
- */
 @Service
 public class PythonForecastRunner implements ForecastRunner {
 
@@ -115,9 +95,6 @@ public class PythonForecastRunner implements ForecastRunner {
 
             return ForecastOutcome.success(payload.get("result"), timings(payload.get("timings_ms")));
         } catch (IOException e) {
-            // Couldn't even start/write to the process -- a dependency
-            // problem (missing interpreter, exhausted resources), not
-            // something about this particular request.
             return ForecastOutcome.transientFailure(ErrorCode.PYTHON_START_FAILED, "Failed to run Python forecast: " + e.getMessage());
         } catch (JacksonException e) {
             return ForecastOutcome.failure(ErrorCode.OUTPUT_PARSE_FAILED, "Failed to parse Python forecast output: " + e.getMessage());
@@ -129,12 +106,6 @@ public class PythonForecastRunner implements ForecastRunner {
         }
     }
 
-    /**
-     * The Python side's optional `timings_ms` object
-     * (query/run_forecast.py). Anything missing or non-numeric is
-     * dropped rather than failing a forecast that otherwise succeeded --
-     * timings are observability, not part of the result.
-     */
     private static Map<String, Double> timings(Object raw) {
         if (!(raw instanceof Map<?, ?> entries)) {
             return Map.of();

@@ -16,9 +16,6 @@ from ai_earth_intelligence_and_forecasting_engine.planner.validator import Plan
 from dotenv import load_dotenv
 from google import genai
 
-# Same pattern data/firms.py and data/era5.py already use: reads
-# GEMINI_API_KEY from a local .env (gitignored, copy .env.example) if
-# one exists, without requiring a real machine-wide environment variable.
 load_dotenv()
 
 REPORT_OUTPUT_PATH = Path("data/processed/planner_benchmark/benchmark_report.json")

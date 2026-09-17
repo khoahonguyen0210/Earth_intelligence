@@ -98,7 +98,6 @@ def test_observation_one_second_before_window_start_is_excluded():
     record = _center(_features([observation]))
 
     assert record.previous_24h_count == 0
-    # still within the 72h/7d/30d windows
     assert record.previous_72h_count == 1
 
 
@@ -126,9 +125,6 @@ def test_future_observation_alone_produces_all_zero_features():
 
 
 def test_neighboring_previous_24h_count_includes_adjacent_cell():
-    # Observation lands in a neighbor of the center cell, not the center
-    # cell itself (center cell spans lon [-119.9, -119.8), lat [37.1, 37.2);
-    # this point is one cell to the east).
     neighbor_observation = _obs(
         "neighbor", CUTOFF - timedelta(hours=1), latitude=37.15, longitude=-119.75
     )

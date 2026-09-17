@@ -1,4 +1,4 @@
-# ECR repositories for the two images Task 10.1 builds (backend/Dockerfile,
+# ECR repositories for the two images this project builds (backend/Dockerfile,
 # frontend/Dockerfile) -- docs/cloud-deployment.md "Kubernetes".
 
 resource "aws_ecr_repository" "this" {
@@ -7,8 +7,8 @@ resource "aws_ecr_repository" "this" {
   name = each.key
 
   # A tag, once pushed, always means the same image (Trivy AWS-0031), so
-  # a deployed tag can never be silently replaced. Task 12.4 therefore
-  # tags each push uniquely (the git commit SHA), never a reused "latest".
+  # a deployed tag can never be silently replaced. Each push therefore
+  # tags uniquely (the git commit SHA), never a reused "latest".
   image_tag_mutability = "IMMUTABLE"
 
   # Same teardown reasoning as modules/database: destroy must not fail on

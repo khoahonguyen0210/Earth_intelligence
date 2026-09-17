@@ -12,8 +12,6 @@ from ai_earth_intelligence_and_forecasting_engine.distributed.workload import (
     freeze_workload,
 )
 
-# Same real sample-data paths every other scripts/query/*.py real-caller
-# already uses (scripts/query/run_forecast_cli.py).
 RAW_FIRMS_PATH = Path("data/raw/firms/firms_sample.csv")
 RAW_ERA5_PATH = Path("data/raw/era5/era5_sample.nc")
 GEOGRAPHY_BBOX = (-119.8, 37.2, -119.4, 37.6)
@@ -22,9 +20,6 @@ LANDCOVER_PATH = Path("data/raw/geography/landcover_sample.tif")
 
 OUTPUT_PATH = Path("data/processed/distributed/fault_injection_report.json")
 
-# 4 workers, not 8: an 8-worker cold-start alone measured at ~25s; this
-# test needs a timeout comfortably larger than one worker's real
-# replacement cold-start, without the whole run taking minutes.
 NUM_WORKERS = 4
 TASK_TIMEOUT_SECONDS = 30
 MAX_RETRIES = 2
@@ -62,7 +57,7 @@ def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(record, indent=2), encoding="utf-8")
 
-    print(f"Task 9.5 fault-injection test ({workload.workload_size} tiles, {NUM_WORKERS} workers):")
+    print(f"Fault-injection test ({workload.workload_size} tiles, {NUM_WORKERS} workers):")
     print(f"  any_failure_detected:          {result.any_failure_detected}")
     print(f"  all_chunks_eventually_succeeded: {result.all_chunks_eventually_succeeded}")
     print(f"  total_tiles_recovered:         {result.total_tiles}")

@@ -6,11 +6,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
-/**
- * The JPA row shape for the `workflows` table. WorkflowStore does the
- * Workflow record <-> entity conversion; this class is a pure
- * persistence detail the rest of the workflow package never sees.
- */
 @Entity
 @Table(name = "workflows")
 public class WorkflowEntity {

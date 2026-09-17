@@ -78,11 +78,6 @@ def test_build_map_result_empty_list_is_valid_empty_collection():
 
 
 def test_build_regional_map_result_computes_real_counts():
-    # Bay Area and Central Valley bboxes overlap near their shared edge, so
-    # these points are deliberately chosen from the *non-overlapping* part
-    # of each region: the far-west edge of Bay Area (west of Central
-    # Valley's western bound), and the center of Central Valley (east of
-    # Bay Area's eastern bound).
     only_in_bay_area = (37.9, -123.2)
     only_in_central_valley = (37.5, -120.5)
 

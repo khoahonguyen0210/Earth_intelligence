@@ -1,15 +1,15 @@
 # Local Kubernetes Deployment — LOCKED
 
-This document freezes the local Kubernetes deployment per Task 11.2 of
-the Execution Handbook. It is not a brainstorming document. It verifies
-`docs/kubernetes-manifests.md` (Task 11.1) by actually deploying to a
+This document freezes the local Kubernetes deployment. It is not a
+brainstorming document. It verifies
+`docs/kubernetes-manifests.md` by actually deploying to a
 real local cluster, the same "don't just look correct on paper" bar
 `docs/clean-start-test.md` already set for the Docker stack.
 
 ## Cluster choice: kind
 
 `kind` (Kubernetes-in-Docker, v0.27.0) over minikube: it runs as a single
-container on the Docker daemon Phase 10 already installed and needs --
+container on the Docker daemon already installed and needs --
 no separate VM/hypervisor driver, no extra disk footprint beyond one
 ~1GB node image. Only `kubectl` (client-only, v1.36.1) was present on
 this machine beforehand; no cluster was running. Config:
@@ -22,9 +22,9 @@ kind create cluster --name ai-earth --config infra/kind/kind-config.yaml
 ## Images: reused, not rebuilt
 
 `ai-earth-backend:local`/`ai-earth-frontend:local` are the exact images
-Task 10.3's clean-start test already verified (`docker tag
+the clean-start test already verified (`docker tag
 docker-backend:latest ai-earth-backend:local`, same for frontend) --
-nothing changed in `backend/`, `frontend/`, or `ml/` since that task, so
+nothing changed in `backend/`, `frontend/`, or `ml/` since then, so
 rebuilding would only reproduce the same image. kind nodes run their own
 containerd, separate from the host's Docker image store, so both were
 pushed in explicitly:
@@ -46,7 +46,7 @@ name -- the backend pod crash-looped on boot with `Failed to bind
 properties under 'spring.data.redis.port' to int ... NumberFormatException:
 For input string: "tcp://10.96.32.85:6379"`. This is a real Kubernetes
 platform behavior with no Docker Compose equivalent (compose has no
-auto env-injection), so nothing in Task 10.x could have caught it. Fixed
+auto env-injection), so nothing in the earlier Docker work could have caught it. Fixed
 by adding `enableServiceLinks: false` to `backend.yaml`'s pod spec.
 
 **2. `quay.io/minio/minio:latest` returned 401 on an anonymous pull from
@@ -104,6 +104,7 @@ restart, undoing the manual import.
 
 ## What this document does not define
 
-Running the fixed workload at 1/2/4/8 backend replicas is Task 11.3's
-job. Configuring autoscaling on Redis queue depth is Task 11.4's.
-Benchmarking the result is Task 11.5's.
+Running the fixed workload at 1/2/4/8 backend replicas is later
+replica-scaling work's job. Configuring autoscaling on Redis queue
+depth is later autoscaling-configuration work's job. Benchmarking the
+result is later benchmarking work's job.

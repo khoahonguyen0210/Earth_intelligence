@@ -40,9 +40,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
 
 DATASET_LABEL = "NASA_FIRMS:VIIRS_SNPP_SP"
 
-# "compare" (needs two time periods) and "forecast" (needs an ML model) are
-# not representable with the current single region/time_range query shape
-# and are intentionally unsupported here rather than force-fit.
 SUPPORTED_OPERATIONS = {"count", "daily_aggregate", "weekly_aggregate", "map"}
 
 
@@ -82,12 +79,9 @@ def load_firms_observations(raw_path: Path) -> list[Observation]:
 def load_observations_for(
     raw_firms_path: Path, start: datetime, end: datetime
 ) -> list[Observation]:
-    """`raw_firms_path` is either one FIRMS CSV (the original sample
-    data, used by tests and the regression set) or the fire-season
-    history directory the product reads (docs/historical-dataset.md).
-    For the history, the
-    requested period must be fully covered -- an uncovered day is missing
-    data, not zero fires -- and a day of margin either side is loaded; the
+    """`raw_firms_path` is either one FIRMS CSV or the fire-season
+    history directory. For the history, the requested period must be
+    fully covered, and a day of margin either side is loaded; the
     statistics apply the exact time range themselves."""
     if not raw_firms_path.is_dir():
         return load_firms_observations(raw_firms_path)

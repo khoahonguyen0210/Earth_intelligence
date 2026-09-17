@@ -1,4 +1,4 @@
--- Task 13.5 (Execution Handbook Phase 13): when a forecast row last
+-- When a forecast row last
 -- changed state, so ForecastRecovery can tell a job that is merely
 -- waiting or running from one abandoned by a worker that died, or never
 -- queued because Redis was down (docs/reliability-tests.md). Existing

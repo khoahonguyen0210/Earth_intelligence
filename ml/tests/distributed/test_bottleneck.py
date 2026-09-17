@@ -53,8 +53,6 @@ def test_measure_serialization_cost_on_a_real_chunk_task(context):
 
 
 def test_identify_bottleneck_never_names_network_or_database(context):
-    # This pipeline makes no network or database call at all -- those two
-    # candidates must never be reported as dominant.
     report = identify_bottleneck(
         context, worker_counts=(1, 2), real_compute_seconds=0.001
     )
@@ -65,10 +63,6 @@ def test_identify_bottleneck_never_names_network_or_database(context):
 def test_identify_bottleneck_names_coordination_when_spawn_overhead_dominates(
     context,
 ):
-    # Real compute forced tiny; 8 workers' real spawn overhead reliably
-    # exceeds the real (somewhat variable) data-loading time (a real run
-    # measured ~70s of 8-worker spawn overhead vs ~22s of data-loading --
-    # comfortable margin, unlike a smaller worker count).
     report = identify_bottleneck(
         context, worker_counts=(1, 8), real_compute_seconds=0.0001
     )
@@ -78,10 +72,6 @@ def test_identify_bottleneck_names_coordination_when_spawn_overhead_dominates(
 
 
 def test_identify_bottleneck_names_cpu_when_compute_dominates(context):
-    # An implausibly large compute number forces cpu to dominate over
-    # every real, small measurement -- proves the comparison genuinely
-    # picks whichever candidate is largest rather than always answering
-    # "coordination".
     report = identify_bottleneck(
         context, worker_counts=(1,), real_compute_seconds=10_000.0
     )

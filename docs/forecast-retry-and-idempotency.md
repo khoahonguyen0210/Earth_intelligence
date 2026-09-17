@@ -1,8 +1,8 @@
 # Forecast Retry, Timeout, and Idempotency — LOCKED
 
-This document freezes retry/timeout/idempotency behavior per Task 6.6 of
-the Execution Handbook. It is not a brainstorming document. It builds on
-`docs/forecast-async-jobs.md` (Task 6.5) rather than redefining it.
+This document freezes retry/timeout/idempotency behavior. It is not a
+brainstorming document. It builds on
+`docs/forecast-async-jobs.md` rather than redefining it.
 
 The handbook lists four rules; each maps to one concrete mechanism below.
 
@@ -62,7 +62,7 @@ return it -- still exactly one logical job either way.
 
 `PythonForecastRunner` waits on the subprocess with
 `Process.waitFor(forecast.python.timeout-seconds, SECONDS)` rather than
-the unbounded `waitFor()` Task 6.2 used. On expiry it calls
+the unbounded `waitFor()` used before. On expiry it calls
 `process.destroyForcibly()` (recovering the resource -- the process does
 not linger) and returns a transient outcome, which `ForecastWorker`
 retries like any other transient failure.

@@ -27,10 +27,6 @@ class ForecastControllerTest {
             new ForecastRequest.RegionSpec("named", "california"),
             "2024-08-15T10:00:00Z");
 
-    /**
-     * The controller only enqueues -- ForecastWorkerTest covers what happens
-     * to a queued job. This fake just records what was enqueued.
-     */
     private static class FakeQueue implements ForecastQueue {
         private final Deque<String> queued = new ArrayDeque<>();
 
@@ -55,13 +51,6 @@ class ForecastControllerTest {
         }
     }
 
-    /**
-     * ForecastStore is Postgres-backed; these tests stay DB-free by faking
-     * the JpaRepository with an in-memory map behind a Mockito mock,
-     * exercising the store's real JSON conversion logic. save() also mimics
-     * the real unique-index-on-idempotency-key behavior, throwing on a key
-     * collision between two different ids.
-     */
     private static ForecastStore newStore() {
         return InMemoryForecasts.store(Spans.noop());
     }

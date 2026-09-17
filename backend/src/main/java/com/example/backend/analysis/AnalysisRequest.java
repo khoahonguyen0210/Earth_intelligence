@@ -9,12 +9,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-/**
- * Shape and size bounds (RequestShape). Which operations and
- * intents are supported stays the pipeline's call, with its contract's
- * FAILED/422 -- only their length is bounded here. The @JsonIgnore'd
- * checks are never part of the JSON sent to Python or stored.
- */
 public record AnalysisRequest(
         @NotBlank @Size(max = RequestShape.MAX_QUESTION) String question,
         @NotBlank @Size(max = RequestShape.MAX_TOKEN) String intent,

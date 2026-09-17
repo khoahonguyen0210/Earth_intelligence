@@ -3,7 +3,7 @@
 Resumable: a span whose file already exists is skipped, so an interrupted
 run continues where it stopped. Each file gets a provenance record
 (source, product, period, sha256) next to it, the same way the sample
-data does. See docs/historical-dataset.md.
+data does.
 
     python scripts/data/download_firms_history.py
 """

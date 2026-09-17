@@ -10,13 +10,6 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import 
     DatasetRow,
 )
 
-# Locked per docs/feature-set-freeze.md and project-context/PROJECT_BIBLE.md
-# section 4 (fire-history + weather + static geography). This is the
-# complete feature set the main benchmark uses by default -- do not shrink
-# it after looking at ablation/test-set results (see the freeze doc for
-# why). ml/src/.../models/ablation.py's feature_columns/include_land_cover
-# overrides exist to deliberately restrict this set for a specific
-# ablation comparison, not to change what the main benchmark itself uses.
 NUMERIC_FEATURE_COLUMNS: tuple[str, ...] = (
     "previous_24h_count",
     "previous_72h_count",
@@ -32,9 +25,6 @@ NUMERIC_FEATURE_COLUMNS: tuple[str, ...] = (
     "slope_deg",
 )
 
-# ESA WorldCover's fixed class taxonomy (docs/static-geography-input-contract.md)
-# -- a known external schema, not something fit from data, so one-hot
-# encoding against it carries no leakage risk and needs no fitting.
 LAND_COVER_CLASSES: tuple[int, ...] = (10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100)
 
 
@@ -80,13 +70,6 @@ def fit_preprocessor(
 
     numeric_matrix = _numeric_matrix(train_rows, feature_columns)
 
-    # keep_empty_features=True: a column that is entirely missing in the
-    # training split (e.g. an environmental feature with no real data
-    # ingested for that period yet) must still produce a fixed-width
-    # output column (filled with 0), not silently shrink the feature
-    # matrix -- the default behavior drops such columns, which would
-    # misalign train/validation/test matrices whenever their missingness
-    # patterns differ.
     imputer = SimpleImputer(strategy="median", keep_empty_features=True)
     imputer.fit(numeric_matrix)
 

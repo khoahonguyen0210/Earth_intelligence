@@ -6,9 +6,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.run_analysis import (
     run_analysis,
 )
 
-# Run from the project root. The real fire-season history
-# (docs/historical-dataset.md); run_analysis refuses periods it does not
-# cover rather than counting them as zero fires.
 RAW_FIRMS_PATH = Path("data/raw/firms/history")
 
 

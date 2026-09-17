@@ -1,25 +1,28 @@
 :root {
-  /* National Geographic-inspired palette: near-black documentary
-     backdrop, warm off-white body copy, and the brand's own signature
-     yellow reserved for the frame motif, kickers, and calls to action. */
-  --ng-yellow: #ffcc00;
-  --ng-ember: #ff5a1f;
+  --cyan: #22d3ee;
+  --violet: #a78bfa;
+  --ember: #fb7146;
 
-  --text: #cbc6ba;
-  --text-h: #f6f3ea;
-  --bg: #0b0b0a;
-  --bg-raised: #151412;
-  --border: #2c2a24;
-  --code-bg: #1a1917;
-  --accent: var(--ng-yellow);
-  --accent-ink: #16130a;
-  --shadow: rgba(0, 0, 0, 0.5) 0 10px 30px -8px;
+  --text: #94a3b8;
+  --text-h: #f1f5f9;
+  --bg: #05070d;
+  --bg-raised: #0d1220;
+  --border: #1e2536;
+  --code-bg: #10151f;
+  --accent: var(--cyan);
+  --accent-2: var(--violet);
+  --accent-ink: #051014;
+  --shadow: rgba(0, 0, 0, 0.6) 0 20px 50px -12px;
 
-  --serif: Georgia, 'Times New Roman', Cambria, serif;
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
 
-  font: 17px/155% var(--sans);
+  --display: 'Space Grotesk', var(--sans);
+  --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  font: 17px/160% var(--sans);
   letter-spacing: 0.1px;
   color-scheme: dark;
   color: var(--text);
@@ -50,12 +53,26 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 140px 90px, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 80px 160px, rgba(167, 139, 250, 0.9) 50%, transparent 51%),
+    radial-gradient(1px 1px at 210px 40px, rgba(34, 211, 238, 0.8) 50%, transparent 51%),
+    radial-gradient(ellipse 70% 40% at 50% 115%, rgba(34, 211, 238, 0.28), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 85% -10%, rgba(167, 139, 250, 0.2), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 0% 30%, rgba(34, 211, 238, 0.08), transparent 70%);
+  background-size:
+    250px 200px,
+    250px 200px,
+    250px 200px,
+    250px 200px,
+    auto,
+    auto,
+    auto;
+  background-attachment: fixed;
 }
 
-/* The navbar is sticky, so a same-page anchor jump (the hero's "Ask
-   Earth a question" CTA) needs this much breathing room above the
-   target or the navbar covers its heading. */
 #ask-earth {
   scroll-margin-top: 84px;
 }
@@ -70,27 +87,27 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--serif);
+  font-family: var(--display);
   font-weight: 700;
   color: var(--text-h);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
 }
 
 h1 {
-  font-size: 52px;
-  line-height: 106%;
+  font-size: 56px;
+  line-height: 102%;
   margin: 16px 0 0;
   @media (max-width: 1024px) {
-    font-size: 34px;
+    font-size: 36px;
   }
 }
 
 h2 {
-  font-size: 26px;
-  line-height: 118%;
+  font-size: 28px;
+  line-height: 112%;
   margin: 0 0 4px;
   @media (max-width: 1024px) {
-    font-size: 22px;
+    font-size: 23px;
   }
 }
 
@@ -117,9 +134,6 @@ a {
   color: var(--accent);
 }
 
-/* The editorial "kicker": a small, bold, tracked-out uppercase label in
-   the brand yellow, set above a headline -- Nat Geo's signature way of
-   naming a section before the big serif title underneath it. */
 .kicker {
   display: inline-flex;
   align-items: center;
@@ -136,7 +150,8 @@ a {
   content: '';
   width: 22px;
   height: 3px;
-  background: var(--accent);
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
 }
 
 code,

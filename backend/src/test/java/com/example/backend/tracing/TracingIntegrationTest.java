@@ -37,19 +37,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * End to end: the real application on a random port -- Spring's
- * own HTTP server span, the real Postgres row carrying the traceparent,
- * the real Redis queue, the scheduled worker thread and a real Python
- * subprocess (the timed stub) -- exporting through the production
- * OpenTelemetry pipeline into memory instead of OTLP. Needs the same
- * `docker compose up -d` stack as BackendApplicationTests.
- *
- * @AutoConfigureTracing: Spring Boot disables span export in tests by
- * default; this opts back in, so the exporter wiring under test is the
- * production one. @AutoConfigureMetrics likewise, so the check that
- * metrics are not pushed over OTLP runs against the real meter wiring.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTracing
 @AutoConfigureMetrics

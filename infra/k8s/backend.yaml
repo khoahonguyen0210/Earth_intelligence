@@ -1,11 +1,11 @@
-# The handbook names "backend" and "worker" as separate deployables,
-# but the real bridge to Python (Task 6.2's PythonForecastRunner/
+# "backend" and "worker" might sound like separate deployables,
+# but the real bridge to Python (PythonForecastRunner/
 # PythonAnalysisRunner) is a same-machine ProcessBuilder subprocess
 # call, not a network call -- there is no separate networked worker
 # process to give its own Deployment, exactly the same real constraint
 # docs/docker-images.md already found for the Docker images this
-# Deployment's image comes from (backend/Dockerfile). Task 11.3's
-# "worker replica scaling" therefore scales this Deployment's
+# Deployment's image comes from (backend/Dockerfile). Worker replica
+# scaling therefore scales this Deployment's
 # spec.replicas, not a separate resource.
 apiVersion: apps/v1
 kind: Deployment
@@ -20,10 +20,10 @@ spec:
     metadata:
       labels:
         app: backend
-      # Task 13.2: the conventional discovery hints Prometheus-compatible
+      # The conventional discovery hints Prometheus-compatible
       # scrapers (Prometheus' kubernetes_sd relabeling, the CloudWatch
       # agent's Prometheus mode) use to find /actuator/prometheus --
-      # docs/metrics.md. Task 13.4 moved it to the management port, which
+      # docs/metrics.md. It later moved to the management port, which
       # the Service below does not expose (docs/security-baseline.md).
       annotations:
         prometheus.io/scrape: "true"
@@ -107,7 +107,7 @@ spec:
               port: management
             initialDelaySeconds: 20
             periodSeconds: 10
-          # Task 11.3 found this too aggressive under real concurrent
+          # Measured too aggressive under real concurrent
           # scale-up: with 4+ replicas booting at once, JVM start +
           # Flyway + JPA + Redis/MinIO connect contends for the same
           # host CPU and regularly took longer than

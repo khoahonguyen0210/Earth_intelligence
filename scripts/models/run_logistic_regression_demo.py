@@ -1,15 +1,9 @@
 """Live demo of the logistic regression baseline against the real dataset
 built by the forecast pipeline.
 
-Honesty note: same real limitation as the climatology demo -- the
-project has only ingested real historical data for one real day
-(2024-08-15, TEST split). The train split has zero real positive
-examples, and scikit-learn's LogisticRegression genuinely cannot be fit
-on single-class data (it raises, by design). This script expects that
-exact, informative error and prints it rather than treating it as a
-crash -- this is the correct, honest outcome given the current data
-footprint, not a bug in the model code (which is proven correct against
-a real, separable synthetic fixture in the test suite).
+The train split currently has zero real positive examples, so fitting
+raises by design; this script prints that expected error rather than
+treating it as a crash.
 """
 
 from datetime import datetime, timezone

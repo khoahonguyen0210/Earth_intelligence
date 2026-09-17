@@ -15,11 +15,6 @@ from sklearn.metrics import (
 
 @dataclass(frozen=True)
 class ClassificationMetrics:
-    """The locked primary metrics (project-context/PROJECT_BIBLE.md SS6):
-    PR-AUC, ROC-AUC, Brier score, log loss. Accuracy is deliberately not
-    included -- it is explicitly not the primary metric for this project.
-    """
-
     pr_auc: float
     roc_auc: float
     brier_score: float

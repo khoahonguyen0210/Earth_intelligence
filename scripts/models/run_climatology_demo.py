@@ -1,15 +1,10 @@
 """Live demo of the climatology baseline against the real dataset built by
 the forecast pipeline.
 
-Honesty note: the project has only ingested real historical data for one
-real day (2024-08-15, which falls in the TEST split). The train split has
-zero real observations, so the climatology model fit here will correctly
-learn a global/per-tile rate of 0.0 from training -- there is no real
-historical signal yet to learn from. This run exists to prove the
-fit/predict/metrics/artifact-saving code is correct end-to-end against a
-real (if currently trivial) dataset, not to report a meaningful accuracy
-result. A real, informative climatology baseline requires real bulk
-historical FIRMS data across 2019-2022, which has not been ingested.
+The train split has zero real observations, so the fitted model learns
+a global/per-tile rate of 0.0. This run exists to prove the
+fit/predict/metrics/artifact-saving code is correct end-to-end, not to
+report a meaningful accuracy result.
 """
 
 from datetime import datetime, timezone

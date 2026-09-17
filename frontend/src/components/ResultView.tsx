@@ -100,7 +100,7 @@ export function ResultView({ result, evidence }: ResultViewProps) {
 
       <h3>Time range</h3>
       <p>
-        {evidence.period_start} &ndash; {evidence.period_end}
+        {evidence.period_start} to {evidence.period_end}
       </p>
 
       <h3>Evidence</h3>

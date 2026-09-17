@@ -40,9 +40,6 @@ def test_run_firms_pipeline_benchmark_counts_and_stages(tmp_path):
         )
 
     assert result.records_processed == 4
-    # The (0, 0) row trips the "null island" impossible-value check.
-    # Both (0, 0) and (10, 10) are valid coordinates but fall outside the
-    # California grid bbox.
     assert result.invalid_records == 1
     assert result.records_outside_grid == 2
 

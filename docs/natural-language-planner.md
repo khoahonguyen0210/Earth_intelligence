@@ -1,9 +1,9 @@
 # Natural-Language Planner — LOCKED
 
-This document freezes the natural-language planner per Task 7.3 of the
-Execution Handbook. It is not a brainstorming document. It builds on
-`docs/planner-tool-schemas.md` (Task 7.1) and `docs/plan-validator.md`
-(Task 7.2) rather than redefining either.
+This document freezes the natural-language planner. It is not a
+brainstorming document. It builds on
+`docs/planner-tool-schemas.md` and `docs/plan-validator.md`
+rather than redefining either.
 
 ## Provider
 
@@ -27,8 +27,8 @@ natural language (a plain question string)
   -> generate_plan(question, client)
   -> client.models.generate_content(... config={"response_mime_type": "application/json", "response_schema": PLAN_OUTPUT_SCHEMA})
   -> one structured-output JSON document: {"steps": [{step_id, tool, input, depends_on}, ...]}
-  -> parse_plan(question, payload) -> a Plan (Task 7.2's dataclass)
-  -> validate_plan_or_raise(plan)  -- Task 7.2, unmodified
+  -> parse_plan(question, payload) -> a Plan (the plan validator's dataclass)
+  -> validate_plan_or_raise(plan)  -- the plan validator, unmodified
   -> a validated Plan, or ValueError
 ```
 
@@ -38,8 +38,8 @@ workflow" -- the whole plan is produced once, then validated, before
 anything executes. A live tool-use loop (where the model sees real tool
 results between turns) doesn't fit that ordering, since by the time a
 later step's real dependency value existed, execution would already be
-underway -- past the validator, not before it. This is also why Task
-7.2's `$step_id.field` string convention exists: at plan-authoring time,
+underway -- past the validator, not before it. This is also why the
+plan validator's `$step_id.field` string convention exists: at plan-authoring time,
 nothing has executed yet, so a dependent step's value cannot be a real
 one.
 
@@ -53,8 +53,9 @@ returns a plain `Plan`, but `generate_plan` itself never returns what
 `parse_plan` produced without validating it first. An invalid plan --
 wrong tool name, input that doesn't match that tool's schema, a bad
 region/time range/cutoff, or a broken cross-step reference -- raises
-`ValueError` from inside `generate_plan`, the same rejection Task 7.2
-already defined; this task adds no second, weaker enforcement path.
+`ValueError` from inside `generate_plan`, the same rejection the plan
+validator already defined; this task adds no second, weaker
+enforcement path.
 
 `PLAN_OUTPUT_SCHEMA` itself only constrains shape at the top level
 (`step_id`/`tool`/`depends_on` are typed; a step's `input` is a bare
@@ -63,7 +64,7 @@ look like X" per tool, because JSON Schema's structured-output mode
 cannot cleanly express "the shape of this field depends on the value of
 that sibling field" the way `oneOf`/`if`/`then` would need to, and
 LLM structured-output implementations do not reliably support that. The
-real per-tool enforcement is Task 7.2's `validate_plan`, run
+real per-tool enforcement is the plan validator's `validate_plan`, run
 unconditionally after every LLM response, which is the actual point of
 having a separate validator stage rather than trying to make the LLM's
 own output format airtight.
@@ -72,7 +73,7 @@ own output format airtight.
 
 `_build_system_prompt()` renders each tool's name, description, input
 schema, and return shape directly from `planner.tools.TOOL_SCHEMAS` (the
-same Task 7.1 objects the validator checks against), so the prompt
+same tool-schema objects the validator checks against), so the prompt
 cannot silently drift out of sync with the real tool surface --
 `tests/planner/test_generate_plan.py` checks every tool name appears in
 it.
@@ -103,7 +104,7 @@ gets.
 Nothing here executes a validated plan -- turning a `Plan`'s steps into
 real tool calls (resolving `$step_id.field` references to actual values,
 calling the real Python functions or the real `/forecasts` API) is
-Phase 8's workflow engine, not this task. Task 7.4 (grounded answer
-generation) is what turns an executed plan's results back into a
+the later workflow engine's job, not this task. Grounded answer
+generation is what turns an executed plan's results back into a
 final answer distinguishing observed/computed/predicted; this task only
 gets from a question to a validated plan.

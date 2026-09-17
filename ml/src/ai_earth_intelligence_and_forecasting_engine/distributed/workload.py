@@ -12,12 +12,6 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import 
     FEATURE_VERSION,
 )
 
-# Fixed per docs/distributed-workload.md and held constant across every
-# distributed benchmark run -- the point of that benchmark suite is to
-# vary only the worker count, never the workload/data/model. Reuses the
-# project's already-locked version constants (GRID_VERSION,
-# DATASET_VERSION/FEATURE_VERSION) rather than inventing new ones.
-# ml/artifacts/calibrated_xgboost_v1/config.json
 MODEL_VERSION = "calibrated_xgboost_v1"
 WORKLOAD_SIZE = 500
 
@@ -37,12 +31,7 @@ class DistributedWorkload:
 
 def freeze_workload(workload_size: int = WORKLOAD_SIZE) -> DistributedWorkload:
     """The first `workload_size` tiles from the real, versioned
-    California grid (build_california_grid), in the grid's own
-    deterministic lat/lon-index order -- not randomly sampled, so every
-    benchmark run operates on the exact same tiles, and a fixed subset
-    rather than the full ~10k-tile grid so a 1-worker baseline finishes
-    in a reasonable local runtime.
-    """
+    California grid, in the grid's own deterministic lat/lon-index order."""
     cells: list[GridCell] = build_california_grid()
 
     if workload_size > len(cells):

@@ -31,25 +31,14 @@ def run_replica_scaling_trial(
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], float] = time.monotonic,
 ) -> ReplicaScalingTrialResult:
-    """Submits `job_count` identical jobs back-to-back (the Redis queue,
-    not this function, is what actually load-balances them across
-    however many backend/worker replicas are running) and polls every
-    job until it reaches a terminal status, timing the whole batch.
+    """Submits `job_count` identical jobs back-to-back and polls every job
+    until it reaches a terminal status, timing the whole batch.
 
     `submit_job`/`poll_job_status`/`sleep`/`now` are injected so this can
-    be unit-tested against fakes -- the real caller
-    (scripts/kubernetes/run_replica_scaling_benchmark.py) passes real
-    HTTP calls against a real `kubectl scale`-d Deployment; this module
-    only owns the timing/throughput arithmetic, the same split
-    ml/.../api/benchmark.py already uses for the sequential API
-    benchmark.
+    be unit-tested against fakes.
 
     A job reaching FAILED still counts as a completed unit of work here,
-    not an error: docs/clean-start-test.md's already-documented
-    single-class training-data gap makes every real forecast request
-    reach FAILED regardless of replica count, but it still exercises the
-    full dequeue -> subprocess -> result pipeline this benchmark measures
-    the throughput of.
+    not an error.
     """
     start = now()
     job_ids = [submit_job() for _ in range(job_count)]
@@ -93,9 +82,8 @@ class ReplicaScalingPoint:
 def compute_speedup_efficiency(
     trials: list[ReplicaScalingTrialResult],
 ) -> list[ReplicaScalingPoint]:
-    """The same formulas used for the multi-worker benchmark
-    (ml/.../distributed/scaling.py): speedup(n) = T1 / Tn,
-    efficiency(n) = speedup(n) / n, against the
+    """The same formulas used for the multi-worker benchmark:
+    speedup(n) = T1 / Tn, efficiency(n) = speedup(n) / n, against the
     first trial's (replicas=1) wall time as T1. `trials` is expected
     sorted by replica count ascending, replicas=1 first."""
     baseline_seconds = trials[0].total_wall_seconds

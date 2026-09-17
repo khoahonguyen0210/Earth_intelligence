@@ -1,9 +1,8 @@
 """run_ask_earth end to end -- a real question, a real
 (faked-at-the-API-boundary) planner call, real dispatch against a real
-FIRMS fixture, and a real (faked) answer call. Only the two Gemini calls
-are faked (the same pattern tests/planner/test_generate_plan.py and
-test_generate_answer.py already use); everything else -- the validator,
-the dispatcher, the analysis pipeline -- is the real code."""
+FIRMS fixture, and a real (faked) answer call. Only the two Gemini
+calls are faked; everything else -- the validator, the dispatcher, the
+analysis pipeline -- is the real code."""
 
 import json
 

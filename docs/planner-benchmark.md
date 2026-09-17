@@ -1,9 +1,8 @@
 # Planner Benchmark — LOCKED
 
-This document freezes the AI planner benchmark per Task 7.5 of the
-Execution Handbook, the last task of Phase 7. It is not a brainstorming
-document. It measures `docs/natural-language-planner.md` (Task 7.3) and
-`docs/plan-validator.md` (Task 7.2) as already built, rather than adding
+This document freezes the AI planner benchmark. It is not a brainstorming
+document. It measures `docs/natural-language-planner.md` and
+`docs/plan-validator.md` as already built, rather than adding
 to either.
 
 ## Workload (fixed)
@@ -14,11 +13,11 @@ to either.
 provider:  Gemini (docs/natural-language-planner.md's provider note)
 model:     ai_earth_intelligence_and_forecasting_engine.planner.generate_plan.MODEL
 call:      one live generate_plan(question, client) per case -- the
-           real pipeline (LLM -> structured plan -> Task 7.2 validator),
+           real pipeline (LLM -> structured plan -> validator),
            not a mock
 ```
 
-`compare` has no dedicated tool in the Task 7.1 tool surface: a correct
+`compare` has no dedicated tool in the tool surface: a correct
 answer to a compare question is two or more `calculate_statistics`/
 `generate_map` steps naming different regions, which is what
 `BenchmarkCase.min_matching_steps` checks for.
@@ -42,7 +41,7 @@ valid_plan_rate                  -- did the observed outcome (plan
                                   case expects? (excludes ambiguous
                                   cases, which expect neither)
 execution_success                 -- did the pipeline complete without an
-                                  unexpected failure? (a Task-7.2
+                                  unexpected failure? (a validator
                                   rejection or a model refusal are both
                                   `generate_plan`'s documented, handled
                                   ValueError outcomes -- only anything
@@ -85,8 +84,8 @@ data/processed/planner_benchmark/benchmark_report.json
                                        -- raw per-case results + the
                                           summary rates (one file).
                                           Gitignored, a regenerable local
-                                          artifact like Task 6.7's
-                                          forecast_api_benchmark.json.
+                                          artifact like the forecast API
+                                          benchmark's own forecast_api_benchmark.json.
 ```
 
 A real run against the live API (`gemini-3.1-flash-lite`, 14 cases):
@@ -106,7 +105,7 @@ with a `calculate_statistics` count plan instead of recognizing that no
 tool here answers a causal "why" question. This is a real, measured
 planner limitation, not a validator gap: the produced plan is
 structurally valid (a real region, a real time range, a real tool), so
-Task 7.2 correctly accepts it -- the mismatch is the model silently
+the validator correctly accepts it -- the mismatch is the model silently
 reinterpreting an unanswerable question as an adjacent answerable one
 rather than saying it cannot answer. Fixing this (e.g. a stronger system
 prompt instruction, or a larger model) is future tuning work this task's

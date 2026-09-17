@@ -49,7 +49,7 @@ def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(record, indent=2), encoding="utf-8")
 
-    print(f"Task 9.3 scaling benchmark ({workload.workload_size} tiles):")
+    print(f"Scaling benchmark ({workload.workload_size} tiles):")
     print(f"{'workers':>8} {'wall_s':>10} {'speedup':>10} {'efficiency':>12}")
     for point in points:
         print(

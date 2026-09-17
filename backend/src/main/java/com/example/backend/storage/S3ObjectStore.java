@@ -16,12 +16,6 @@ import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-/**
- * S3/MinIO implementation. Each operation is an
- * `object_store.<operation>` child span tagged with the bucket and key,
- * the "storage" hop of any trace that reads or writes an object. Every
- * key must pass ObjectKeys.requireSafe first.
- */
 @Component
 public class S3ObjectStore implements ObjectStore {
 

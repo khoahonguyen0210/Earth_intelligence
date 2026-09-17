@@ -1,12 +1,12 @@
 # Final Distributed Benchmark — LOCKED
 
-This document records Task 16.4, the fourth task of Phase 16. It is
+This document records the final distributed benchmark. It is
 not a brainstorming document.
 
-Task 16.4 asks for a final 1/2/4/8-worker comparison (runtime,
-throughput, speedup, efficiency, failure/recovery). Unlike Tasks
-16.2/16.3, the underlying benchmarks here were never blocked on missing
-real data -- Task 9.3's scaling benchmark and Task 9.5's fault-injection
+This task asks for a final 1/2/4/8-worker comparison (runtime,
+throughput, speedup, efficiency, failure/recovery). Unlike the ML and
+ablation benchmarks, the underlying benchmarks here were never blocked on missing
+real data -- the scaling benchmark and the fault-injection
 test (`docs/multi-worker-scaling.md`, `docs/fault-injection-test.md`)
 already measure real computational cost against a real, fixed workload;
 they were never waiting on real fire history the way model accuracy
@@ -31,14 +31,14 @@ workers   actual   wall_s    throughput(tiles/s)  cpu_s    peak_mb   speedup   e
 
 **More workers made this workload slower at every step, monotonically
 -- 1 worker processed 587 tiles/second; 8 workers processed 22.** This
-reproduces Task 9.3's own finding exactly (same monotonic pattern, same
+reproduces the scaling benchmark's own finding exactly (same monotonic pattern, same
 order of magnitude), not a regression: `multiprocessing` on Windows
 uses `spawn`, so every additional worker pays a real multi-second cost
 starting a fresh interpreter and re-importing `numpy`/`xgboost`/
 `scikit-learn`/`rasterio` before doing any of this workload's genuinely
 small amount of real compute (`total_cpu_seconds` stays under 14s even
 at 8 workers, while wall time reaches 22s). `docs/bottleneck-
-identification.md` (Task 9.4) already named this exact cost as the
+identification.md` already named this exact cost as the
 pipeline's real bottleneck; this run is further, independent
 confirmation of it, not a new finding.
 
@@ -60,8 +60,8 @@ chunk 3:           attempts=1  failure_detected=false  result=OK
 ```
 
 **A killed worker cost this workload 1.35 real seconds and zero lost
-tiles.** Detection, retry, and terminal-state correctness match Task
-9.5's original run exactly; recovery time (1.353s here vs 1.154s
+tiles.** Detection, retry, and terminal-state correctness match the
+fault-injection test's original run exactly; recovery time (1.353s here vs 1.154s
 originally) varies run to run for the documented reason in
 `docs/fault-injection-test.md` -- the replacement worker pays the same
 real cold-start cost the scaling numbers above show, so recovery time
@@ -79,5 +79,5 @@ workers slower on this platform.**
 - **Does not investigate a fix for the spawn-overhead finding.**
   `docs/multi-worker-scaling.md` already scopes that as a real, open
   question (a persistent pool, threads, or a fork-based Linux target)
-  outside what Phase 9/16's own job is: measuring and reporting the
+  outside what this benchmark work's own job is: measuring and reporting the
   real number honestly, not redesigning around it.

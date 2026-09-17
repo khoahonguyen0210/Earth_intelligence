@@ -9,16 +9,8 @@ from ai_earth_intelligence_and_forecasting_engine.query.run_ask_earth import (
 from dotenv import load_dotenv
 from google import genai
 
-# Same pattern run_planner_cli.py already uses: GEMINI_API_KEY from a
-# local .env (gitignored) if one exists, without a machine-wide variable.
 load_dotenv()
 
-# The real backend this same subprocess's own parent is running --
-# needed for run_forecast/get_result_evidence, the two tools that go
-# through the real POST /forecasts job rather than a direct Python call
-# (docs/ask-earth.md). The Java caller (AskEarthController's
-# PythonAskEarthRunner) sets this to the actual bound port per request;
-# the default is only for running this script by hand.
 BACKEND_BASE_URL = os.getenv("ASK_EARTH_BACKEND_BASE_URL", "http://localhost:8080")
 
 

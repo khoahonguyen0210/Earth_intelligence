@@ -13,10 +13,6 @@ TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)  # single cell
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
 TILE = CELLS[0].tile_id
 
-# One cutoff per split, per the locked spec:
-#   train      2019-01-01 .. 2022-12-31
-#   validation 2023-01-01 .. 2023-12-31
-#   test       2024-01-01 .. 2024-12-31
 TRAIN_CUTOFF = datetime(2020, 6, 1, 0, 0, tzinfo=timezone.utc)
 VALIDATION_CUTOFF = datetime(2023, 6, 1, 0, 0, tzinfo=timezone.utc)
 TEST_CUTOFF = datetime(2024, 6, 1, 0, 0, tzinfo=timezone.utc)
@@ -60,10 +56,6 @@ GEOGRAPHY = [
     )
 ]
 
-# Hand-verified fixture: a fire only in the (test_cutoff, test_cutoff+24h]
-# window, so only the test-split row should be positive (target=1); the
-# train/validation rows have no nearby observations at all and must be
-# target=0.
 OBSERVATIONS = [_obs("fire-1", TEST_CUTOFF + timedelta(hours=5))]
 ERA5_RECORDS = [_era5(TEST_CUTOFF)]
 
@@ -100,15 +92,12 @@ def test_build_dataset_target_only_positive_for_test_split():
 def test_build_dataset_environmental_features_only_present_at_test_cutoff():
     rows = {row.cutoff: row for row in _rows()}
 
-    # No ERA5 record exists at or before the train/validation cutoffs.
     assert rows[TRAIN_CUTOFF].temperature_2m is None
     assert rows[VALIDATION_CUTOFF].temperature_2m is None
     assert rows[TEST_CUTOFF].temperature_2m == 295.0
 
 
 def test_build_dataset_geography_features_present_for_every_row():
-    # Static geography has no cutoff dimension, so it's attached to all
-    # three rows regardless of which split they fall in.
     for row in _rows():
         assert row.elevation_m == 800.0
         assert row.slope_deg == 12.0

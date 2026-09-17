@@ -7,32 +7,6 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * The legal transitions between a WorkflowNode's seven states.
- *
- * ```text
- * PENDING   -> READY, CANCELLED
- * READY     -> RUNNING, CANCELLED
- * RUNNING   -> SUCCEEDED, FAILED, RETRYING, CANCELLED
- * RETRYING  -> RUNNING, CANCELLED
- * SUCCEEDED -> (terminal)
- * FAILED    -> (terminal)
- * CANCELLED -> (terminal)
- * ```
- *
- * PENDING never goes straight to RUNNING: a node only becomes eligible
- * to run once its dependencies are satisfied (the node's own
- * dependencies list is what that check runs against), and READY is the
- * state that records that. RETRYING re-enters at RUNNING directly, not
- * through READY again -- a retry re-dispatches the same already-ready
- * node, it does not re-check dependencies a second time -- which
- * mirrors how `ForecastWorker` already treats PENDING and RETRYING as
- * equally eligible to become RUNNING for a single standalone job (a
- * `Forecast` has no dependencies of its own, so it never needed a
- * distinct READY state at all; a `WorkflowNode` does). Cancellation is
- * legal from every non-terminal state, since in-flight work must be
- * stoppable, not only queued work.
- */
 public final class WorkflowStateMachine {
 
     private static final Map<Status, Set<Status>> LEGAL_TRANSITIONS = buildLegalTransitions();
@@ -66,12 +40,6 @@ public final class WorkflowStateMachine {
         return LEGAL_TRANSITIONS.get(status).isEmpty();
     }
 
-    /**
-     * The one path the execution engine is meant to change a node's
-     * status through: illegal transitions raise rather than silently
-     * applying, the same "cannot bypass the validator" property the
-     * plan validator already guarantees for a Plan.
-     */
     public static WorkflowNode transition(WorkflowNode node, Status to, Instant updatedAt) {
         if (!isLegalTransition(node.status(), to)) {
             throw new IllegalStateTransitionException(node.taskId(), node.status(), to);

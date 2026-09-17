@@ -22,12 +22,8 @@ from ai_earth_intelligence_and_forecasting_engine.models.preprocessing import (
 
 MODEL_VERSION = "v1"
 
-# One fixed, documented base configuration. max_depth/learning_rate/
-# subsample are standard, conservative starting points for a
-# small-to-medium tabular binary classification problem. n_estimators is
-# only an upper cap -- the actual number of trees used is chosen via
-# early stopping against the validation set (see fit_xgboost), which is
-# the "tune only against validation data" step for this model.
+# n_estimators is only an upper cap -- the actual number of trees used
+# is chosen via early stopping against the validation set.
 BASE_CONFIG: dict[str, Any] = {
     "n_estimators": 500,
     "max_depth": 4,

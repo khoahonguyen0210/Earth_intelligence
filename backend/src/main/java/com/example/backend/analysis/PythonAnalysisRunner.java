@@ -11,12 +11,6 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Bridges to the Python analysis pipeline with a synchronous subprocess
- * call per request. This is deliberately simple: unlike forecasts,
- * analysis runs synchronously on the request thread rather than through
- * a queue and worker.
- */
 @Service
 public class PythonAnalysisRunner implements AnalysisRunner {
 

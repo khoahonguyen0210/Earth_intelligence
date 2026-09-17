@@ -15,9 +15,6 @@ Checklist of properties and where each is verified:
 [x] learned preprocessing uses training data only
     -- ml/tests/models/test_preprocessing.py::
     test_transform_uses_train_statistics_not_the_input_rows_own_distribution.
-    Not duplicated here: that suite is the authoritative test for it,
-    alongside the preprocessing/fitting code it covers
-    (models/preprocessing.py).
 """
 
 import random

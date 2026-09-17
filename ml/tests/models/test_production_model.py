@@ -1,12 +1,9 @@
 """The production model's save/load/metadata contract.
 
-production_model.py had no test file of its own -- its save/load
-roundtrip, its metadata contents, and its version-mismatch guard were
-only ever exercised indirectly and conditionally through
-query/test_run_forecast.py's real-artifact-gated tests. These tests
-cover it directly, plus one property nothing else checks: retraining
-on identical inputs with the module's own fixed random_state produces
-identical predictions.
+These tests cover its save/load roundtrip, its metadata contents, and
+its version-mismatch guard directly, plus one property nothing else
+checks: retraining on identical inputs with the module's own fixed
+random_state produces identical predictions.
 """
 
 from __future__ import annotations

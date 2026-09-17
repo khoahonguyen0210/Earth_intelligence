@@ -6,13 +6,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Durable Postgres-backed storage for a Workflow and its nodes, giving
- * `workflows`/`jobs` their first real read/write path. Mirrors
- * ForecastStore's shape: save/find do the domain <-> entity conversion,
- * nothing else in the workflow package needs to know these are Postgres
- * rows under a jsonb dependencies column.
- */
 @Repository
 public class WorkflowStore {
 

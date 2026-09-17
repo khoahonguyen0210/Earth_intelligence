@@ -19,28 +19,6 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Per-client rate limits on the routes that start real work -- POST
- * /forecasts queues a Python job that can run for minutes, POST
- * /analyses holds a request thread for a Python subprocess, and POST
- * /queries holds one for a real LLM call plus a whole plan's execution,
- * including a possible run_forecast step. Reads are not limited.
- *
- * A fixed one-minute window per client IP and route, counted in the
- * Redis every replica already shares, so the limit holds across
- * replicas. One Lua script increments and sets the expiry atomically: a
- * separate INCR then EXPIRE could leave a key with no expiry if the
- * process died in between, locking that client out for good.
- *
- * The client is request.getRemoteAddr(). With
- * server.forward-headers-strategy=native, Tomcat replaces it with the
- * X-Forwarded-For client only when the direct peer is a private-network
- * proxy (the cloud ALB), so a client cannot pick its own identity.
- *
- * Fails open: if Redis cannot be reached, the request goes through and a
- * WARN is logged. A forecast then fails on the queue anyway, and an
- * analysis -- which does not need Redis -- keeps working.
- */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 3)
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -48,13 +26,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
     private static final long WINDOW_SECONDS = 60;
 
-    /**
-     * Returns {count in this window, seconds until the window resets}.
-     * Raw List: a Class literal can't carry List's own generic parameter
-     * (List<Long>.class doesn't exist), which is what RedisScript.of
-     * needs here -- unavoidable erasure, not a real raw-type use. The
-     * result is read back as List<?> below.
-     */
     @SuppressWarnings("rawtypes")
     private static final RedisScript<List> COUNT_IN_WINDOW = RedisScript.of("""
             local count = redis.call('INCR', KEYS[1])

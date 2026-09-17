@@ -8,12 +8,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-/**
- * The shape docs/forecast-api-contract.md locks is enforced here
- * (RequestShape), so a malformed request is a 400 instead of a
- * queued job that can only fail. The @JsonIgnore'd checks are never part
- * of the JSON sent to Python or stored with the forecast.
- */
 public record ForecastRequest(@Valid @NotNull RegionSpec region, @NotBlank String cutoff) {
 
     @JsonIgnore

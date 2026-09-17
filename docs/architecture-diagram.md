@@ -1,8 +1,8 @@
 # Architecture Diagram — LOCKED
 
-This document records Task 17.2, the second task of Phase 17. It is
-not a brainstorming document. It shows the one request path Task 17.2
-asks for — React through Earth Data — annotated with the real code and
+This document records the request-path architecture diagram. It is
+not a brainstorming document. It shows the one request path in scope
+— React through Earth Data — annotated with the real code and
 locked doc that defines each stage, not a redrawing of anything new.
 
 ## The request path
@@ -49,7 +49,7 @@ locked doc that defines each stage, not a redrawing of anything new.
                               v
                 PostGIS / Object Storage
               (Postgres persistence; MinIO/S3
-               for artifacts -- Task 6.4)
+               for artifacts)
                               |
                               v
                        Earth Data Sources
@@ -112,6 +112,6 @@ A second, real diagram already exists at a different level of detail
 in `project-context/PROJECT_BIBLE.md` §10 (the locked architecture this
 project committed to before implementation) and in `README.md`'s own
 Architecture section (a shorter version for a first-time reader). This
-document is the one Task 17.2 explicitly asks for -- the request path,
+document is the one explicitly asked for here -- the request path,
 stage by stage, each one pointing at the real file and locked doc that
 proves it, rather than a fourth restatement of the same boxes.

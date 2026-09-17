@@ -1,20 +1,20 @@
 # Kubernetes Manifests — LOCKED
 
-This document freezes the Kubernetes manifests per Task 11.1 of the
-Execution Handbook, the first task of Phase 11. It is not a
-brainstorming document. Task 11.2 deploys these to a real local cluster
-and verifies them; this task only writes and schema-validates them.
+This document freezes the Kubernetes manifests. It is not a
+brainstorming document. Later work deploys these to a real local
+cluster and verifies them; this task only writes and schema-validates
+them.
 
 ## Entry condition, checked before starting
 
 ```text
-[x] local distributed execution works    -- Phase 9 (docs/one-worker-baseline.md,
-    docs/multi-worker-scaling.md)
-[x] worker model is stable               -- Phase 8/9 (WorkflowExecutor,
-    run_distributed_inference)
-[x] Docker images work                   -- Task 10.1/10.3 (docs/docker-images.md,
-    docs/clean-start-test.md)
-[x] distributed benchmark exists         -- Task 9.3 (docs/multi-worker-scaling.md)
+[x] local distributed execution works    -- docs/one-worker-baseline.md,
+    docs/multi-worker-scaling.md
+[x] worker model is stable               -- WorkflowExecutor,
+    run_distributed_inference
+[x] Docker images work                   -- docs/docker-images.md,
+    docs/clean-start-test.md
+[x] distributed benchmark exists         -- docs/multi-worker-scaling.md
 ```
 
 All four were already real and locked before this task started.
@@ -32,20 +32,20 @@ infra/k8s/backend.yaml         -- Deployment + Service (NodePort 30080)
 infra/k8s/frontend.yaml        -- Deployment + Service (NodePort 30173)
 ```
 
-Task 11.1 names four deployables: backend, worker, frontend, redis. There
+The handbook names four deployables: backend, worker, frontend, redis. There
 is no separate `worker` manifest here, for the same real reason
-`docs/docker-images.md` already found and Task 10.1 already locked:
-Task 6.2's bridge to Python (`PythonForecastRunner`/`PythonAnalysisRunner`)
+`docs/docker-images.md` already found and already locked:
+The Java-to-Python bridge (`PythonForecastRunner`/`PythonAnalysisRunner`)
 is a same-machine `ProcessBuilder` subprocess call, not a network call --
 there is no independently addressable worker process to give its own
 Deployment. `backend.yaml` plays both roles, exactly as
-`backend/Dockerfile` already does. This also means Task 11.3's "worker
-replica scaling" scales `backend`'s `spec.replicas`, not a separate
-resource -- worth stating now since it changes what that task actually
+`backend/Dockerfile` already does. This also means later "worker
+replica scaling" work scales `backend`'s `spec.replicas`, not a separate
+resource -- worth stating now since it changes what that work actually
 measures.
 
 Postgres and MinIO are not in the handbook's four-item list either, but
-both are real, already-locked dependencies (Task 6.3/6.4) the backend
+both are real, already-locked dependencies the backend
 cannot start without (Flyway migrations, JPA `ddl-auto: validate`, the
 object-store client) -- omitting them would make `backend` crash-loop on
 every real cluster, not just a hypothetical one. This mirrors the same
@@ -68,7 +68,7 @@ container needs unconditionally).
 manifest: `scripts/query/run_analysis_cli.py` and
 `scripts/query/run_forecast_cli.py` -- the only two scripts the backend's
 `ProcessBuilder` bridge actually invokes -- never reference them; they
-belong to the standalone planner CLI (Phase 7) and the ERA5 adapter's own
+belong to the standalone planner CLI and the ERA5 adapter's own
 scripts, neither of which runs inside a backend pod's request path.
 Checked directly (`grep` over both CLI scripts) rather than assumed.
 
@@ -101,15 +101,16 @@ NodePort is not the same address: `backend.yaml`'s Service publishes
 values outside `30000-32767` by default. `30080` remains useful for
 direct API/health-check access from the host, but a browser hitting the
 frontend still needs the backend reachable at exactly `localhost:8080` --
-Task 11.2's job is `kubectl port-forward svc/backend 8080:8080` (or an
-Ingress/LoadBalancer that maps to port 8080 directly), not something
+that is later deployment work's job -- `kubectl port-forward
+svc/backend 8080:8080` (or an Ingress/LoadBalancer that maps to port
+8080 directly) -- not something
 these manifests can fix on their own without contradicting the API
 server's own port-range constraint.
 
 ## Validation actually run, not just visual inspection
 
 No local cluster exists yet on this machine (`kubectl cluster-info`
-refuses to connect -- Task 11.2 chooses and installs one). So the real
+refuses to connect -- later deployment work chooses and installs one). So the real
 check available at this stage is schema validation against the actual
 Kubernetes API schema, not a live `kubectl apply`:
 
@@ -127,5 +128,5 @@ YAML parses."
 
 Choosing and installing a local cluster, actually applying these
 manifests, and verifying API health / worker health / job execution /
-service connectivity / restart behavior is Task 11.2's job, not this
-one's.
+service connectivity / restart behavior is later deployment work's
+job, not this document's.

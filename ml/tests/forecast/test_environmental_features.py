@@ -90,9 +90,6 @@ def test_future_only_record_produces_none_values():
 
 
 def test_nan_era5_record_treated_as_missing_not_passed_through():
-    # ERA5-Land masks ocean cells as NaN; this is "no usable land data",
-    # not a real 0/near-zero reading, so it must not leak through as a
-    # NaN float.
     ocean_record = _era5(CUTOFF, temperature_2m=float("nan"))
 
     result = _only(_features([ocean_record]))

@@ -10,8 +10,8 @@ instance can run every job-level scenario:
     hang                never finish on its own
     anything else       succeed at once
 
-Same protocol as the real CLI: the request JSON on stdin, the result JSON
-on stdout (docs/forecast-api-contract.md).
+Same protocol as the real CLI: the request JSON on stdin, the result
+JSON on stdout.
 """
 
 import json

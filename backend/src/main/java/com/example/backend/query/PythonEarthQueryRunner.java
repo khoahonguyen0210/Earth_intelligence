@@ -18,25 +18,6 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Bridges to the real natural-language pipeline
- * (scripts/query/run_ask_earth_cli.py) -- one subprocess call per
- * question, the same pattern PythonAnalysisRunner/PythonForecastRunner
- * already use. Modeled on PythonForecastRunner specifically, not
- * PythonAnalysisRunner's simpler unbounded wait: a plan can include a
- * run_forecast step (up to forecast.python.timeout-seconds x
- * forecast.worker.max-attempts inside the script's own HTTP polling) and
- * generate_map can produce a large FeatureCollection, so both the
- * bounded wait and the threaded stdout/stderr draining (avoiding the
- * same OS-pipe-buffer deadlock PythonForecastRunner already guards
- * against) apply here too.
- *
- * The subprocess calls back into this same running backend for
- * run_forecast/get_result_evidence (docs/ask-earth.md), so it is started
- * with ASK_EARTH_BACKEND_BASE_URL set to this backend's own real bound
- * port (ServerPort) -- known only once the server has actually started,
- * so read at request time, not at construction time.
- */
 @Service
 public class PythonEarthQueryRunner implements EarthQueryRunner {
 

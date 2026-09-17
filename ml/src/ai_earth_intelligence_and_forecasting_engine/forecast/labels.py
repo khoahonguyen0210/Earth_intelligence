@@ -29,12 +29,8 @@ class LabelRecord:
 def is_qualifying_observation(observation: Observation) -> bool:
     """Whether an observation counts as fire evidence for labeling.
 
-    Per the locked VIIRS SNPP SP product (docs/firms-input-contract.md):
-    geometrically and temporally valid, and not a low-confidence ("l")
-    detection -- low-confidence VIIRS detections are commonly excluded in
-    fire-occurrence modeling to avoid counting probable false alarms
-    (sun glint, bright surfaces) as fire occurrence. Confidence is not
-    required to be present; only an explicit "l" disqualifies.
+    Confidence is not required to be present; only an explicit "l"
+    disqualifies.
     """
     if not -90 <= observation.latitude <= 90:
         return False

@@ -1,9 +1,8 @@
 # Clean-Start Test — LOCKED
 
-This document freezes the clean-start test per Task 10.3 of the
-Execution Handbook, the last task of Phase 10. It is not a
+This document freezes the clean-start test. It is not a
 brainstorming document. It verifies `docs/docker-compose-stack.md`
-(Task 10.2) actually works, from a genuinely clean build -- not just
+actually works, from a genuinely clean build -- not just
 that the compose file and Dockerfiles look correct on paper.
 
 ## The commands
@@ -48,7 +47,7 @@ gap would have bitten any other genuinely clean `uv sync`, container or
 not.
 
 **2. `FIRMS_MAP_KEY` never reached the container.** `data.firms`
-(Task 1.2) requires this real NASA FIRMS credential unconditionally,
+requires this real NASA FIRMS credential unconditionally,
 even for a request that only reads the local sample CSV. Locally it is
 always present because every developer's shell/`.env` already has it;
 inside a fresh container, nothing set it, and the very same analysis
@@ -89,14 +88,14 @@ observation landing in either fixed cutoff's lookback window, for any
 region. `fit_xgboost` correctly refuses to fit on a single-class
 training split (the exact same real, structural data-availability gap
 `models/profiling.py`'s `synthetic_timing_rows` fallback already
-exists to work around for *computational* benchmarks, Task 5.4/9.2) and
+exists to work around for *computational* benchmarks) and
 returns a clear, real error rather than a fabricated result --
-`ForecastWorker` (Task 6.5/6.6) correctly propagates that to a
+`ForecastWorker` correctly propagates that to a
 `FAILED` terminal state with the real message intact, exactly as
-Task 6.6 designed permanent failures to behave. This is present and
-identical whether the backend runs locally or in this container; Phase
-10's job was to package and run what already exists, not to give the
-locked forecasting dataset (Phase 3) more real historical fire coverage
+permanent failures were designed to behave. This is present and
+identical whether the backend runs locally or in this container; this
+packaging task's job was to package and run what already exists, not to give the
+locked forecasting dataset more real historical fire coverage
 at these two fixed dates.
 
 ## What "done" means here
@@ -108,5 +107,5 @@ reproducibly, from the commands above. A forecast request against this
 particular small sample dataset at these particular fixed demo cutoffs
 correctly fails for a real, pre-existing, already-understood reason;
 demonstrating a real successful forecast end to end would need
-different sample data or different demo cutoffs, both Phase 3/6
-decisions, not something this packaging task is scoped to change.
+different sample data or different demo cutoffs, both decisions made
+elsewhere, not something this packaging task is scoped to change.

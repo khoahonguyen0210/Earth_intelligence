@@ -12,11 +12,6 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Mirrors PythonForecastRunnerTest exactly: the real python interpreter
- * and tiny fixture scripts under src/test/resources, not the full Ask
- * Earth pipeline (that is run_ask_earth.py's own tests, in ml/).
- */
 class PythonEarthQueryRunnerTest {
 
     private static final EarthQueryRequest REQUEST =

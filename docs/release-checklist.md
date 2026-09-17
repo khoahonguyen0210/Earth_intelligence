@@ -1,7 +1,7 @@
 # Final Exit Checklist — LOCKED
 
 This document verifies the Execution Handbook's own Final Exit
-Checklist, the last section of the handbook, following Phase 18. It is
+Checklist, the last section of the handbook. It is
 not a brainstorming document. Every checked item below cites the real
 doc, test, or artifact that proves it; the one unchecked item is stated
 as plainly as everything else, not omitted.
@@ -34,22 +34,22 @@ as plainly as everything else, not omitted.
 [x] Provenance                data/provenance.py, every evidence block
                              in every result this project produces
 [x] Validation                 data/validation.py; *-input-contract.md
-                             docs (Task 1.7)
+                             docs
 [x] California grid          data/grid.py, docs/california-grid-contract.md
 [x] Leakage tests               ml/tests/forecast/test_leakage.py,
                              docs/scientific-regression-tests.md
 [x] Fixed temporal split     forecast/spec.py (locked 2019-2022/2023/2024),
                              docs/scientific-regression-tests.md
-[x] Four-model benchmark     docs/final-ml-benchmark.md (Climatology,
+[x] Four-model benchmark     docs/ml-benchmark.md (Climatology,
                              Logistic Regression, XGBoost, Calibrated
                              XGBoost, all four on real data)
-[x] Calibration                docs/final-ml-benchmark.md's real
+[x] Calibration                docs/ml-benchmark.md's real
                              calibration table
-[x] Ablations                docs/final-ablation-benchmark.md (weather,
+[x] Ablations                docs/ablation-benchmark.md (weather,
                              geography)
 [x] Reproducible artifacts   docs/reproducibility-package.md, proven by
                              actually running it in
-                             docs/final-clean-clone-test.md
+                             docs/clean-clone-test.md
 ```
 
 ## AI
@@ -61,7 +61,7 @@ as plainly as everything else, not omitted.
 [x] Evidence-grounded answer docs/grounded-answer-generation.md; every
                              Ask Earth demo's answer text cites its own
                              evidence, never a fabricated number
-[x] Planner benchmark        docs/final-planner-benchmark.md (14 real
+[x] Planner benchmark        docs/planner-accuracy-benchmark.md (14 real
                              live cases, 100% intent/region/execution)
 ```
 
@@ -84,7 +84,7 @@ as plainly as everything else, not omitted.
                              docs/integration-test-pass.md,
                              docs/end-to-end-test-pass.md -- 761 tests,
                              0 failures, re-confirmed fresh in
-                             docs/final-clean-clone-test.md
+                             docs/clean-clone-test.md
 ```
 
 ## Distributed/cloud
@@ -92,7 +92,7 @@ as plainly as everything else, not omitted.
 ```text
 [x] Local distributed execution docs/one-worker-baseline.md,
                              docs/multi-worker-scaling.md
-[x] Distributed benchmark    docs/final-distributed-benchmark.md,
+[x] Distributed benchmark    docs/distributed-benchmark.md,
                              reproduced independently twice
                              (docs/distributed-result-demo.md)
 [x] Docker                   docs/docker-images.md,
@@ -105,7 +105,7 @@ as plainly as everything else, not omitted.
                              S3, ALB), not just a name
 [x] Terraform                docs/terraform-layout.md -- real modules,
                              `terraform fmt`/`validate` pass, Trivy clean
-[ ] Cloud benchmark          NOT DONE. Task 12.5 asks for the same
+[ ] Cloud benchmark          NOT DONE. It asks for the same
                              benchmark workload run against real AWS
                              infrastructure (runtime, throughput,
                              resource use, approximate cost, errors).
@@ -133,7 +133,7 @@ as plainly as everything else, not omitted.
                              docs/fault-injection-test.md -- real
                              killed processes, real stopped containers
 [x] Recovery evidence        docs/reliability-tests.md,
-                             docs/final-distributed-benchmark.md (a
+                             docs/distributed-benchmark.md (a
                              real killed worker, 500/500 tiles
                              recovered, 1.353s)
 [x] Secrets protected        docs/security-baseline.md (redaction,
@@ -146,14 +146,14 @@ as plainly as everything else, not omitted.
 ## Results
 
 ```text
-[x] ML result                 docs/final-ml-benchmark.md -- PR-AUC 0.4513
-[x] Processing-time result   docs/final-ml-benchmark.md (training/
+[x] ML result                 docs/ml-benchmark.md -- PR-AUC 0.4513
+[x] Processing-time result   docs/ml-benchmark.md (training/
                              inference time), docs/bottleneck-
                              identification.md
-[x] Distributed result       docs/final-distributed-benchmark.md
-[x] AI planner result        docs/final-planner-benchmark.md
+[x] Distributed result       docs/distributed-benchmark.md
+[x] AI planner result        docs/planner-accuracy-benchmark.md
 [x] Reliability result       docs/reliability-tests.md,
-                             docs/final-distributed-benchmark.md
+                             docs/distributed-benchmark.md
 [x] Reproducible benchmark    docs/reproducibility-package.md,
     artifacts                portfolio/benchmark-results.{json,csv}
 [x] Resume bullets based       docs/headline-results.md -- every bullet

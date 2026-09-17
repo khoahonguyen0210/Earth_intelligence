@@ -16,21 +16,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Gives every HTTP request a request ID and one structured
- * `http_request` log line.
- *
- * The ID is put in the MDC as `request_id`, so every log line written
- * while handling the request (controller, store, Python runner) carries
- * it, and it is echoed back as the X-Request-Id response header, so a
- * client-reported problem maps straight to its log lines. A caller may
- * supply its own X-Request-Id (e.g. a load balancer), but only if it is
- * short and plain -- anything else is replaced, so a client can never
- * choose what gets written into the logs under that field.
- *
- * Runs first (HIGHEST_PRECEDENCE) so the ID exists before any other
- * filter can log, and the recorded duration covers the whole request.
- */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestIdFilter extends OncePerRequestFilter {

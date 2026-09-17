@@ -71,8 +71,7 @@ def fit_logistic_regression(
 
     if best_score == float("-inf"):
         # Validation split also has no positives to score against; keep
-        # the smallest candidate as a defined, deterministic fallback
-        # rather than silently picking an arbitrary one.
+        # the smallest candidate as a defined, deterministic fallback.
         best_score = float("nan")
 
     final_model = LogisticRegression(C=best_c, max_iter=1000, class_weight="balanced")

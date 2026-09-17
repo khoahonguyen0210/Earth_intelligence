@@ -25,9 +25,6 @@ class ApiBenchmarkResult:
 
 
 def latency_percentile(latencies: Sequence[float], percentile: float) -> float:
-    """Nearest-rank percentile over already-sorted-or-not latencies. Not
-    interpolated: simple and dependency-free is enough for a baseline
-    report, and this is deterministic given the same raw samples."""
     if not latencies:
         return 0.0
 
@@ -42,15 +39,6 @@ def run_api_benchmark(
     send_request: Callable[[], None],
     request_count: int,
 ) -> ApiBenchmarkResult:
-    """Sends `request_count` fixed, sequential requests via `send_request`
-    -- one call is one request; it must raise for anything that should
-    count as an error -- timing each one, and summarizes latency
-    percentiles, throughput, and error rate.
-
-    Sequential, not concurrent: this is a single-instance baseline of the
-    API's own per-request cost, not a concurrency/load-limit test -- see
-    docs/forecast-api-benchmark.md.
-    """
     latencies: list[float] = []
     error_count = 0
 

@@ -29,9 +29,6 @@ SELECTED_CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)[:20]
 REGION = normalize_region(RegionSpec(kind="bbox", value=TEST_BBOX))
 INFERENCE_CUTOFF = datetime(2024, 8, 3, 12, 0, tzinfo=timezone.utc)
 
-# The real inputs scripts/query/run_forecast_cli.py uses
-# (docs/historical-dataset.md). data/ and ml/artifacts/ are not in git, so
-# the end-to-end test below skips when they have not been built.
 REAL_FIRMS_HISTORY_DIR = Path("data/raw/firms/history")
 REAL_ERA5_HISTORY_DIR = Path("data/raw/era5/history")
 REAL_GEOGRAPHY_PATH = Path("data/raw/geography/california_geography.csv")
@@ -168,8 +165,6 @@ def test_compute_forecast_reports_model_stage_timings_when_asked():
 
     assert set(timings_ms) == {"model_fit", "model_inference"}
     assert all(value >= 0 for value in timings_ms.values())
-    # Scoring 20 rows with an already-fitted model is far cheaper than
-    # fitting XGBoost plus calibration -- the split the metric exists for.
     assert timings_ms["model_inference"] < timings_ms["model_fit"]
 
 
@@ -221,8 +216,6 @@ def test_run_forecast_rejects_unparseable_cutoff():
 
 
 def test_require_lookback_coverage_refuses_a_cutoff_without_30_days_of_history(tmp_path):
-    # History for Aug 1-5 2024 only: a cutoff on Aug 5 lacks its 30-day
-    # lookback, so a forecast must be refused, not computed on zeros.
     (tmp_path / "VIIRS_SNPP_SP_2024-08-01_5d.csv").write_text("x", encoding="utf-8")
 
     with pytest.raises(ValueError, match="no real FIRMS fire history"):
@@ -240,15 +233,6 @@ def test_require_lookback_coverage_accepts_a_fully_covered_lookback(tmp_path):
 
 @pytest.mark.skipif(not REAL_INPUTS_PRESENT, reason="real history/model not built")
 def test_run_forecast_end_to_end_on_real_history_and_the_trained_model():
-    # 2024-08-10 is one of the real weekly benchmark cutoffs
-    # (build_historical_dataset.py's own cutoff rule: 10:00 UTC every 7
-    # days from June 1 through October), so ERA5's curated per-cutoff
-    # history actually has a record at this exact hour
-    # (ERA5History.for_cutoff's own documented contract). An off-grid
-    # cutoff like 2024-08-15 has no ERA5 snapshot of its own -- for_cutoff
-    # correctly falls back to the latest one before it (2024-08-10) -- so
-    # asserting exact alignment needs an on-grid cutoff, not a mismatch in
-    # the pipeline.
     response = _run_real(
         {"region": {"kind": "named", "value": "california"}, "cutoff": "2024-08-10T10:00:00Z"}
     )

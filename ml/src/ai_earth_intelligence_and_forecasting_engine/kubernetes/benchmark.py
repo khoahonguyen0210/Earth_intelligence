@@ -19,9 +19,7 @@ def parse_kubectl_top_pods(output: str) -> list[PodResourceUsage]:
     """Parses real `kubectl top pods` text output (a header line, then one
     line per pod: NAME CPU(cores) MEMORY(bytes)). Real `kubectl` reports
     CPU in millicores ("15m") and memory with a Ki/Mi/Gi suffix ("652Mi")
-    -- this normalizes both to a single unit (millicores, mebibytes) so
-    an idle pod can be compared against a loaded one without unit
-    conversion scattered through the caller.
+    -- this normalizes both to a single unit (millicores, mebibytes).
     """
     lines = [line for line in output.strip().splitlines() if line.strip()]
     if not lines:
@@ -75,8 +73,8 @@ def measure_failure_recovery(
     running pod (a real `kubectl delete pod`), then this polls `is_ready`
     until the Deployment controller's replacement pod reports ready
     again.
-    `sleep`/`now` are injected for unit testing against a fake clock, the
-    same pattern `run_replica_scaling_trial` already uses.
+
+    `sleep`/`now` are injected for unit testing against a fake clock.
     """
     start = now()
     delete_pod()

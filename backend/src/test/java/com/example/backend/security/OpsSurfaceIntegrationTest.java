@@ -17,12 +17,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * The public port serves the API and two status-only probes, nothing
- * operational; metrics and component details are only on the internal
- * management port. Real application, real ports, against the same
- * `docker compose up -d` stack as BackendApplicationTests.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMetrics
 class OpsSurfaceIntegrationTest {

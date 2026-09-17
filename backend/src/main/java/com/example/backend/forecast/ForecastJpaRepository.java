@@ -13,11 +13,6 @@ public interface ForecastJpaRepository extends JpaRepository<ForecastEntity, Str
 
     Optional<ForecastEntity> findByIdempotencyKey(String idempotencyKey);
 
-    /**
-     * A worker may run a job only if this flips it to RUNNING -- one
-     * conditional UPDATE, so of two workers holding the same id (a
-     * duplicate queue entry, a re-enqueued orphan) exactly one wins.
-     */
     @Modifying
     @Transactional
     @Query("update ForecastEntity f set f.status = 'RUNNING', f.updatedAt = :now "

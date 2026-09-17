@@ -2,14 +2,9 @@
 fire-history+weather+geography) against the real dataset built by the
 forecast pipeline.
 
-Honesty note: same real limitation as the other baseline demos -- the
-project has only ingested real historical data for one real day
-(2024-08-15, TEST split), so both the train and validation splits have
-zero real positive examples. Both ablation variants share the same
-XGBoost protocol as the baseline XGBoost demo, so both are expected to hit that same, honestly
-reported limitation. See ml/tests/models/test_ablation.py for proof
-that, on real, separable data, adding geography features measurably
-improves metrics over fire-history+weather alone.
+The train/validation splits currently have zero real positive
+examples, so both ablation variants are expected to hit that same
+limitation.
 """
 
 from datetime import datetime, timezone

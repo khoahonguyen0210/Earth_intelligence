@@ -1,7 +1,6 @@
 # Reliability Tests — LOCKED
 
-This document freezes the reliability testing per Task 13.5 of the
-Execution Handbook, the last task of Phase 13. It is not a
+This document freezes the reliability testing. It is not a
 brainstorming document.
 
 The handbook lists seven controlled failures. Six are exercised end to
@@ -42,7 +41,7 @@ the recovery time) and prints a summary table.
 
 ## Before: three real gaps, found by running the failures for real
 
-A first run, before any fix, against the code as Task 13.4 left it:
+A first run, before any fix, against the code as it stood before this work:
 
 ```text
 PASS  duplicate request           SUCCEEDED       2.9s
@@ -69,7 +68,7 @@ Three real, load-bearing gaps this task exists to close:
   `RUNNING`.
 - **Worker crash mid-job → the job is stuck `RUNNING` forever,** for the
   same reason -- and this is exactly the gap `docs/forecast-async-jobs.md`
-  named up front at Task 6.5: "a worker that dies between popping an id
+  named up front: "a worker that dies between popping an id
   and finishing the job loses that job today -- there is no redelivery or
   visibility timeout." Waited 285s; still `RUNNING`.
 
@@ -203,14 +202,14 @@ get_data -> validate -> build_features (transient once) -> run_forecast (permane
 ```
 
 `build_features` fails transiently once and recovers on retry (already
-proven correct by Task 8.3's own tests; re-asserted here in the fuller
-DAG). `run_forecast` fails permanently: only that node is marked
+proven correct by the workflow executor's own tests; re-asserted here
+in the fuller DAG). `run_forecast` fails permanently: only that node is marked
 `FAILED`, `get_result_evidence` and `generate_map` are `CANCELLED`
 without ever being dispatched, and the independent
 `calculate_statistics` branch and every upstream node still reach
 `SUCCEEDED`. The workflow is saved and reloaded from Postgres, so the
 persisted state matches, not just the in-memory one. Retries are
-in-line (no queue, no wait between attempts, per Task 8.3), so the whole
+in-line (no queue, no wait between attempts), so the whole
 run finishes in under 5 seconds.
 
 ## Detection, recovery, and recovery time -- summary
@@ -275,7 +274,7 @@ constraint the database enforces rather than a looser stand-in.
   by anything in this codebase.
 - **The malformed Earth data fixture is FIRMS-only, and analysis-only.**
   ERA5 and static geography have their own existing schema-validation
-  tests (Tasks 1.4/1.5/1.7); this task's fixture exercises the same "bad
+  tests; this fixture exercises the same "bad
   row fails the whole request cleanly" property for the one input most
   likely to carry a live-scraped bad value. A forecast-pipeline version
   was tried and dropped (see "After" above): it needs a full

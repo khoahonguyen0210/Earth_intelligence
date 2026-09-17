@@ -1,4 +1,4 @@
-# Defaults are the locked values from docs/cloud-deployment.md (Task 12.1).
+# Defaults are the locked values from docs/cloud-deployment.md.
 # Changing one of them reopens a locked decision; it is not tuning.
 
 variable "region" {
@@ -61,7 +61,7 @@ variable "cache_node_type" {
   default     = "cache.t4g.micro"
 }
 
-# Task 13.4: HTTPS (docs/security-baseline.md). No domain is locked, so
+# HTTPS (docs/security-baseline.md). No domain is locked, so
 # both default to null and the certificate is created only once a domain
 # is chosen; until then the ALB serves plain HTTP on its AWS DNS name.
 variable "domain_name" {

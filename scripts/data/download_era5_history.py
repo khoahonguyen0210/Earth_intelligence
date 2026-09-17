@@ -3,8 +3,7 @@
 One CDS request per (year, month): every cutoff day in that month at the
 cutoff hour (10:00 UTC), the five locked variables, over California.
 Resumable (existing files are skipped); each file gets a provenance
-record. CDS queues requests server-side, so a run can take a while. See
-docs/historical-dataset.md.
+record. CDS queues requests server-side, so a run can take a while.
 
     python scripts/data/download_era5_history.py
 """

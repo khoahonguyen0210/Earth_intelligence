@@ -1,15 +1,10 @@
 """Live demo of the dataset builder against the real sample data.
 
-Honesty note: we only have real historical data for a single real day
-(2024-08-15, from the real FIRMS/ERA5-Land/geography samples already
-fetched), which falls in the locked TEST split. To demonstrate the pipeline
-assembles a dataset spanning all three splits, this script also computes
-rows for a train-period and a validation-period cutoff -- those will
-correctly show zero fire activity and no environmental data, because we
-have not ingested any real historical data for 2019-2023. This is not a
-full 6-year production dataset; it is a correctness demonstration of the
-join/manifest logic against the one real day of data the project has
-fetched so far.
+Real historical data only exists for a single real day (2024-08-15),
+which falls in the locked TEST split. This script also computes rows
+for a train-period and a validation-period cutoff to demonstrate the
+pipeline assembles a dataset spanning all three splits; those rows
+correctly show zero fire activity and no environmental data.
 """
 
 from datetime import datetime, timezone

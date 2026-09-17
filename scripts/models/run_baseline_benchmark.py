@@ -2,12 +2,8 @@
 (Climatology, Logistic Regression, XGBoost, Calibrated XGBoost) against
 the real dataset built by the forecast pipeline.
 
-Honesty note: only climatology can currently succeed against real data
-(see the other baseline demo scripts for why -- the training/validation
-splits have zero real positive examples). This is itself the honest, reproducible
-first scientific benchmark result: one real measured baseline, and three
-models whose real evaluation is correctly blocked on data that has not
-been ingested yet, each fully documented rather than faked.
+Only climatology can currently succeed against real data; the
+training/validation splits have zero real positive examples.
 """
 
 from datetime import datetime, timezone

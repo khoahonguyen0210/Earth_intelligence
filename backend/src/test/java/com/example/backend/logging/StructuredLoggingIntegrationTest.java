@@ -18,13 +18,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * End to end: the real application, real logging configuration
- * (application.properties' logging.structured.format.console), a real
- * HTTP request -- asserting on the actual console bytes, not on logback
- * events. Needs the same `docker compose up -d` stack as
- * BackendApplicationTests.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(OutputCaptureExtension.class)
 class StructuredLoggingIntegrationTest {

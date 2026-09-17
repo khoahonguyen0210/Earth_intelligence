@@ -72,9 +72,6 @@ def _bucket_dates(time_range: NormalizedTimeRange) -> list[date]:
     if time_range.start >= time_range.end:
         return []
 
-    # end is exclusive; the last instant actually included in the range is
-    # one microsecond before it, which correctly handles both a midnight
-    # end (excludes that calendar day) and a partial-day end (includes it).
     last_included_instant = time_range.end - timedelta(microseconds=1)
 
     start_date = time_range.start.date()

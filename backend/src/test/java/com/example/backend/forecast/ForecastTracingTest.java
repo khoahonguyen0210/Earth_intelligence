@@ -23,13 +23,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-/**
- * One forecast's trace, HTTP -> job -> worker -> storage -> result, through
- * the real controller, store and worker and the real OpenTelemetry bridge
- * (TestTracing). The HTTP server span Spring creates in the running app is
- * stood in for by a root span around the controller call;
- * TracingIntegrationTest covers the real one.
- */
 class ForecastTracingTest {
 
     private static final ForecastRequest REQUEST = new ForecastRequest(
@@ -127,9 +120,6 @@ class ForecastTracingTest {
         assertEquals("succeeded", attribute(attempt, "job.outcome"));
         assertNotEquals(StatusCode.ERROR, attempt.getStatus().getStatusCode());
 
-        // worker -> Python and storage -> result. (The RUNNING transition is
-        // the atomic claim, made before the attempt span opens -- untraced,
-        // like the dequeue, so skipped duplicates cost no spans.)
         assertEquals(attempt.getSpanId(), python.getParentSpanId());
         List<String> savedStatuses = childrenOf(attempt).stream()
                 .filter(span -> span.getName().equals("forecast.store.save"))

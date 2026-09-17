@@ -1,18 +1,17 @@
 # Worker Replica Scaling — LOCKED
 
-This document freezes the worker replica scaling benchmark per Task
-11.3 of the Execution Handbook. It is not a brainstorming document. It
-scales `backend`'s Deployment (the folded backend+worker role,
-`docs/kubernetes-manifests.md`) against the real kind cluster Task 11.2
-deployed, and reports what actually happened -- including a real,
-counter-intuitive negative result, the same honesty bar Phase 9 already
-set for distributed execution.
+This document freezes the worker replica scaling benchmark. It is not
+a brainstorming document. It scales `backend`'s Deployment (the folded
+backend+worker role, `docs/kubernetes-manifests.md`) against the real
+kind cluster already deployed, and reports what actually happened --
+including a real, counter-intuitive negative result, the same honesty
+bar already set for distributed execution.
 
 ## Method
 
 ```text
 Fixed workload: 8 identical forecast requests (same region/cutoff
-  scripts/api/benchmark_forecast_api.py already uses, Task 6.7)
+  scripts/api/benchmark_forecast_api.py already uses)
 For each replica count in 1, 2, 4, 8:
   kubectl scale deployment/backend --replicas=<n>, wait for all pods Ready
   submit all 8 requests back to back
@@ -24,7 +23,7 @@ For each replica count in 1, 2, 4, 8:
 caller; `ml/.../kubernetes/replica_scaling.py` owns the timing/
 throughput arithmetic (unit-tested against fakes,
 `ml/tests/kubernetes/test_replica_scaling.py`), the same split
-`ml/.../api/benchmark.py` already uses for Task 6.7's sequential
+`ml/.../api/benchmark.py` already uses for its own sequential
 benchmark. Every job reaches the same real, already-documented FAILED
 (`docs/clean-start-test.md`'s single-class training-split gap) -- that
 is fine here, since this benchmark measures queue-drain throughput
@@ -37,7 +36,7 @@ Scaling to 4 replicas for the first time crash-looped two of the four
 pods -- not because they were stuck, but because `backend.yaml`'s
 liveness probe (`initialDelaySeconds: 30`, `periodSeconds: 15`, the
 default `failureThreshold: 3`, so ~75s total tolerance) was tuned
-against Task 11.2's single-replica boot time (~47s). With four JVMs
+against the single-replica boot time already measured (~47s). With four JVMs
 booting at once (JVM start, Flyway, JPA, Redis/MinIO connect all
 contending for the same host CPU), some pods took longer than 75s and
 were killed and restarted mid-boot by kubelet before they ever became
@@ -78,20 +77,20 @@ that one fixed pool of real hardware, not independent hardware the way
 replicas would on a real multi-node cluster. Each replica is a full JVM
 plus, per job, a `ProcessBuilder` subprocess that starts a Python
 interpreter and imports pandas/numpy/xgboost/scikit-learn --
-Task 9.4 (`docs/bottleneck-identification.md`) already measured that
+`docs/bottleneck-identification.md` already measured that
 exact spawn-and-import cost directly and found it dominates real
 per-unit work, non-parallelizable overhead that does not shrink no
 matter how many workers run it concurrently. At 8 replicas, up to 8 of
 those heavy imports can be starting at once on the same 12 real cores
-while 8 JVMs are also live -- the same root cause Task 9.4 already
+while 8 JVMs are also live -- the same root cause already
 identified for `multiprocessing.Pool` workers, now reproduced in a
 completely different mechanism (Kubernetes Deployment replicas around a
 shared Redis queue instead of a local process pool), on the same real
 machine.
 
-## What this means for Task 11.4
+## What this means for autoscaling
 
-Configuring autoscaling on Redis queue depth (Task 11.4) needs a real
+Configuring autoscaling on Redis queue depth needs a real
 maximum-replica ceiling informed by this data, not an arbitrarily high
 one: this benchmark's own machine gets strictly worse past 2 replicas.
 A production multi-node cluster would not necessarily hit the same
@@ -102,5 +101,5 @@ this task actually had to verify against.
 ## What this document does not define
 
 Configuring the actual autoscaler (min/max replicas, scale-up
-threshold, scale-down behavior) is Task 11.4's job. Running the full
-Kubernetes benchmark suite is Task 11.5's.
+threshold, scale-down behavior) is one later task. Running the full
+Kubernetes benchmark suite is another.

@@ -104,12 +104,6 @@ def parse_era5_records(nc_path: Path) -> list[ERA5Record]:
 
     frame = dataset.to_dataframe().reset_index()
 
-    # Column-wise, not frame.iterrows(): iterrows builds a pandas Series
-    # per row and took ~48 s for one month of cutoff hours over California
-    # (~51k rows) -- too slow for a forecast request, which parses the
-    # cutoff's monthly history file. Values, types, validation and the
-    # source_record strings are exactly the old loop's (test_era5.py
-    # compares both, on a real history file when one is present).
     time_column = "valid_time" if "valid_time" in frame.columns else "time"
     columns = {
         name: frame[name].to_numpy()
@@ -127,8 +121,6 @@ def parse_era5_records(nc_path: Path) -> list[ERA5Record]:
         if not -180 <= longitude <= 180:
             raise ValueError(f"Invalid longitude: {longitude}")
 
-        # float() first: iterrows upcast each row to float64, so the old
-        # source_record strings are float64 reprs, not float32 ones.
         values = {
             name: float(columns[name][index])
             for name in ("t2m", "tp", "u10", "v10", "d2m")

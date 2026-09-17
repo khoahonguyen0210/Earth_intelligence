@@ -1,9 +1,6 @@
 import json
 import sys
 
-# Task 13.2: the same success shape as well_behaved_forecast_stub.py, plus
-# the timings_ms object the real pipeline (query/run_forecast.py) reports
-# beside its result, including one malformed entry the runner must drop.
 json.loads(sys.stdin.read())
 print(json.dumps({
     "result": {"ok": True},

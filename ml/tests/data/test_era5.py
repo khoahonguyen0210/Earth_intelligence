@@ -16,8 +16,6 @@ from ai_earth_intelligence_and_forecasting_engine.data.era5 import (
     relative_humidity_percent,
 )
 
-# A real monthly file from scripts/data/download_era5_history.py; data/ is not
-# in git, so the real-data comparison below skips when it is absent.
 REAL_ERA5_PATH = Path("data/raw/era5/history/era5_land_2020_08.nc")
 
 
@@ -231,9 +229,6 @@ def test_parse_era5_records_matches_the_row_by_row_parser(tmp_path):
     not REAL_ERA5_PATH.exists(), reason="real ERA5 history not downloaded"
 )
 def test_parse_era5_records_matches_the_row_by_row_parser_on_real_data(tmp_path):
-    # Two cutoff hours of a real monthly California file: the real dtypes,
-    # coordinate order and land mask, without the row-by-row parser's ~48 s
-    # on the whole month.
     nc_path = tmp_path / "era5_real_slice.nc"
     with xr.open_dataset(REAL_ERA5_PATH) as dataset:
         dataset.isel(valid_time=slice(0, 2)).to_netcdf(nc_path)
@@ -245,8 +240,6 @@ def test_parse_era5_records_matches_the_row_by_row_parser_on_real_data(tmp_path)
 
 
 def _same_records(left: list[ERA5Record], right: list[ERA5Record]) -> bool:
-    # NaN != NaN, so compare float fields by their repr (identical floats,
-    # including NaN, have identical reprs) and everything else directly.
     def key(record: ERA5Record) -> tuple:
         return (
             record.latitude,

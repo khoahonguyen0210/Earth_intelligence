@@ -36,11 +36,6 @@ def _row(tile_id: str, target: int, split: str = "train") -> DatasetRow:
     )
 
 
-# Hand-verified fixture:
-#   tile A: 3 positive out of 4 training rows -> rate 0.75
-#   tile B: 1 positive out of 5 training rows -> rate 0.2
-#   tile C: 0 positive out of 2 training rows -> rate 0.0
-#   overall: 4 positive out of 11 rows -> global rate 4/11
 TRAIN_ROWS = (
     [_row("tile-A", 1) for _ in range(3)]
     + [_row("tile-A", 0)]
@@ -88,9 +83,6 @@ def test_predict_climatology_falls_back_to_global_rate_for_unseen_tile():
 
 
 def test_evaluate_climatology_never_uses_test_rows_to_fit():
-    # tile-D only exists in the test set, so climatology has no training
-    # signal for it and must fall back to the global rate -- proving the
-    # model does not peek at test targets while fitting.
     test_rows = [_row("tile-D", 1, split="test"), _row("tile-D", 0, split="test")]
 
     model, predictions, _metrics = evaluate_climatology(TRAIN_ROWS, test_rows)

@@ -15,17 +15,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * End to end: the real application on a random port, real
- * Postgres (same `docker compose up -d` stack as BackendApplicationTests),
- * the real ServerPort event wiring (not the unit tests' setForTest) --
- * proving PythonEarthQueryRunner really learns this app's own randomly
- * bound port and passes it to the subprocess as
- * ASK_EARTH_BACKEND_BASE_URL, exactly as a real run_forecast/
- * get_result_evidence step would need. The stub script stands in for the
- * real planner/dispatch pipeline (which needs a live Gemini key); that
- * pipeline is ml/tests/query/test_run_ask_earth.py's own job.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class EarthQueryIntegrationTest {
 

@@ -4,28 +4,6 @@ import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
 import java.util.Map;
 
-/**
- * Unlike AnalysisOutcome, there is no separate evidence slot here: per
- * docs/forecast-api-contract.md, evidence is nested inside result itself
- * (the Python side's forecast_result_to_dict already embeds it), not a
- * sibling field.
- *
- * A failure additionally says whether it is transient -- a dependency
- * problem (couldn't start the Python process, it timed out) that a
- * retry might resolve -- versus permanent -- a problem with this
- * particular request/data that retrying would only reproduce. Only
- * ForecastWorker acts on the distinction (see docs/forecast-retry-and-idempotency.md);
- * a successful outcome is never transient.
- *
- * A failure also carries a stable ErrorCode for the structured logs. It
- * is not persisted or returned by the API -- the human-readable error
- * text still is, unchanged.
- *
- * A success may carry the Python pipeline's own per-stage wall-clock
- * timings (`timings_ms`: data_load, model_fit, model_inference, total),
- * which ForecastWorker records as metrics. Like errorCode, they are
- * never persisted or returned to API clients.
- */
 public record ForecastOutcome(
         boolean success,
         Object result,
@@ -50,11 +28,7 @@ public record ForecastOutcome(
         return new ForecastOutcome(false, null, error, true, errorCode, Map.of());
     }
 
-    /**
-     * The same outcome with its error text passed through the redactor
-     * -- the text is Python's/stderr's, not the backend's, and it is
-     * stored and returned to API clients, not only logged.
-     */
+    // The redacted error text is stored and returned to API clients, not only logged.
     public ForecastOutcome redacted(SecretRedactor redactor) {
         return error == null
                 ? this

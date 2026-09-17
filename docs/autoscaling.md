@@ -1,11 +1,11 @@
 # Autoscaling — LOCKED
 
-This document freezes Redis-queue-depth autoscaling per Task 11.4 of
-the Execution Handbook. It is not a brainstorming document. It scales
+This document freezes Redis-queue-depth autoscaling. It is not a
+brainstorming document. It scales
 `backend` (the folded backend+worker role, `docs/kubernetes-
 manifests.md`) on real queue depth, verified against the real kind
-cluster Task 11.2 deployed and informed directly by Task 11.3's own
-measured data, not a fresh guess at reasonable-sounding numbers.
+cluster already deployed and informed directly by measured data
+already gathered, not a fresh guess at reasonable-sounding numbers.
 
 ## Why KEDA
 
@@ -27,7 +27,7 @@ kubectl apply --server-side -f https://github.com/kedacore/keda/releases/downloa
 ```text
 trigger:            redis, address redis.default.svc.cluster.local:6379,
                      listName "forecast-jobs" (RedisForecastQueue.java's
-                     real queue key, Task 6.5)
+                     real queue key)
 listLength:         1   -- scale-up threshold: any single job still
                            queued (not yet picked up) drives scale-up
 minReplicaCount:    1
@@ -43,11 +43,11 @@ to zero on an empty queue, but `backend` also serves the HTTP API
 worker Deployment to scale independently) -- scaling to zero here would
 take the whole API down every time the forecast queue is empty, which
 is most of the time. This is a direct, structural consequence of the
-architecture decision Task 10.1/11.1 already locked, not a new choice
+architecture decision already locked earlier, not a new choice
 made freely in this task.
 
-**`maxReplicaCount` is 2, not higher, because Task 11.3 measured this
-exact cluster and found out that a higher ceiling would be wrong.**
+**`maxReplicaCount` is 2, not higher, because measuring this
+exact cluster found out that a higher ceiling would be wrong.**
 `docs/worker-replica-scaling.md` ran the real fixed workload at 1/2/4/8
 replicas on this same kind cluster and found throughput peaks at 2
 replicas (0.156 jobs/s) then gets *worse* than the 1-replica baseline by
@@ -92,4 +92,4 @@ flapping between 1 and 2.
 
 ## What this document does not define
 
-Running the Kubernetes benchmark suite end to end is Task 11.5's job.
+Running the Kubernetes benchmark suite end to end is a separate job, still to come.

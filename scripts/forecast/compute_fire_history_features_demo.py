@@ -20,9 +20,6 @@ METADATA_OUTPUT_PATH = Path(
     "data/processed/forecast/fire_history_features_sample_metadata.json"
 )
 
-# A cutoff at the end of the sample day: the (cutoff-24h, cutoff] window
-# covers the entirety of 2024-08-15, so previous_24h_count reflects the
-# whole real sample.
 CUTOFF = datetime(2024, 8, 16, 0, 0, tzinfo=timezone.utc)
 
 

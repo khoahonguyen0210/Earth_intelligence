@@ -18,13 +18,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * PythonForecastRunner's timeout/kill and transient-vs-permanent
- * classification, exercised against the real python interpreter (the same
- * assumption forecast.python.executable already makes, per
- * application.properties) and tiny fixture scripts under
- * src/test/resources, rather than the full forecast pipeline.
- */
 class PythonForecastRunnerTest {
 
     private static final ForecastRequest REQUEST = new ForecastRequest(

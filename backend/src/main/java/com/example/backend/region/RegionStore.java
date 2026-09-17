@@ -10,18 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * Durable history of the regions real requests have actually resolved to
- * -- named ("california"), a grid cell ("coordinates"), or a raw bbox --
- * read off the same evidence.region_kind/region_label/region_bbox shape
- * query.evidence.build_evidence already attaches to every analysis,
- * forecast, and Ask Earth fact (docs/persistence-schema.md's "regions"
- * table, previously schema-only). One row per distinct region: repeat
- * requests upsert the same id instead of growing this table per call.
- * Geometry is a PostGIS rectangle built with ST_MakeEnvelope, matching
- * how query.region.normalize_region already turns every region kind
- * into a bbox polygon on the Python side.
- */
 @Component
 public class RegionStore {
 
@@ -38,11 +26,6 @@ public class RegionStore {
         return new RegionStore(null);
     }
 
-    /**
-     * Best-effort: evidence comes from the Python subprocess boundary, so
-     * a missing or malformed region shape is logged and skipped rather
-     * than allowed to fail a request that already succeeded.
-     */
     public void recordFrom(Object evidence) {
         if (jdbcTemplate == null || !(evidence instanceof Map<?, ?> map)) {
             return;

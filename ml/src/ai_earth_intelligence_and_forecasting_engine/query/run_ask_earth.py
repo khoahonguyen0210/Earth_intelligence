@@ -1,23 +1,3 @@
-"""The real natural-language-question pipeline the "Ask Earth" page
-needs -- PROJECT_BIBLE's own product definition ("a user asks a
-natural-language question about Earth... the system identifies scope,
-retrieves data, executes a validated analysis, returns an
-evidence-backed answer"), wired end to end:
-
-    question -> generate_plan (Gemini)
-             -> validate_plan_or_raise (generate_plan already calls
-                this; a plan that fails validation never reaches
-                execute_plan)
-             -> execute_plan (this module's own dispatch.py)
-             -> generate_answer (Gemini, grounded only in the real
-                outputs execute_plan produced)
-
-Mirrors run_analysis.py/run_forecast.py's own shape: one function taking
-the real dependencies as parameters (a genai.Client, a Backend), no
-hidden global state, easy to call from a CLI or a test with a fake
-client/backend.
-"""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -42,10 +22,7 @@ if TYPE_CHECKING:
 
 def _step_results(plan: Plan, execution: PlanExecution) -> dict[str, StepResult]:
     """Every step that produced an output, as generate_answer's own
-    StepResult shape. generate_answer's _assemble_facts already excludes
-    tools with no entry in RESULT_CATEGORY_BY_TOOL (resolve_region,
-    get_result_evidence -- plumbing, not facts about the world), so this
-    does not need to filter by tool itself."""
+    StepResult shape."""
     return {
         step.step_id: StepResult(
             step_id=step.step_id,

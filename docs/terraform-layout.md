@@ -1,14 +1,14 @@
 # Terraform Layout — LOCKED
 
-This document freezes the Terraform layout per Task 12.2 of the Execution
-Handbook. It is not a brainstorming document. The code implements
-exactly the deployment `docs/cloud-deployment.md` (Task 12.1) locked;
-Task 12.3 runs `init`/`plan`/`apply` against it, and nothing here has
+This document freezes the Terraform layout. It is not a
+brainstorming document. The code implements
+exactly the deployment `docs/cloud-deployment.md` locked;
+a later step runs `init`/`plan`/`apply` against it, and nothing here has
 been applied yet.
 
 ## Status: written and validated, not applied
 
-Tasks 12.3-12.5 (provision, deploy, cloud benchmark) are **deferred, not
+Provisioning, deploying, and the cloud benchmark are **deferred, not
 done**. Running them needs a live AWS account and costs about
 $0.40/hour while the environment is up (`docs/cloud-deployment.md`,
 cost section), and the project owner chose not to take that on for now.
@@ -17,15 +17,15 @@ So, stated plainly:
 ```text
 done       Terraform for the full locked deployment; fmt/validate/lock pass;
            Trivy static scan clean apart from one accepted finding
-not done   terraform plan/apply against a real account; the Task 12.4 code
-           gaps (S3 client, frontend API base URL, Redis TLS); any cloud
+not done   terraform plan/apply against a real account; the cloud-manifest
+           code gaps (S3 client, frontend API base URL, Redis TLS); any cloud
            measurement
 ```
 
 No cloud runtime, throughput, or cost number exists for this project,
 and none may be claimed. The local Kubernetes results
 (`docs/kubernetes-benchmark.md`) are the latest measured deployment
-results. Resuming later is exactly Task 12.3's steps below, starting
+results. Resuming later is exactly the steps below, starting
 from the one-time state-bucket bootstrap; nothing here needs rewriting
 first.
 
@@ -50,7 +50,7 @@ infra/terraform/
         ├── providers.tf          aws (default tags), helm (exec token auth)
         ├── variables.tf          locked values as defaults
         ├── main.tf               wires the eight modules together
-        ├── outputs.tf            every value Task 12.4's manifests need
+        ├── outputs.tf            every value the cloud manifests need
         ├── backend.hcl.example   state bucket name template (real file gitignored)
         └── .terraform.lock.hcl   provider hashes for windows/linux/darwin
 ```
@@ -102,11 +102,11 @@ EKS add-on versions (`vpc-cni`, `coredns`, `kube-proxy`,
 default `most_recent = true` resolves the newest version AWS publishes
 as compatible with the cluster's 1.36 at apply time. Pinning them would
 require querying `aws eks describe-addon-versions` against a real
-account, which Task 12.3 is the first task to have. That is also where
-the CloudWatch add-on's >= v3.1.0 requirement for Pod Identity is
-confirmed, not assumed.
+account, and a real account is not available until the environment is
+actually provisioned. That is also where the CloudWatch add-on's
+>= v3.1.0 requirement for Pod Identity is confirmed, not assumed.
 
-## Decisions the code had to make that Task 12.1 did not
+## Decisions the code had to make that the deployment design did not
 
 **One root, Helm provider included.** The Helm provider authenticates
 with `aws eks get-token` (an exec plugin), against the cluster this same
@@ -140,7 +140,7 @@ on "already exists". The control-plane log group gets the same 30 days.
 
 **ElastiCache replication group, not a plain cache cluster.** Redis OSS
 in-transit encryption requires a replication group. `num_cache_clusters
-= 1` keeps it the single node Task 12.1 locked. Snapshots are off,
+= 1` keeps it the single node already locked. Snapshots are off,
 because the queue only holds in-flight job ids and job state lives in
 Postgres.
 
@@ -149,13 +149,13 @@ group ID is unknown until the cluster exists, and `for_each` keys must
 be known at plan time.
 
 **Immutable ECR tags.** A pushed tag can never be overwritten, so a
-running deployment's image cannot change underneath it. Task 12.4
-therefore tags each push with the git commit SHA, never a reused
-`latest`.
+running deployment's image cannot change underneath it. The cloud
+manifests therefore tag each push with the git commit SHA, never a
+reused `latest`.
 
-**Teardown is a first-class operation.** Task 12.1 locked "bring up,
-measure, `terraform destroy`" because the EKS control plane and NAT
-gateway bill by the hour. So nothing blocks a destroy:
+**Teardown is a first-class operation.** The deployment design locked
+"bring up, measure, `terraform destroy`" because the EKS control plane
+and NAT gateway bill by the hour. So nothing blocks a destroy:
 
 ```text
 RDS            skip_final_snapshot = true, deletion_protection = false
@@ -172,8 +172,9 @@ It is not a production-data posture.
 
 ## Validation actually run
 
-Terraform is not installed natively on this machine (Task 12.1's tooling
-check). Every check below ran in the official `hashicorp/terraform:1.16.4`
+Terraform is not installed natively on this machine (already noted in
+the deployment design's tooling check). Every check below ran in the
+official `hashicorp/terraform:1.16.4`
 container instead, against the real providers and modules downloaded
 from the registry:
 
@@ -182,7 +183,7 @@ terraform fmt -check -recursive                 -> exit 0
 terraform init -backend=false                   -> providers + 3 modules installed
 terraform validate                              -> Success! The configuration is valid.
 terraform providers lock -platform=windows_amd64 -platform=linux_amd64 -platform=darwin_arm64
-                                                -> lock file usable natively on Windows (Task 12.3)
+                                                -> lock file usable natively on Windows
 ```
 
 A static security scan also ran (`aquasec/trivy config`, HIGH/CRITICAL,
@@ -191,7 +192,7 @@ downloaded third-party modules excluded):
 ```text
 first run    3 findings -- AWS-0031 x2 (mutable ECR tags), AWS-0132 (S3 without CMK)
 fixed        AWS-0031: image_tag_mutability = "IMMUTABLE" (see above)
-accepted     AWS-0132: SSE-S3, as Task 12.1 locked. A customer-managed KMS
+accepted     AWS-0132: SSE-S3, as already locked. A customer-managed KMS
              key would add a monthly key cost plus per-request KMS charges,
              and kms:Decrypt/GenerateDataKey on the backend role, for no
              requirement this project has (no key-policy or cross-account
@@ -202,13 +203,13 @@ final run    1 finding in this repository's code (the accepted AWS-0132)
 
 What `validate` cannot check without an AWS account (credentials,
 quotas, instance-type availability in `us-west-2`'s chosen AZs, the RDS
-engine minor resolved from `"16"`) is exactly what Task 12.3's reviewed
-`terraform plan` is for.
+engine minor resolved from `"16"`) is exactly what a reviewed
+`terraform plan` against a real account is for.
 
-## Before Task 12.3's first `terraform init`
+## Before the first real `terraform init`
 
-Two one-time steps outside Terraform, both documented here so Task 12.3
-runs them rather than improvising:
+Two one-time steps outside Terraform, both documented here so the
+first real run follows them rather than improvising:
 
 ```bash
 # 1. Install the AWS CLI and Terraform (or keep using the container), then
@@ -238,7 +239,7 @@ aws secretsmanager put-secret-value --secret-id ai-earth/firms \
   --secret-string '{"map_key":"<real FIRMS map key>"}'
 ```
 
-## Outputs -> Task 12.4
+## Outputs -> the cloud manifests
 
 `environments/production/outputs.tf` exposes every value the cloud
 manifests need, so none is hardcoded a second time
@@ -262,6 +263,6 @@ kubeconfig_command                     -> local kubectl access
 - No Kubernetes application objects: the cloud copies of the backend and
   frontend Deployments, the `backend` ServiceAccount, the Ingress, the
   `ClusterSecretStore`/`ExternalSecret`, and the TLS-enabled KEDA
-  `ScaledObject` are Task 12.4's. That keeps application rollouts
+  `ScaledObject` are the cloud manifests'. That keeps application rollouts
   (`kubectl apply`) separate from infrastructure changes (`terraform apply`).
-- No `plan`/`apply` output. That is Task 12.3's, after reviewing the plan.
+- No `plan`/`apply` output. That comes later, after reviewing the plan.

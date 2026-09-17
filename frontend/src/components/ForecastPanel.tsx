@@ -6,11 +6,6 @@ import { ForecastRequestForm } from "./ForecastRequestForm";
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 
-// Four display states. The backend's real
-// Forecast.Status carries two extra values folded in below: RETRYING is
-// still waiting for its next attempt, so it reads as "queued" rather than
-// "running"; CANCELLED (unreachable today -- no cancel endpoint exists)
-// folds into "failed" since it is equally a non-success terminal state.
 type DisplayStatus = "queued" | "running" | "completed" | "failed";
 
 function toDisplayStatus(backendStatus: string): DisplayStatus {
@@ -31,10 +26,6 @@ function isTerminalStatus(backendStatus: string): boolean {
   return backendStatus === "SUCCEEDED" || backendStatus === "FAILED" || backendStatus === "CANCELLED";
 }
 
-// Distinct shapes, not just distinct colors, so status never reads by hue
-// alone (dataviz skill): a glyph + a text label + the real backend status
-// name, using the skill's reserved status palette (good/warning/serious/
-// critical).
 const STATUS_BADGE: Record<DisplayStatus, { glyph: string; color: string; label: string }> = {
   queued: { glyph: "…", color: "#ec835a", label: "Queued" },
   running: { glyph: "▶", color: "#fab219", label: "Running" },
@@ -63,19 +54,9 @@ function StatusBadge({ backendStatus }: { backendStatus: string }) {
 }
 
 interface ForecastPanelProps {
-  /** Test-only seam: production always uses the real 2s interval. */
   pollIntervalMs?: number;
 }
 
-/**
- * The real job-status UI: submit a forecast job
- * (POST /forecasts), poll its real status until a terminal state, then
- * render its real result (ForecastMap) or its real error --
- * never a fabricated progress percentage. This is the direct, async
- * /forecasts path, independent of Ask Earth's own embedded run_forecast
- * step, which already polls to a terminal state server-side before a
- * `/queries` response is ever sent.
- */
 export function ForecastPanel({ pollIntervalMs = DEFAULT_POLL_INTERVAL_MS }: ForecastPanelProps) {
   const [forecastId, setForecastId] = useState<string | null>(null);
   const [backendStatus, setBackendStatus] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-# Everything Task 12.4's cloud manifests need (docs/cloud-deployment.md,
+# Everything the cloud manifests need (docs/cloud-deployment.md,
 # "Gaps the code must close", items 4-7), so no value is hardcoded twice.
 
 output "region" {

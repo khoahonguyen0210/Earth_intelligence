@@ -1,16 +1,5 @@
 package com.example.backend.logging;
 
-/**
- * Stable, machine-readable failure codes for the structured logs'
- * `error_code` field. The human-readable error text still goes to
- * the API response and the database unchanged; these exist so a log
- * query can count or alert on a failure *kind* without pattern-matching
- * free text that embeds paths, exit codes, or Python messages.
- *
- * Named after where the failure happened in the Python subprocess
- * bridge (PythonForecastRunner/PythonAnalysisRunner), the only place
- * either pipeline can currently fail.
- */
 public enum ErrorCode {
     /** The Python process could not be started or written to (IOException). */
     PYTHON_START_FAILED,
@@ -24,10 +13,5 @@ public enum ErrorCode {
     OUTPUT_PARSE_FAILED,
     /** stdout/stderr could not be read back from the process. */
     OUTPUT_READ_FAILED,
-    /**
-     * The worker running an attempt stopped before finishing it (process
-     * killed, pod lost, or its database write failed) -- found by
-     * ForecastRecovery, never by the worker itself.
-     */
     WORKER_LOST
 }

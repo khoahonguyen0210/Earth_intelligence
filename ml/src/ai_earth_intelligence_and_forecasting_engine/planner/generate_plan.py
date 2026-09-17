@@ -19,19 +19,6 @@ if TYPE_CHECKING:
 
 MODEL = "gemini-3.1-flash-lite"
 
-# The whole plan is one structured-output JSON document, not a live
-# tool-calling loop: docs/PROMPT_SYSTEM.md's flow is "LLM -> structured
-# plan -> validator -> workflow" -- the entire plan exists before
-# anything executes, so a step that needs an earlier step's real value
-# (not known yet) uses the $step_id.field string convention
-# (planner.validator._STEP_REF_PATTERN) instead of a literal.
-#
-# `input` is intentionally left as a bare object here, not validated
-# per-tool at this layer: validate_plan_or_raise is what actually checks
-# a step's input against its specific tool's schema. Keeping this outer
-# schema loose and letting the deterministic validator do the real
-# enforcement is the point of the LLM -> validator boundary -- not a gap
-# to close here.
 PLAN_OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -94,13 +81,8 @@ _SYSTEM_PROMPT = _build_system_prompt()
 def _to_gemini_schema(schema: Any) -> Any:
     """Gemini's response_schema is a restricted, OpenAPI-3.0-style
     dialect that does not support the "additionalProperties" keyword at
-    all -- a real incompatibility discovered against the live API
-    (unlike OpenAI, which *requires* it under strict structured output,
-    Gemini rejects the request outright if it is present). PLAN_OUTPUT_
-    SCHEMA is authored as an ordinary JSON Schema -- this strips the one
-    keyword Gemini's dialect cannot parse before it is sent as
-    response_schema, without changing the schema used everywhere else
-    (documentation, the tool-enum test)."""
+    all. This strips that one keyword before the schema is sent as
+    response_schema, without changing the schema used everywhere else."""
     if isinstance(schema, dict):
         return {
             key: _to_gemini_schema(value)
@@ -113,19 +95,11 @@ def _to_gemini_schema(schema: Any) -> Any:
 
 
 def _gemini_plan_schema() -> dict[str, Any]:
-    """PLAN_OUTPUT_SCHEMA's `input` is deliberately a bare, tool-agnostic
-    object (see its own docstring above) so the validator does the real
-    per-tool enforcement, not this schema. Gemini's schema-constrained
-    decoding takes an object schema with no declared properties
-    literally, though: it always emits an empty object for it rather
-    than filling it in from prompt context (confirmed against the live
-    API -- every current model, not a weak-model quirk). Substituting the
-    union of every real tool's already-defined input_schema (the same
-    TOOL_SCHEMAS objects the validator checks against, and the same ones
-    already rendered as text in the system prompt) fixes this without
-    loosening or duplicating real validation: Gemini gets a concrete
-    shape to aim for per tool, but the validator still re-validates the
-    result against the specific tool each step actually names."""
+    """Gemini's schema-constrained decoding takes an object schema with
+    no declared properties literally: it always emits an empty object
+    for it rather than filling it in from prompt context. Substituting
+    the union of every real tool's input_schema fixes this without
+    loosening or duplicating real validation."""
     schema = _to_gemini_schema(PLAN_OUTPUT_SCHEMA)
     schema["properties"]["steps"]["items"]["properties"]["input"] = {
         "anyOf": [_to_gemini_schema(tool.input_schema) for tool in TOOL_SCHEMAS]
@@ -156,15 +130,12 @@ def parse_plan(question: str, payload: dict[str, Any]) -> Plan:
 
 def generate_plan(question: str, client: genai.Client) -> Plan:
     """Natural language -> LLM -> structured plan -> validator
-    (validate_plan_or_raise) -- docs/PROMPT_SYSTEM.md's planner flow.
-    The LLM cannot bypass the validator: there is no path in this
-    function that returns a Plan which has not already passed
-    validate_plan_or_raise. An invalid plan raises ValueError here; it
-    is never handed to a workflow unchecked.
+    (validate_plan_or_raise). The LLM cannot bypass the validator: there
+    is no path in this function that returns a Plan which has not
+    already passed validate_plan_or_raise. An invalid plan raises
+    ValueError here.
 
-    An overlong question is refused before the model is ever called --
-    the validator would reject its plan anyway, and the call itself is
-    the cost.
+    An overlong question is refused before the model is ever called.
     """
     if len(question) > MAX_QUESTION_CHARS:
         raise ValueError(f"question exceeds {MAX_QUESTION_CHARS} characters")
@@ -182,9 +153,6 @@ def generate_plan(question: str, client: genai.Client) -> Plan:
     try:
         text = response.text
     except ValueError as exc:
-        # The SDK's `.text` accessor itself raises ValueError when a
-        # response has no text part -- e.g. blocked by a safety filter --
-        # rather than exposing a separate refusal field to check first.
         raise ValueError(f"the planner refused to answer: {exc}") from exc
 
     if not text:

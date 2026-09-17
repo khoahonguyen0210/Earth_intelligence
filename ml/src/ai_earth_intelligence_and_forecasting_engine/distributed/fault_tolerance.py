@@ -17,9 +17,6 @@ from ai_earth_intelligence_and_forecasting_engine.distributed.workload import (
     DistributedWorkload,
 )
 
-# How often the dispatcher polls pending results for readiness/timeout --
-# short enough that detection latency does not meaningfully distort a
-# measured recovery time, long enough not to busy-loop the parent.
 POLL_INTERVAL_SECONDS = 0.05
 
 
@@ -75,25 +72,6 @@ def run_with_fault_tolerance(
     max_retries: int,
     inject_crash_in_chunk: int | None = None,
 ) -> FaultTolerantRunResult:
-    """A controlled distributed run with one chunk's worker killed
-    mid-task (inject_crash_in_chunk), verifying that the failure is
-    detected, the task is retried, no final result is lost, and every
-    chunk reaches a correct terminal state -- plus the real time
-    recovery took.
-
-    Dispatches every chunk via apply_async (not a plain Pool.map):
-    a crashed worker's task must be individually retried without
-    waiting for or losing every other chunk's real, already-completed
-    result, which a single blocking Pool.map call cannot do.
-    Failure is detected via a timeout, not an exception: confirmed
-    against the real interpreter (see process_chunk's own docstring),
-    a worker terminating via os._exit leaves its AsyncResult simply
-    never completing -- Python's Pool raises no distinct "worker died"
-    exception -- so a bounded wait is the only real signal available.
-    The pool itself survives a worker's death (also confirmed directly):
-    Python replaces the dead worker, so a retried task dispatched to the
-    same pool genuinely succeeds once it lands on a live worker.
-    """
     chunks = chunk_tile_ids(workload.tile_ids, num_workers)
 
     with Pool(processes=len(chunks)) as pool:

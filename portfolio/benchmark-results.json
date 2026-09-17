@@ -1,6 +1,6 @@
 {
   "ml_benchmark": {
-    "source": "docs/final-ml-benchmark.md",
+    "source": "docs/ml-benchmark.md",
     "dataset_version": "v1",
     "results": {
       "climatology":         {"pr_auc": 0.2522, "roc_auc": 0.8616, "brier_score": 0.0026, "log_loss": 0.0341, "training_time_seconds": 0.6419, "inference_time_seconds": 0.0818},
@@ -10,7 +10,7 @@
     }
   },
   "ablation_benchmark": {
-    "source": "docs/final-ablation-benchmark.md",
+    "source": "docs/ablation-benchmark.md",
     "results": {
       "fire_history_only":                        {"pr_auc": 0.3559, "roc_auc": 0.9119, "brier_score": 0.0025, "log_loss": 0.0173},
       "fire_history_plus_weather":                 {"pr_auc": 0.3703, "roc_auc": 0.9002, "brier_score": 0.0024, "log_loss": 0.0179},
@@ -24,7 +24,7 @@
     }
   },
   "distributed_benchmark": {
-    "source": "docs/final-distributed-benchmark.md",
+    "source": "docs/distributed-benchmark.md",
     "scaling": {
       "1": {"wall_seconds": 0.851, "throughput_tiles_per_second": 587.49, "speedup": 1.000, "efficiency": 1.000},
       "2": {"wall_seconds": 9.488, "throughput_tiles_per_second": 52.70,  "speedup": 0.090, "efficiency": 0.045},
@@ -40,7 +40,7 @@
     }
   },
   "planner_benchmark": {
-    "source": "docs/final-planner-benchmark.md",
+    "source": "docs/planner-accuracy-benchmark.md",
     "total_cases": 14,
     "results": {
       "intent_correctness": 1.0,

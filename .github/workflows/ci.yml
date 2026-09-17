@@ -83,7 +83,7 @@ jobs:
         run: npm test
 
 
-  # Task 13.4: dependency vulnerabilities (Maven, uv, npm) and committed
+  # Dependency vulnerabilities (Maven, uv, npm) and committed
   # secrets, with the same script developers run locally
   # (docs/security-baseline.md).
   security:

@@ -21,14 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * The Ask Earth page's real backend -- a natural-language
- * question in, a real plan executed against real data, a grounded answer
- * out. Synchronous like AnalysisController (no queue): the request
- * thread blocks for PythonEarthQueryRunner's one subprocess call, which
- * itself may include a run_forecast step polled to completion.
- * See docs/ask-earth.md.
- */
 @RestController
 public class EarthQueryController {
 

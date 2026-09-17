@@ -1,20 +1,20 @@
 # Final Ablation Benchmark — LOCKED
 
-This document records Task 16.3, the third task of Phase 16. It is not
+This document records the final ablation benchmark. It is not
 a brainstorming document.
 
-Task 16.3 asks for a three-way feature-ablation comparison: fire
+This task asks for a three-way feature-ablation comparison: fire
 history alone, fire history + weather, fire history + weather +
-geography. As with Task 16.2, the original ablation demo scripts
+geography. As with the final ML benchmark, the original ablation demo scripts
 (`scripts/models/run_weather_ablation.py` /
-`run_geography_ablation.py`, Tasks 5.1/5.2) predate the real historical
+`run_geography_ablation.py`) predate the real historical
 dataset and their own docstrings say so -- zero real positive examples
 in the sample data's train/validation splits. This task adds
-`scripts/models/run_final_ablation_benchmark.py`, which loads the real
+`scripts/models/run_ablation_benchmark.py`, which loads the real
 dataset (`data/processed/historical_dataset_v1.csv`) and calls the
 frozen, unmodified `models/ablation.py::run_weather_ablation` /
-`run_geography_ablation` (`benchmark-v1`) -- same protocol as Task
-16.2: the comparison logic is untouched, only the data changed.
+`run_geography_ablation` (`benchmark-v1`) -- same protocol as before:
+the comparison logic is untouched, only the data changed.
 
 ## Results
 
@@ -45,19 +45,19 @@ consistent with wildfire risk depending heavily on static terrain
 flat agricultural ones) in a way recent fire counts and short-term
 weather cannot substitute for.
 
-**Cross-check against Task 16.2.** The third row here
+**Cross-check against the final ML benchmark.** The third row here
 (`fire_history_plus_weather_plus_geography`) uses the exact same
-feature columns, model config, and data as Task 16.2's `xgboost` row --
+feature columns, model config, and data as the final ML benchmark's `xgboost` row --
 and the two independently-run numbers match exactly (PR-AUC 0.4513,
 ROC-AUC 0.9669 in both), the same determinism
-`test_production_model.py` (Task 15.4) already proved for the fixed
+`test_production_model.py` already proved for the fixed
 `random_state`.
 
 ## What this task does not do
 
 - **Does not change `models/ablation.py`.** On the `benchmark-v1`
   frozen list, used exactly as frozen; only a new data-loading script
-  was added, the same pattern as Task 16.2.
+  was added, the same pattern as the final ML benchmark.
 - **Does not re-run `ml/tests/models/test_ablation.py`'s own synthetic,
   separable-data proof** that weather/geography features measurably
   help *when the signal is designed to be there* -- that test's job is

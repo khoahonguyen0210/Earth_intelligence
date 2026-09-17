@@ -1,19 +1,13 @@
 """The final ML benchmark, against the real historical
 dataset (data/processed/historical_dataset_v1.csv), not the tiny
-sample data scripts/models/run_final_benchmark.py used.
+sample data scripts/models/run_baseline_benchmark.py used.
 
-That earlier run predates the real historical dataset entirely (its
-own docstring: "only climatology can currently succeed against real
-data -- the training/validation splits have zero real positive
-examples"). The real dataset has since been built
-(scripts/forecast/build_historical_dataset.py) and already backs the
-production model (scripts/models/train_production_model.py); this
-script runs the same benchmark-v1-frozen comparison
-(models/benchmark.py::run_baseline_benchmark, unchanged) against it,
-producing the first real PR-AUC/ROC-AUC/Brier/log-loss/inference-time
-comparison across all four locked models.
+Runs the same benchmark-v1-frozen comparison
+(models/benchmark.py::run_baseline_benchmark) against it, producing
+PR-AUC/ROC-AUC/Brier/log-loss/inference-time across all four locked
+models.
 
-    python scripts/models/run_final_ml_benchmark.py
+    python scripts/models/run_ml_benchmark.py
 """
 
 from pathlib import Path

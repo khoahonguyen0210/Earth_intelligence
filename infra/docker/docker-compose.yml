@@ -50,7 +50,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # Task 13.3: local trace viewer. Jaeger v2 receives the backend's
+  # Local trace viewer. Jaeger v2 receives the backend's
   # OTLP/HTTP spans on 4318 and serves its UI on 16686
   # (http://localhost:16686, service "backend"). In-memory storage: traces
   # are for looking at while developing, not kept. See docs/tracing.md.
@@ -62,8 +62,8 @@ services:
       - "4318:4318"
       - "16686:16686"
 
-  # Task 10.1/10.2: one image plays the handbook's "backend" and
-  # "python-worker" roles -- Task 6.2's PythonForecastRunner/
+  # One image plays the "backend" and
+  # "python-worker" roles -- PythonForecastRunner/
   # PythonAnalysisRunner bridge to Python via a same-machine
   # ProcessBuilder subprocess call, not a network call, so there is no
   # separate networked worker service to containerize on its own. See
@@ -81,9 +81,9 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    # FIRMS_MAP_KEY (data.firms's real NASA FIRMS credential, Task 1.2) --
+    # FIRMS_MAP_KEY (data.firms's real NASA FIRMS credential) --
     # the same local, gitignored .env every scripts/*.py already reads via
-    # python-dotenv. ProcessBuilder (Task 6.2) inherits the JVM's own
+    # python-dotenv. ProcessBuilder inherits the JVM's own
     # environment by default, so setting it here is what actually reaches
     # the Python subprocess the backend shells out to.
     env_file:
@@ -92,13 +92,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ai_earth
       REDIS_HOST: redis
       OBJECT_STORE_ENDPOINT: http://minio:9000
-      # Task 13.3: the standard OpenTelemetry variable; Spring Boot maps it
+      # The standard OpenTelemetry variable; Spring Boot maps it
       # onto its OTLP span exporter (docs/tracing.md).
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
     ports:
       - "8080:8080"
     healthcheck:
-      # Task 13.4: full health lives on the internal management port,
+      # Full health lives on the internal management port,
       # which is deliberately not published to the host.
       test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       interval: 10s

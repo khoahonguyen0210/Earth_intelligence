@@ -178,10 +178,8 @@ def neighbor_tile_ids(
 def cells_within_bbox(
     cells: list[GridCell], bbox: tuple[float, float, float, float]
 ) -> list[GridCell]:
-    """Selects the cells whose centroid falls within bbox, using the same
-    half-open [west, east) x [south, north) convention as the grid itself
-    (see docs/california-grid-contract.md) so a cell is never counted as
-    inside two adjacent bboxes."""
+    """Selects the cells whose centroid falls within the half-open
+    [west, east) x [south, north) bbox."""
     west, south, east, north = bbox
 
     return [

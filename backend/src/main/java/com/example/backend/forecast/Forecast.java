@@ -13,12 +13,6 @@ public record Forecast(
         String idempotencyKey,
         String traceParent) {
 
-    /**
-     * CANCELLED completes the state space but is not reachable yet:
-     * there is no cancel endpoint (docs/forecast-api-contract.md locks
-     * the three existing routes). RETRYING is real -- see
-     * docs/forecast-retry-and-idempotency.md.
-     */
     public enum Status {
         PENDING,
         RUNNING,
@@ -28,11 +22,6 @@ public record Forecast(
         CANCELLED
     }
 
-    /**
-     * `traceParent` is the W3C traceparent of the span that submitted
-     * the job (null when nothing was being traced); the worker
-     * continues that trace -- see docs/tracing.md.
-     */
     public static Forecast pending(
             String id, ForecastRequest request, Instant createdAt, String idempotencyKey, String traceParent) {
         return new Forecast(id, request, createdAt, Status.PENDING, null, null, 0, idempotencyKey, traceParent);

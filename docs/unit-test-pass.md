@@ -1,14 +1,14 @@
 # Unit Test Pass — LOCKED
 
-This document records the Task 15.1 unit test pass, the first task of
-Phase 15. It is not a brainstorming document.
+This document records the unit test pass. It is not a brainstorming
+document.
 
-Task 15.1 asks for coverage of nine behaviors: data parsing, validation,
+It asks for coverage of nine behaviors: data parsing, validation,
 grid assignment, time windows, feature construction, API validation,
 workflow states, retry/idempotency, and metric calculations. Every one
 of those was already exercised by tests written alongside the feature
-that introduced it (Phases 1-14); this task is the full-suite run that
-proves all three components -- the Python `ml` package, the Spring
+that introduced it, across every earlier build phase; this document is
+the full-suite run that proves all three components -- the Python `ml` package, the Spring
 Boot backend, and the React frontend -- still pass together, not a
 one-off addition of new tests for previously uncovered behavior.
 
@@ -107,12 +107,12 @@ in the totals above but not broken out here.
 
 - **No new tests were added.** Every category the handbook names
   already had unit coverage from the phase that introduced it; this
-  task is the verification that the full suite still passes together,
-  matching the pattern of Task 14.5 (browser end-to-end verification).
-- **Task 15.2 (integration test pass) and 15.3 (end-to-end tests) are
-  separate tasks.** This pass exercises each component's own unit
+  document is the verification that the full suite still passes together,
+  matching the pattern of the earlier browser end-to-end verification.
+- **The integration test pass and the end-to-end tests are
+  separate efforts.** This pass exercises each component's own unit
   tests, including the backend's `@SpringBootTest` classes that talk to
   a real local Postgres/Redis (there is no mocked-datasource unit tier
   left in this codebase, see `backend`'s test suite above) -- but it
   does not stand up the full Docker Compose or Kubernetes stack the way
-  Tasks 10.3, 11.3, and 13.5 do.
+  those other test passes do.

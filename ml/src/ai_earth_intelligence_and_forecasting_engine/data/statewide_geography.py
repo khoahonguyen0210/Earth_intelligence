@@ -1,25 +1,3 @@
-"""Static geography (elevation, slope, land cover) for every California cell.
-
-The original sample data covers one 0.4 x 0.4 degree box (16 grid
-cells), so 9,959 of the 9,975 benchmark cells had no geography features
-at all.
-This builds the same features for the whole grid by walking 1-degree
-tiles and running each one through the locked `build_geography_grid`
-unchanged:
-
-- DEM: Copernicus GLO-30 at full 30 m resolution (the tile's own pixels),
-  exactly as the sample -- slope is computed at 30 m and then averaged
-  into the 0.1-degree cell.
-- Land cover: ESA WorldCover v200 read from the COG's 1/8 overview
-  (~80 m) instead of 10 m. The cell value is the mode of ~19,000 such
-  pixels; reading 10 m would mean ~1 GB per 3-degree tile for a
-  majority class over an 11 km cell that the coarser read reproduces.
-  docs/historical-dataset.md records this deviation.
-
-Tiles with no DEM (open ocean) are skipped; their cells keep no
-geography, which the feature step already treats as missing.
-"""
-
 from __future__ import annotations
 
 import csv

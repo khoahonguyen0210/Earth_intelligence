@@ -1,9 +1,8 @@
 # Cloud Deployment — LOCKED
 
-This document freezes the AWS deployment per Task 12.1 of the Execution
-Handbook, the first task of Phase 12. It is not a brainstorming
-document. Task 12.2 lays out Terraform for exactly this, Task 12.3
-provisions it, Task 12.4 deploys onto it; none of them reopen the
+This document freezes the AWS deployment. It is not a brainstorming
+document. Later work lays out Terraform for exactly this, provisions
+it, then deploys onto it; none of that reopens the
 choices below.
 
 Every version, add-on name and support claim below was checked against
@@ -14,7 +13,7 @@ this, not recalled -- see "Verified against" at the end.
 
 ```text
 region:       us-west-2 (Oregon)
-environment:  production (the only one -- Task 12.2's own
+environment:  production (the only one -- this project's own
               infra/terraform/environments/production/ layout)
 ```
 
@@ -92,18 +91,18 @@ container registry Amazon ECR: ai-earth-backend, ai-earth-frontend
 extended support, which bills $0.60/cluster-hour instead of $0.10 --
 6x the control-plane cost for no benefit on a new cluster.
 
-EKS, not ECS: Phase 11 already locked real Kubernetes manifests and a
+EKS, not ECS: earlier work already locked real Kubernetes manifests and a
 KEDA `ScaledObject` (`infra/k8s/autoscaling.yaml`); ECS would throw
 both away. Managed node group, not Fargate: Fargate runs no DaemonSets,
-which rules out the CloudWatch agent/Fluent Bit below, and Task 11.5
-already measured backend boot as the dominant recovery cost (34.81 s)
+which rules out the CloudWatch agent/Fluent Bit below, and measurements
+already showed backend boot as the dominant recovery cost (34.81 s)
 -- Fargate's per-pod VM provisioning would add to it.
 
-`m6i.large`, not burstable `t3`: Task 11.5 measured one backend pod at
+`m6i.large`, not burstable `t3`: measurements showed one backend pod at
 ~1.2 cores sustained while processing forecasts and ~3.5 cores while
 booting. That is sustained load, which exhausts `t3` CPU credits. Two
-nodes is the floor for AZ spread, not a capacity estimate; Task 12.5
-measures real capacity.
+nodes is the floor for AZ spread, not a capacity estimate; a later
+measurement records real capacity.
 
 Cluster components, all installed by Terraform, none hand-built:
 
@@ -157,7 +156,7 @@ existing V1 migration runs unchanged; no separate extension-install step.
 Not Aurora: nothing here needs Aurora's storage layer, and its minimum
 cost is well above a `db.t4g.micro`. Single-AZ, not Multi-AZ: the same
 single-environment cost trade as the NAT gateway. Instance size is a
-starting point for Task 12.5 to measure, not a capacity claim.
+starting point for later measurement, not a capacity claim.
 
 ## Redis: ElastiCache (Redis OSS)
 
@@ -171,14 +170,14 @@ supports Redis OSS 7.1 with no announced end of standard support (only
 v4-v6 have dates).
 
 Single node, with a real, accepted risk: the queue is one Redis list,
-while job state lives in Postgres (`Forecast` rows, Task 6.5). If the
+while job state lives in Postgres (`Forecast` rows). If the
 node is lost, every id still sitting in the list is gone, and those
 jobs stay `PENDING` in Postgres forever -- nothing re-enqueues them.
-Task 6.6's retry covers a failed or timed-out Python subprocess, not a
+The existing retry logic covers a failed or timed-out Python subprocess, not a
 lost queue entry. A replica shrinks this window but does not close it
 (replication is asynchronous), and doubles the Redis cost; the actual
 fix is a startup sweep that re-enqueues stale `PENDING` rows, which is
-application reliability work for Phase 13, not infrastructure.
+application reliability work for later, not infrastructure.
 
 ## Object storage: S3
 
@@ -206,8 +205,8 @@ ai-earth/firms           map_key   -> FIRMS_MAP_KEY
 External Secrets Operator, not the Secrets Store CSI driver (which is
 also an EKS add-on now): an `ExternalSecret` writes an ordinary
 Kubernetes Secret named `ai-earth-secret` with the same keys
-`infra/k8s/backend.yaml` already reads through `secretKeyRef`. Task
-11.1's ConfigMap/Secret split carries over unchanged, with no volume
+`infra/k8s/backend.yaml` already reads through `secretKeyRef`. The
+existing ConfigMap/Secret split carries over unchanged, with no volume
 mounts and no second secret-reading path in the backend. The CSI
 driver's model is files mounted into the pod, which the backend would
 need new code to read.
@@ -252,10 +251,10 @@ ALB (internet-facing, HTTP :80), path routing:
 ALB target health check: GET /readyz on backend:8080
 ```
 
-Task 14.1 added `/queries` (the Ask Earth page's own resource,
+Adding the Ask Earth page added `/queries` (its own resource,
 `docs/ask-earth.md`), routed exactly like the other three.
 
-Task 13.4 moved every actuator endpoint to the internal management port
+Earlier work moved every actuator endpoint to the internal management port
 8081, which the ALB never routes. The public backend port answers only
 the API and the status-only `/readyz`/`/livez` probes
 (`docs/security-baseline.md`). With a domain chosen, the same Ingress
@@ -273,8 +272,8 @@ frontend calls the API by relative path and CORS never applies. A
 separate static-hosting origin would need a cross-origin API URL,
 CORS rules, and a second deployment path for no functional gain.
 
-HTTP only, on the ALB's own AWS-assigned DNS name, for Phase 12: HTTPS
-needs a domain name and an ACM certificate, which belong to Task 13.4's
+HTTP only, on the ALB's own AWS-assigned DNS name, for this deployment: HTTPS
+needs a domain name and an ACM certificate, which belong to the
 security baseline, not to "stand the product up in AWS."
 
 ## Logging and metrics: CloudWatch
@@ -290,7 +289,7 @@ ALB, NAT
 This is the handbook's "integration" -- plumbing AWS's own
 logs/metrics sink into the cluster. The application-level structured
 logging, Prometheus-compatible metrics and OpenTelemetry tracing locked
-in the stack are Phase 13's (Tasks 13.1-13.3), and they ship through
+elsewhere in the stack already ship through
 this same agent rather than a second pipeline (the add-on already
 supports OTLP ingestion from v6.2.0).
 
@@ -304,9 +303,9 @@ locking   S3-native lockfile (use_lockfile = true)
 S3-native locking is the current mechanism. DynamoDB-based locking is
 deprecated in the S3 backend, so no lock table is needed. The state
 bucket is the one resource created by hand before `terraform init`;
-Task 12.2 documents that bootstrap.
+that bootstrap is documented separately.
 
-## Gaps the code must close before Task 12.4 can deploy
+## Gaps the code must close before deployment can proceed
 
 These are real couplings in the code as it stands today. Each one works
 locally only because MinIO, the kind cluster, or the compose stack
@@ -343,10 +342,10 @@ happens to match a hardcoded value:
                               rotation").
 8. Trace export               the backend exports spans only when
                               OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is set
-                              (Task 13.3, docs/tracing.md). No manifest sets
+                              (docs/tracing.md). No manifest sets
                               it (kind has no collector); the cloud ConfigMap
                               points it at the CloudWatch agent's OTLP
-                              receiver, verified against the add-on in 12.4.
+                              receiver, verified against the add-on during deployment.
 9. HTTPS                      not planned: the owner will not buy a domain
                               (docs/security-baseline.md), so the ALB serves
                               HTTP on its AWS DNS name. If one is ever chosen
@@ -360,23 +359,23 @@ happens to match a hardcoded value:
                               (docs/security-baseline.md).
 ```
 
-Items 1-3 are code or config changes and belong to Task 12.4. Items 4-9
+Items 1-3 are code or config changes and belong to the deployment step. Items 4-9
 are per-environment manifest values, so the cloud copies of these
 manifests will take them from Terraform outputs instead of hardcoding
 them a second time.
 
 KEDA's `maxReplicaCount: 2` is **not** carried over as a cloud decision.
-Task 11.4 derived it from a single-machine kind cluster where replicas
+It was derived from a single-machine kind cluster where replicas
 share one CPU pool. On EKS, replicas land on separate nodes, so the
-ceiling is re-measured in Task 12.5 instead of copied.
+ceiling is re-measured later instead of copied.
 
-## Local tooling Task 12.2/12.3 need, checked on this machine
+## Local tooling this deployment needs, checked on this machine
 
 ```text
 kubectl    present (Docker Desktop's bundled binary)
 docker     present
-terraform  MISSING -- needed from Task 12.2 (terraform fmt/validate)
-aws CLI    MISSING -- needed from Task 12.3 (credentials, state bucket
+terraform  MISSING -- needed for the Terraform work (terraform fmt/validate)
+aws CLI    MISSING -- needed for provisioning (credentials, state bucket
            bootstrap, aws eks update-kubeconfig)
 helm       not required locally -- Terraform's helm provider installs
            the charts above
@@ -385,7 +384,7 @@ helm       not required locally -- Terraform's helm provider installs
 ## Approximate fixed cost while running
 
 On-demand list prices, rounded, before any traffic or data transfer.
-These are estimates, not measurements (Task 12.5 records the real
+These are estimates, not measurements (a later benchmark records the real
 cost):
 
 ```text
@@ -400,19 +399,19 @@ total                                           ~$290 / month
 
 The EKS control plane and the NAT gateway bill by the hour whether or
 not anything is running. The environment is therefore meant to be
-brought up for Tasks 12.3-12.5 and later demos, then taken down with
+brought up for provisioning, deployment, and measurement work, and for later demos, then taken down with
 `terraform destroy`, not left running.
 
 ## What this document does not define
 
-- The Terraform module layout is Task 12.2's.
-- Running `init`/`plan`/`apply` is Task 12.3's.
+- The Terraform module layout is defined separately.
+- Running `init`/`plan`/`apply` is covered separately.
 - Closing the nine gaps above and verifying health, Earth analysis,
-  forecast, async jobs and persistent results on AWS is Task 12.4's.
-- The security baseline is Task 13.4's (`docs/security-baseline.md`):
+  forecast, async jobs and persistent results on AWS happens separately.
+- The security baseline is defined separately (`docs/security-baseline.md`):
   health details and metrics moved to the internal management port.
   HTTPS is ready but not enabled, since no domain will be bought (gap 9).
-- Re-enqueuing stranded `PENDING` jobs is Phase 13 reliability work.
+- Re-enqueuing stranded `PENDING` jobs is later reliability work.
 
 ## Verified against
 

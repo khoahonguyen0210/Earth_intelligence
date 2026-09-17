@@ -52,11 +52,6 @@ export async function getAnalysisResult(
   return body as ResultResponse;
 }
 
-// The Ask Earth page's own calls -- POST /queries is
-// synchronous (no job queue, like /analyses), so a caller awaits it and
-// then fetches the result in sequence, exactly like
-// createAnalysis/getAnalysisResult above.
-
 export async function createEarthQuery(question: string): Promise<EarthQuerySummary> {
   const response = await fetch(`${API_BASE_URL}/queries`, {
     method: "POST",
@@ -85,10 +80,6 @@ export async function getEarthQueryResult(id: string): Promise<EarthQueryResultR
   return body as EarthQueryResultResponse;
 }
 
-// Fetches a forecast job's real result grid once it has
-// SUCCEEDED (docs/forecast-api-contract.md). Polling the job's own
-// status (PENDING/RUNNING/...) until it reaches a terminal state is
-// the job-status UI's job, not this call.
 export async function getForecastResult(id: string): Promise<ForecastResultResponse> {
   const response = await fetch(`${API_BASE_URL}/forecasts/${id}/result`);
   const body = await response.json();
@@ -101,10 +92,6 @@ export async function getForecastResult(id: string): Promise<ForecastResultRespo
   return body as ForecastResultResponse;
 }
 
-// The direct forecast job path -- POST /forecasts is
-// asynchronous (a Redis queue + worker), so a caller submits a
-// job here and polls getForecastStatus separately until it reaches a
-// terminal state, unlike createAnalysis/createEarthQuery above.
 export async function createForecast(request: ForecastRequest): Promise<ForecastSummary> {
   const response = await fetch(`${API_BASE_URL}/forecasts`, {
     method: "POST",
@@ -121,10 +108,6 @@ export async function createForecast(request: ForecastRequest): Promise<Forecast
   return body as ForecastSummary;
 }
 
-// GET /forecasts/{id} returns an empty body (404) when the job is
-// unknown, unlike every other endpoint above -- parsing that as JSON
-// would throw, so the ok check comes first here and never reads the body
-// on failure.
 export async function getForecastStatus(id: string): Promise<ForecastSummary> {
   const response = await fetch(`${API_BASE_URL}/forecasts/${id}`);
 

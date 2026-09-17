@@ -1,5 +1,5 @@
 # Non-secret configuration only. Real credentials go in secret.yaml
-# (gitignored, see secret.example.yaml) -- Task 11.1's own "use
+# (gitignored, see secret.example.yaml) -- the "use
 # ConfigMaps/Secrets correctly" split, mirrored from the project's
 # existing .env/.env.example convention.
 apiVersion: v1

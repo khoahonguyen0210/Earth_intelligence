@@ -23,10 +23,6 @@ class _FakeResponse:
 
     @property
     def text(self):
-        # Mirrors the real google-genai SDK: accessing `.text` itself
-        # raises ValueError when the response has no text part (e.g. a
-        # safety-blocked response), rather than exposing a separate
-        # refusal field to check first.
         if self._raises is not None:
             raise self._raises
         return self._text

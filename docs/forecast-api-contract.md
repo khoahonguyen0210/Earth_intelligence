@@ -1,13 +1,13 @@
 # Forecast API Contract — LOCKED
 
-This document freezes the forecast API contract per Task 6.1 of the
-Execution Handbook. It is not a brainstorming document. Task 6.2 (Java to
-Python worker), Task 6.3 (PostGIS persistence), and Task 6.5 (Redis async
-jobs) all build against this contract rather than redefining it.
+This document freezes the forecast API contract. It is not a
+brainstorming document. Later work on the Java-to-Python worker, PostGIS
+persistence, and Redis async jobs builds against this contract rather
+than redefining it.
 
 This is a restatement, not a redefinition, of `PROJECT_BIBLE.md` §15's
 "Java API" — Java owns request/job/result control, Python owns the
-Earth-data/ML computation, exactly the boundary Task 2.7 already
+Earth-data/ML computation, exactly the boundary already
 established for the (non-forecast) Earth-analysis API.
 
 ## Endpoints
@@ -18,8 +18,8 @@ GET  /forecasts/{id}         poll job status, returns {forecast_id, status}
 GET  /forecasts/{id}/result  fetch the result once status is terminal
 ```
 
-`/forecasts/{id}/result` is a distinct path from Task 2.7's `/results/{id}`
-(not a shared route) so the two APIs never collide, and so a forecast
+`/forecasts/{id}/result` is a distinct path from the Earth-analysis
+API's `/results/{id}` (not a shared route) so the two APIs never collide, and so a forecast
 result's much richer payload (below) doesn't get confused with an
 analysis result.
 
@@ -30,7 +30,7 @@ region
 cutoff
 ```
 
-`region` reuses the exact `RegionSpec` contract already locked in Task 2.1
+`region` reuses the exact `RegionSpec` contract already locked
 (`ai_earth_intelligence_and_forecasting_engine.query.schema.RegionSpec`):
 a `kind` of `"bbox"`, `"coordinates"`, or `"named"` plus a `value` whose
 shape depends on `kind`. It is resolved with the same
@@ -40,7 +40,7 @@ forecast region and an analysis region behave identically.
 `cutoff` is an ISO 8601 datetime string: the data-availability instant the
 forecast is made "as of." It is parsed to a timezone-aware UTC `datetime`
 the same way `query.time_range` parses a boundary. This is the same
-`cutoff` concept already used throughout Phase 3/4/5
+`cutoff` concept already used throughout earlier forecasting work
 (`forecast.build_dataset.DatasetRow.cutoff`), not a new one.
 
 ## Response (`POST /forecasts`, `GET /forecasts/{id}`)
@@ -51,20 +51,21 @@ status
 ```
 
 `forecast_id` is a server-generated opaque ID (a UUID string, matching
-Task 2.7's `Analysis.id` pattern).
+the Earth-analysis API's `Analysis.id` pattern).
 
-`status` is a string. Its full value space is owned by Task 6.5:
+`status` is a string. Its full value space is owned by the Redis async
+job work:
 
 ```text
 PENDING | RUNNING | SUCCEEDED | FAILED | RETRYING | CANCELLED
 ```
 
-Until Task 6.5's async worker/queue exists, Task 6.2's bridge to Python is
+Until the Redis async worker/queue exists, the Java-to-Python bridge is
 a synchronous subprocess call (the same interim pattern
 `PythonAnalysisRunner` already uses for analysis), so a request only ever
 completes with a terminal `SUCCEEDED` or `FAILED` by the time it returns —
-`PENDING`/`RUNNING`/`RETRYING`/`CANCELLED` are reachable only once Task 6.5
-lands.
+`PENDING`/`RUNNING`/`RETRYING`/`CANCELLED` are reachable only once that
+work lands.
 
 ## Result (`GET /forecasts/{id}/result`)
 
@@ -83,7 +84,7 @@ evidence
 (`data.grid.GridCell`/`cell_to_feature`), where each `Feature`'s
 `properties` carries that cell's predicted fire-risk probability alongside
 the existing `tile_id`/`lat_index`/`lon_index`/centroid properties. This
-mirrors the already-locked `query.map_result` GeoJSON pattern (Task 2.5)
+mirrors the already-locked `query.map_result` GeoJSON pattern
 rather than inventing a second spatial encoding.
 
 ```text
@@ -128,7 +129,7 @@ from the locked `forecast.spec.FORECAST_WINDOW_HOURS` (`24`):
 ```
 
 `calibration metadata` is the calibration method and reliability table
-already produced by Task 4.4 (`models.calibration`):
+already produced elsewhere (`models.calibration`):
 
 ```text
 { "method": "isotonic", "table": [ {bin_index, predicted_mean, observed_frequency, count}, ... ] }
@@ -144,20 +145,23 @@ forecast window's start/end (not a historical training window);
 
 ## Error shape
 
-A `FAILED` result (or a synchronous failure under Task 6.2's bridge) is:
+A `FAILED` result (or a synchronous failure under the Java-to-Python
+bridge) is:
 
 ```text
 { "error": "<message>" }
 ```
 
-mirroring Task 2.7's `ErrorResponse`, returned with an HTTP `422`.
+mirroring the Earth-analysis API's `ErrorResponse`, returned with an
+HTTP `422`.
 
 ## What this document does not define
 
 The Java-side DTOs, controller, and the actual Java-to-Python process
-bridge are Task 6.2's job, not this one — exactly as Task 2.1's
-`StructuredEarthQuery` contract predates and is Java-agnostic from Task
-2.7's `AnalysisController`. PostGIS persistence of forecast metadata is
-Task 6.3. The real async job lifecycle (Redis, retries, timeouts,
-idempotency) is Tasks 6.5–6.6. This document only fixes the request,
-response, and result shapes those tasks build against.
+bridge are separate work, not this document's — exactly as the
+`StructuredEarthQuery` contract predates and is Java-agnostic from the
+`AnalysisController`. PostGIS persistence of forecast metadata is its
+own separate piece of work. The real async job lifecycle (Redis,
+retries, timeouts, idempotency) is later work still. This document
+only fixes the request, response, and result shapes that later work
+builds against.

@@ -47,15 +47,11 @@ from ai_earth_intelligence_and_forecasting_engine.query.region import (
 )
 from ai_earth_intelligence_and_forecasting_engine.query.schema import RegionSpec
 
-# Fixed cutoffs inside the train and validation splits, used by
-# compute_forecast's unit tests (synthetic rows). The live product no
-# longer trains at request time -- see run_forecast.
 TRAIN_DEMO_CUTOFF = datetime(2020, 8, 15, 10, 0, tzinfo=timezone.utc)
 VALIDATION_DEMO_CUTOFF = datetime(2023, 8, 15, 10, 0, tzinfo=timezone.utc)
 
-# The stalest ERA5-Land hour a forecast may use. History holds the weekly
-# benchmark cutoff hours (docs/historical-dataset.md), so any in-season
-# cutoff has one at most 7 days old; older means there is no weather.
+# The stalest ERA5-Land hour a forecast may use; older means there is no
+# real weather to use.
 MAX_ERA5_AGE = timedelta(days=7)
 
 
@@ -138,15 +134,13 @@ def run_forecast(
     geography_path: Path,
     model_dir: Path,
 ) -> dict[str, Any]:
-    """The orchestrator scripts/query/run_forecast_cli.py calls: validates
-    the request, builds the inference cutoff's feature rows from the real
-    history (FIRMS strictly before the cutoff -- nothing after it is even
-    loaded), and scores them with the trained production model.
+    """Validates the request, builds the inference cutoff's feature rows
+    from the real history (FIRMS strictly before the cutoff -- nothing
+    after it is even loaded), and scores them with the trained
+    production model.
 
-    Returns {"result": ..., "timings_ms": {...}}. `timings_ms` sits beside
-    the result, not inside it, so docs/forecast-api-contract.md's result
-    shape is unchanged; the backend turns it into metrics (docs/metrics.md)
-    and never returns it to API clients."""
+    Returns {"result": ..., "timings_ms": {...}}. `timings_ms` sits
+    beside the result, not inside it."""
     total_start = time.perf_counter()
     request = parse_forecast_payload(payload)
     errors = validate_forecast_request(request)

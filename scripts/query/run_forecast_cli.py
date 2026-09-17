@@ -6,10 +6,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.run_forecast import (
     run_forecast,
 )
 
-# Run from the project root, like every other scripts/ entry point. All
-# inputs are real: the fire-season history (docs/historical-dataset.md)
-# and the production model trained on it
-# (scripts/models/train_production_model.py).
 FIRMS_HISTORY_DIR = Path("data/raw/firms/history")
 ERA5_HISTORY_DIR = Path("data/raw/era5/history")
 GEOGRAPHY_PATH = Path("data/raw/geography/california_geography.csv")

@@ -1,9 +1,8 @@
 # Persistence Schema — LOCKED
 
-This document freezes the PostgreSQL/PostGIS persistence schema per Task
-6.3 of the Execution Handbook. It is not a brainstorming document. Tasks
-6.5 (Redis async jobs) and 6.6 (retry/timeout/idempotency) build against
-this schema rather than redefining it.
+This document freezes the PostgreSQL/PostGIS persistence schema. It is
+not a brainstorming document. Later Redis async-job and retry/timeout/
+idempotency work builds against this schema rather than redefining it.
 
 Infrastructure: `infra/docker/docker-compose.yml` runs `postgis/postgis`
 on the exact credentials already in `application.properties`
@@ -23,9 +22,9 @@ read/write path wired up today:
 
 ```text
 analyses    REAL  -- AnalysisEntity/AnalysisJpaRepository, backing
-                     AnalysisStore (Task 2.7's job/result flow)
+                     AnalysisStore (a job/result flow)
 forecasts   REAL  -- ForecastEntity/ForecastJpaRepository, backing
-                     ForecastStore (Task 6.2's job/result flow)
+                     ForecastStore (a job/result flow)
 regions     REAL  -- RegionStore (com.example.backend.region), a plain
                      JdbcTemplate upsert, not a JPA entity -- see below
 
@@ -40,10 +39,10 @@ evidence    schema only
 ## Why only three are wired
 
 `analyses`, `forecasts`, and now `regions` are the tables with a real,
-already-tested producer today. Task 2.7's `AnalysisController` and Task
-6.2's `ForecastController`/`ForecastWorker` each create a genuine
+already-tested producer today. `AnalysisController` and
+`ForecastController`/`ForecastWorker` each create a genuine
 request/status/result record per HTTP call, and `RegionStore` records
-every region those (plus Task 14.1's `EarthQueryController`) actually
+every region those (plus `EarthQueryController`) actually
 resolved: `query.evidence.build_evidence` already attaches
 `region_kind`/`region_label`/`region_bbox` to every analysis's evidence,
 every forecast's `result.evidence`, and every Ask Earth fact's own
@@ -59,7 +58,7 @@ Hibernate Spatial dependency was added for this, since a plain
 
 The other five have no real caller yet:
 
-- `jobs` is the generic async-job envelope Task 6.5's Redis worker will
+- `jobs` is the generic async-job envelope the Redis worker will
   actually drive (`PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED`/`RETRYING`/
   `CANCELLED`, per `docs/forecast-api-contract.md`). `analyses`/
   `forecasts` already carry their own id/status/error and are not rows in
@@ -81,7 +80,7 @@ The other five have no real caller yet:
 
 Building JPA entities/repositories/app code around a table nothing calls
 would be exactly the kind of speculative, untested abstraction this
-project avoids elsewhere (Phase 0: "Do not add speculative services").
+project avoids elsewhere ("Do not add speculative services").
 The schema for the remaining five is real and locked now, precisely so a
 later task can wire a real caller against each one without a migration
 change.
@@ -97,7 +96,7 @@ this point" lookup would use.
 
 ## What this document does not define
 
-The Redis job-state machine is Task 6.5's job, not this one. Which Java
+The Redis job-state machine is later work, not this one. Which Java
 code eventually reads/writes `regions`/`grid_cells`/`workflows`/
 `datasets`/`models`/`evidence`, and in what shape, is deferred to
 whichever future task gives each one its first real caller — this

@@ -12,12 +12,6 @@ import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import java.util.List;
 
-/**
- * The same OpenTelemetry bridge the application runs (Micrometer Tracing
- * over the OTel SDK, W3C propagation), exporting synchronously into
- * memory instead of over OTLP, so unit tests assert on the real finished
- * spans -- names, parents, trace ids, attributes and status.
- */
 public final class TestTracing {
 
     private final InMemorySpanExporter exporter = InMemorySpanExporter.create();

@@ -17,11 +17,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-/**
- * A workflow run is one trace -- a workflow.execute span with one
- * workflow.node child per node attempt, in real execution order, with
- * retries and failures visible on the spans.
- */
 class WorkflowTracingTest {
 
     private static final Instant NOW = Instant.parse("2024-08-10T00:00:00Z");

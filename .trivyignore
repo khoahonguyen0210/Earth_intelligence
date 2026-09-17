@@ -1,4 +1,4 @@
-# Task 13.4: Trivy findings accepted on purpose (scripts/security/scan.sh,
+# Trivy findings accepted on purpose (scripts/security/scan.sh,
 # docs/security-baseline.md). One ID per line, each with a comment saying
 # why it does not apply and when to revisit it. Empty means nothing is
 # accepted: every fixable HIGH/CRITICAL finding fails the build.

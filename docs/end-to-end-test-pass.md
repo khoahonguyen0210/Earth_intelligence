@@ -1,17 +1,17 @@
 # End-to-End Test Pass — LOCKED
 
-This document records the Task 15.3 end-to-end test pass, the third
-task of Phase 15. It is not a brainstorming document.
+This document records the end-to-end test pass. It is not a
+brainstorming document.
 
-Task 15.3 asks for four flows to be proven end to end, against the real
+It asks for four flows to be proven end to end, against the real
 running system: earth analysis, forecast, worker failure, duplicate
 request. All four already had real, non-mocked coverage from earlier
-phases -- Task 14.5 (`docs/ask-earth.md`) drove earth analysis and
-forecast at the API layer against a real backend, and Task 13.5
-(`docs/reliability-tests.md`) drove worker failure and duplicate request
+work -- `docs/ask-earth.md` drove earth analysis and
+forecast at the API layer against a real backend, and
+`docs/reliability-tests.md` drove worker failure and duplicate request
 against a real backend under real, injected failures. This task re-runs
-all four against the current code, and closes the one real gap Task
-14.5 left open: at the time, no trained production model existed, so
+all four against the current code, and closes the one real gap left
+open earlier: at the time, no trained production model existed, so
 the forecast leg only ever reached a `422`, never a genuine `SUCCEEDED`
 prediction. `production_model_v1` has since been built, so this pass
 gets a real successful forecast for the first time.
@@ -45,7 +45,7 @@ java -jar ...jar              a real backend process, SERVER_PORT=8090,
                                pointed at the .venv Python for the
                                analysis/forecast/ask-earth subprocess
                                boundaries, GEMINI_API_KEY from .env
-scripts/reliability/          the same harness Task 13.5 built: kills
+scripts/reliability/          the same harness already built: kills
   run_reliability_tests.py    and restarts real processes/containers
 ```
 
@@ -97,7 +97,7 @@ evidence               dataset wildfire_forecast:v1, region california,
                         877,800 rows / 88 cutoffs (2019-06-01 -> 2022-10-26)
 ```
 
-This closes the exact gap Task 14.5 flagged: a real `SUCCEEDED`
+This closes the exact gap flagged earlier: a real `SUCCEEDED`
 prediction, real probabilities, and a real calibration table, not just
 the response contract.
 
@@ -133,17 +133,17 @@ The two this task specifically asks for:
   (71.5s of that is the backend's own real cold-start).
 
 Full detection/recovery/observation detail for all seven, including the
-five already covered under Task 13.5, is in `docs/reliability-tests.md`;
+five already covered earlier, is in `docs/reliability-tests.md`;
 this run only re-confirms they still hold on the current code, it does
 not re-derive them.
 
 ## What this task does not do
 
-- **Does not re-litigate Task 13.5's fixes.** `ForecastRecovery`, the
+- **Does not re-litigate earlier reliability fixes.** `ForecastRecovery`, the
   atomic `claim`, and the dependency-outage handling are unchanged by
   this task; this pass only re-runs the harness that proves they still
   work.
-- **Does not add a browser-automation layer.** As in Task 14.5, this
+- **Does not add a browser-automation layer.** As before, this
   environment has no browser-automation tool; earth analysis and
   forecast are driven at the API layer with the exact requests the
   frontend's own `client.ts` issues, against a real backend and real

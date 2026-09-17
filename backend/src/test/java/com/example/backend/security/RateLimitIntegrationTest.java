@@ -15,12 +15,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/**
- * The two work-starting routes are limited per client and per route,
- * counted in the real compose Redis; reads are not limited. The requests
- * are deliberately malformed (a 400 costs no Python), since the limit
- * applies before validation -- a flood of bad requests is still a flood.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RateLimitIntegrationTest {
 

@@ -4,12 +4,6 @@ from dataclasses import dataclass
 
 from ai_earth_intelligence_and_forecasting_engine.planner.validator import Plan
 
-# The seven categories for this benchmark (natural language -> LLM ->
-# structured plan, per docs/natural-language-planner.md -- this
-# benchmarks that pipeline's real, live behavior, not a mock). "compare"
-# has no single dedicated tool: a correct plan answers it with two or
-# more calculate_statistics/generate_map steps naming different regions,
-# which is what BenchmarkCase.min_matching_steps checks for below.
 CATEGORIES: tuple[str, ...] = (
     "count",
     "trend",
@@ -25,18 +19,11 @@ CATEGORIES: tuple[str, ...] = (
 class BenchmarkCase:
     """One fixed query for the planner benchmark.
 
-    `expect_valid_plan` is the pass/fail bar `valid_plan_rate` scores
-    against: True for a question the planner should successfully turn
-    into a validated Plan, False for one it should correctly reject.
-    It is None for "ambiguous" cases -- a genuinely ambiguous
-    question (missing region/time) has no single correct outcome to
-    assert against, so those cases are recorded for observability only,
-    never scored as pass/fail.
+    `expect_valid_plan` is None for "ambiguous" cases; those cases are
+    recorded for observability only, never scored as pass/fail.
 
     `expected_tools`/`expected_region_values`/`expected_time_range` are
-    only meaningful when a plan was actually produced (`expect_valid_plan`
-    is True); they are None wherever there is nothing fixed to check
-    (unsupported and ambiguous cases have no "correct" plan shape).
+    None wherever there is nothing fixed to check.
     """
 
     name: str
@@ -218,10 +205,7 @@ BENCHMARK_CASES: tuple[BenchmarkCase, ...] = (
 
 
 def _normalize_named_region_value(value: str) -> str:
-    """Mirrors query.region._normalize_named's own normalization exactly
-    -- the real validator accepts "Bay Area" as freely as "bay_area", so
-    scoring region correctness on the raw, un-normalized string would
-    flag a plan the real system accepts just fine as wrong."""
+    """Mirrors query.region._normalize_named's own normalization exactly."""
     return value.strip().lower().replace(" ", "_")
 
 
@@ -270,17 +254,9 @@ def score_case(
     case: BenchmarkCase, plan: Plan | None, error: Exception | None
 ) -> CaseOutcome:
     """Scores one live generate_plan() outcome against its case's fixed
-    expectations. Never calls the model itself -- the caller (the real
-    benchmark script, or a test's synthetic Plan/error) already produced
-    `plan`/`error`; this function is pure and deterministic, which is
-    what makes it unit-testable without a live API call."""
+    expectations. Never calls the model itself."""
     valid_plan = plan is not None
 
-    # generate_plan's only documented failure mode is ValueError (refusal
-    # or a Task-7.2 validation rejection -- see its docstring); anything
-    # else propagating here would be a real pipeline failure (a network
-    # error, an unhandled exception), not an expected "this plan was
-    # invalid" outcome.
     execution_ok = valid_plan or isinstance(error, ValueError)
 
     valid_plan_as_expected = (

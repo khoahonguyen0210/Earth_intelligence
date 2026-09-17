@@ -1,11 +1,10 @@
 # Fault-Injection Test — LOCKED
 
-This document freezes the fault-injection test per Task 9.5 of the
-Execution Handbook, the last task of Phase 9. It is not a
+This document freezes the fault-injection test. It is not a
 brainstorming document. It runs a real killed worker against
-`docs/multi-worker-scaling.md` (Task 9.3)'s distributed execution, and
+`docs/multi-worker-scaling.md`'s distributed execution, and
 its own real recovery time connects directly to
-`docs/bottleneck-identification.md` (Task 9.4)'s finding.
+`docs/bottleneck-identification.md`'s finding.
 
 ## The implementation
 
@@ -14,7 +13,7 @@ ml/src/ai_earth_intelligence_and_forecasting_engine/distributed/fault_tolerance.
 scripts/distributed/run_fault_injection_test.py
 ```
 
-Tasks 9.2/9.3's `run_distributed_inference` dispatches every chunk with
+The existing `run_distributed_inference` dispatches every chunk with
 one blocking `Pool.map` call -- fine for a happy-path benchmark, but a
 single call cannot detect or retry one crashed chunk without losing or
 re-running every other chunk's already-completed real result.
@@ -23,7 +22,7 @@ re-running every other chunk's already-completed real result.
 retries -- redispatching to the very same pool, without re-injecting the
 crash -- whichever chunk does not complete within `task_timeout_seconds`.
 
-`ChunkTask.inject_crash` (Task 9.1's `ChunkTask`, extended) makes one
+`ChunkTask.inject_crash` (an extension of the existing `ChunkTask`) makes one
 worker call `os._exit(1)` immediately instead of doing any real work --
 observably identical, from the parent's point of view, to that worker
 being killed externally, and deterministic/reproducible in a way an
@@ -72,7 +71,7 @@ environment or a busier pool can and did (in earlier local runs while
 building this test) take substantially longer, for a real, understood
 reason below.
 
-## Recovery time connects directly to Task 9.4's bottleneck finding
+## Recovery time connects directly to the bottleneck-identification finding
 
 While building this test's timeout value, a real, informative failure
 showed up: with a short `task_timeout_seconds` (5s), a retried chunk
@@ -80,7 +79,7 @@ would sometimes still not complete in time and trigger a second,
 unnecessary retry, even though nothing was actually still broken. The
 cause: `multiprocessing.Pool` replaces a dead worker with a brand-new
 process, and that replacement pays the exact same real cold-start cost
-Task 9.4 already measured directly (multiple real seconds -- spawning a
+already measured directly elsewhere (multiple real seconds -- spawning a
 fresh interpreter and re-importing the whole `ml` package: numpy,
 xgboost, scikit-learn, rasterio) before it can run anything at all. A
 timeout tight enough to detect a real crash promptly can be too tight
@@ -88,7 +87,7 @@ to tell "still cold-starting a legitimate replacement" apart from
 "genuinely still dead" -- `task_timeout_seconds=30` in both the test
 suite and the real script above gives real replacement cold-starts
 comfortable room, at the cost of detecting a genuine permanent failure
-more slowly. This is the same coordination overhead Task 9.4 named as
+more slowly. This is the same coordination overhead already named as
 this pipeline's actual bottleneck, now shown to also be the dominant
 cost of *recovering* from a failure, not just of scaling up in the
 first place.
@@ -104,10 +103,10 @@ this project.
 
 ## What this document does not define
 
-This dispatcher is a fault-tolerant alternative to Task 9.2/9.3's plain
-`Pool.map`, not a replacement wired into those tasks' own benchmarks --
+This dispatcher is a fault-tolerant alternative to the existing plain
+`Pool.map`, not a replacement wired into those earlier benchmarks --
 their numbers stand as measured, on the simpler, non-fault-tolerant
-implementation the handbook's Task 9.2/9.3 asked for. Choosing a
+implementation the handbook asked for. Choosing a
 timeout value in production (rather than for a controlled, one-shot
 test) that correctly balances "detect a real failure promptly" against
 "do not mistake a legitimate cold start for a failure" is a real,

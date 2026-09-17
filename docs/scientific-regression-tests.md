@@ -1,13 +1,13 @@
 # Scientific Regression Tests — LOCKED
 
-This document records the Task 15.4 scientific regression test pass,
-the fourth task of Phase 15. It is not a brainstorming document.
+This document records the scientific regression test pass. It is not
+a brainstorming document.
 
-Task 15.4 asks for five properties of the training pipeline to be
+It asks for five properties of the training pipeline to be
 verified: target definition, temporal split, leakage checks, metric
 calculations, reproducibility metadata. Four of the five already had
-dedicated regression coverage from Phase 3/4 (the training pipeline's
-own build phases); this task's own work was finding and closing the
+dedicated regression coverage from the training pipeline's own earlier
+build phases; this document's own work was finding and closing the
 one real gap -- the production model's save/load/metadata contract had
 no test file of its own -- and re-running everything else to confirm it
 still holds on the current code.
@@ -61,7 +61,7 @@ test_build_dataset.py       test_build_dataset_assigns_correct_split_per_cutoff
 
 ## Leakage checks
 
-`ml/tests/forecast/test_leakage.py` is Task 3.6's own consolidated
+`ml/tests/forecast/test_leakage.py` is the project's own consolidated
 leakage-safety suite; its docstring is already a checklist mapping each
 handbook item to the test that proves it, reproduced here for a single
 place to look:
@@ -151,16 +151,17 @@ test_retraining_on_identical_inputs_with_the_fixed_seed_reproduces_predictions
 
 `.venv/Scripts/python -m pytest ml/tests -q`: **539 passed, 0 failures,
 0 skipped** (previously 2 skipped -- the real-model forecast tests --
-before `production_model_v1` existed; Task 15.3 built that model, so
-every test in the suite now runs for real). Includes the 6 new
-`test_production_model.py` tests above and the fix from Task 15.3
-(`test_run_forecast.py`'s real-model test moved to an on-grid cutoff).
+before `production_model_v1` existed; an earlier task built that model,
+so every test in the suite now runs for real). Includes the 6 new
+`test_production_model.py` tests above and the fix from that same
+earlier task (`test_run_forecast.py`'s real-model test moved to an
+on-grid cutoff).
 
 ## What this task does not do
 
 - **Does not add new leakage properties.** `test_leakage.py`'s own
-  checklist from Task 3.6 already covers every property the handbook
-  asks for; this task only re-confirms it still passes on the current
+  checklist already covers every property the handbook
+  asks for; this document only re-confirms it still passes on the current
   code, it does not extend the checklist.
 - **Does not test `harness.py`'s own metadata/config.json separately.**
   `models/harness.py` writes a parallel metadata artifact (config.json

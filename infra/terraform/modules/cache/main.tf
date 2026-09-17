@@ -28,7 +28,7 @@ resource "aws_vpc_security_group_ingress_rule" "redis" {
 
 resource "aws_elasticache_replication_group" "this" {
   replication_group_id = var.name
-  description          = "Forecast job queue (Task 6.5 RedisForecastQueue)"
+  description          = "Forecast job queue (RedisForecastQueue)"
 
   engine               = "redis"
   engine_version       = "7.1"

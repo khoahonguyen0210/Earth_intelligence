@@ -7,23 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Masks every configured secret value in free text before that text
- * reaches a log line.
- *
- * Needed because the backend logs error text that it does not write
- * itself -- a failed Python subprocess's stderr. data/firms.py builds
- * its request URL with the FIRMS map key embedded in the path
- * (build_area_url), so a Python traceback from a failed FIRMS call would
- * otherwise print the key straight into the logs. Rather than trust
- * every current and future Python error path, the backend redacts the
- * values themselves.
- *
- * The values are the same ones the process is configured with (the
- * Kubernetes Secret's keys, docs/kubernetes-manifests.md); a value
- * shorter than MIN_SECRET_LENGTH is ignored so an empty or trivially
- * short default can never turn ordinary words into "***".
- */
 @Component
 public class SecretRedactor {
 
@@ -53,11 +36,6 @@ public class SecretRedactor {
                 .toList();
     }
 
-    /**
-     * Returns `text` with every secret masked, truncated to
-     * MAX_LOGGED_LENGTH characters so one oversized traceback cannot
-     * flood a log line. Null stays null.
-     */
     public String redact(String text) {
         if (text == null) {
             return null;

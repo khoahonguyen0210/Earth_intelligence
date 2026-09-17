@@ -8,9 +8,6 @@ interface AskEarthFormProps {
 const RECENT_QUERIES_KEY = "ai-earth:recent-queries";
 const MAX_RECENT_QUERIES = 8;
 
-/** Reading/writing localStorage can throw (private browsing, blocked
- * site data, ...); recent queries are a convenience, never something the
- * page depends on to function. */
 function readRecentQueries(): string[] {
   try {
     const raw = window.localStorage.getItem(RECENT_QUERIES_KEY);
@@ -29,7 +26,7 @@ function rememberQuery(question: string) {
       JSON.stringify(deduped.slice(0, MAX_RECENT_QUERIES)),
     );
   } catch {
-    // per-browser convenience only; nothing else depends on this succeeding.
+    // ignored
   }
 }
 

@@ -1,11 +1,10 @@
 # One-Worker Baseline — LOCKED
 
-This document freezes the one-worker distributed-inference baseline per
-Task 9.2 of the Execution Handbook. It is not a brainstorming document.
-It runs `docs/distributed-workload.md`'s frozen workload (Task 9.1)
-exactly as fixed; Task 9.3 (multi-worker scaling) reuses this same
-implementation with a different worker count rather than reimplementing
-it, so the two are a genuine apples-to-apples comparison.
+This document freezes the one-worker distributed-inference baseline.
+It is not a brainstorming document. It runs `docs/distributed-workload.md`'s
+frozen workload exactly as fixed; later multi-worker scaling work reuses
+this same implementation with a different worker count rather than
+reimplementing it, so the two are a genuine apples-to-apples comparison.
 
 ## The implementation
 
@@ -15,11 +14,11 @@ scripts/distributed/run_baseline.py
 ```
 
 `run_distributed_inference(workload, num_workers, ...)` is the one real
-function both Task 9.2 (`num_workers=1`) and Task 9.3
-(`num_workers=2/4/8`) call. It:
+function both this baseline (`num_workers=1`) and the multi-worker
+scaling benchmark (`num_workers=2/4/8`) call. It:
 
 ```text
-1. Loads the real Phase 1 sample data once (timed as its own stage).
+1. Loads the real sample data once (timed as its own stage).
 2. Fits the one calibrated-XGBoost model the whole run holds fixed
    (fit_baseline_model), from a fixed 100-cell set independent of the
    inference workload size.
@@ -34,14 +33,14 @@ function both Task 9.2 (`num_workers=1`) and Task 9.3
 
 ## Why model-fitting needed its own documented fallback
 
-Task 9.1 already flagged this: no earlier task ever persisted a trained
-model object (`ml/artifacts/calibrated_xgboost_v1/` holds only a config
-and a README). Fitting one fresh here hits the exact gap Task 5.4's
+This was already flagged earlier: no earlier task ever persisted a
+trained model object (`ml/artifacts/calibrated_xgboost_v1/` holds only a
+config and a README). Fitting one fresh here hits the exact gap
 `profiling.py` already documented and solved: the real train/validation
 splits have zero real historical positive examples in this project's
 small sample data, so `fit_calibration` (which needs both classes
-present in validation) raises. `fit_baseline_model` reuses Task 5.4's
-own fallback (`models.profiling.synthetic_timing_rows`, promoted from a
+present in validation) raises. `fit_baseline_model` reuses that same
+fallback (`models.profiling.synthetic_timing_rows`, promoted from a
 private helper to a shared public one for this reuse) rather than
 inventing a second one: realistically-shaped, both-classes-present rows
 used only to measure computational cost, never to report an accuracy
@@ -86,14 +85,14 @@ The one-time data-loading stage (~22s, dominated by parsing the sample
 ERA5 NetCDF file and the sample DEM/land-cover rasters) is over an
 order of magnitude slower than the entire 500-tile inference workload
 it precedes (1.68s). This is itself a real, measured finding worth
-carrying into Task 9.4 (bottleneck identification): for this workload
+carrying into later bottleneck-identification work: for this workload
 size, I/O-bound one-time setup, not CPU-bound per-tile computation, is
 where the real time goes -- a fact a naive read of "500 tiles took 1.68
 seconds" alone would hide.
 
 ## What this document does not define
 
-Task 9.3 varies only `num_workers` against this exact same
-implementation and workload to compute real speedup/efficiency numbers;
-this task's job was only to establish the `num_workers=1` reference
-point those numbers are measured against.
+The multi-worker scaling work varies only `num_workers` against this
+exact same implementation and workload to compute real speedup/
+efficiency numbers; this document's job was only to establish the
+`num_workers=1` reference point those numbers are measured against.

@@ -36,10 +36,18 @@ export function Footer() {
             <li>ESA WorldCover 10m</li>
           </ul>
         </div>
+
+        <div>
+          <h5>Contact</h5>
+          <ul>
+            <li>Email: khoahonguyen0210@gmail.com</li>
+            <li>Github: khoahonguyen0210</li>
+          </ul>
+        </div>
       </div>
 
       <p className="footer-legal">
-        Every number on this site is real and measured &mdash; never fabricated. MIT licensed.
+        Every number on this site is real and measured, never fabricated. MIT licensed.
       </p>
     </footer>
   );

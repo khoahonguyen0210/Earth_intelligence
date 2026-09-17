@@ -9,9 +9,6 @@ from ai_earth_intelligence_and_forecasting_engine.models.metrics import (
     save_metrics,
 )
 
-# The classic sklearn roc_auc_score docstring example -- a well-known,
-# independently documented reference value (0.75), not derived from our
-# own code.
 Y_TRUE = [0, 0, 1, 1]
 Y_PRED = [0.1, 0.4, 0.35, 0.8]
 
@@ -23,8 +20,6 @@ def test_roc_auc_matches_known_reference_value():
 
 
 def test_brier_score_matches_hand_computed_mean_squared_error():
-    # Brier score is exactly the mean squared error between prediction
-    # and outcome: mean((0-0.1)^2, (0-0.4)^2, (1-0.35)^2, (1-0.8)^2).
     expected = ((0 - 0.1) ** 2 + (0 - 0.4) ** 2 + (1 - 0.35) ** 2 + (1 - 0.8) ** 2) / 4
 
     metrics = compute_metrics(Y_TRUE, Y_PRED)
@@ -33,8 +28,6 @@ def test_brier_score_matches_hand_computed_mean_squared_error():
 
 
 def test_log_loss_matches_independently_computed_formula():
-    # Cross-check against the log-loss formula computed independently via
-    # math.log, not sklearn, as a genuine second implementation.
     expected = -sum(
         y * math.log(p) + (1 - y) * math.log(1 - p) for y, p in zip(Y_TRUE, Y_PRED)
     ) / len(Y_TRUE)
@@ -57,7 +50,6 @@ def test_single_class_produces_nan_auc_not_a_crash():
 
     assert math.isnan(metrics.pr_auc)
     assert math.isnan(metrics.roc_auc)
-    # Brier/log-loss are still well-defined with a single class.
     assert metrics.brier_score >= 0
     assert metrics.log_loss >= 0
 
@@ -70,8 +62,6 @@ def test_all_positive_class_produces_nan_auc_not_a_crash():
 
 
 def test_extreme_predictions_do_not_produce_infinite_log_loss():
-    # A prediction of exactly 0.0 for a true positive would be -log(0) =
-    # infinity without clipping; sklearn clips internally.
     metrics = compute_metrics([1, 0], [0.0, 1.0])
 
     assert math.isfinite(metrics.log_loss)

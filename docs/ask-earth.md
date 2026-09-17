@@ -1,21 +1,20 @@
 # Ask Earth — LOCKED
 
-This document freezes the Ask Earth page and its backend per Task 14.1
-of the Execution Handbook, the first task of Phase 14. It is not a
+This document freezes the Ask Earth page and its backend. It is not a
 brainstorming document.
 
 ## Why this task is more than a frontend page
 
-Task 14.1 asks for a page with "natural-language input." Every existing
+This task asks for a page with "natural-language input." Every existing
 route (`POST /analyses`, `POST /forecasts`) already requires a *resolved*
 region, time range and operation -- exactly what a natural-language
 question does not carry. Building a real natural-language input meant
 first closing a gap every earlier phase had explicitly deferred: nothing
 in this codebase turned a question into an executed result.
 `docs/planner-tool-schemas.md` said as much outright -- `ToolSchema.returns`
-exists "for the validator and for whoever wires up real dispatch in
-Tasks 7.3/8.x" -- and `generate_answer.py`'s own docstring: "Phase 8's
-workflow engine is what will actually execute a Plan and produce these
+exists "for the validator and for whoever wires up real dispatch..."
+-- and `generate_answer.py`'s own docstring: "...workflow engine is
+what will actually execute a Plan and produce these
 for real." Neither task ever did. This is that wiring, confirmed with
 the project owner before starting given its size: a new Python dispatch
 module, a new backend resource, and the Ask Earth page itself.
@@ -24,11 +23,11 @@ module, a new backend resource, and the Ask Earth page itself.
 
 ```text
 question
-  -> generate_plan (Task 7.3, Gemini, structured output)
-  -> validate_plan_or_raise (Task 7.2 -- generate_plan already calls
+  -> generate_plan (Gemini, structured output)
+  -> validate_plan_or_raise (generate_plan already calls
      this; an invalid plan never reaches dispatch)
   -> execute_plan (new: query/dispatch.py)
-  -> generate_answer (Task 7.4, Gemini, grounded only in real outputs)
+  -> generate_answer (Gemini, grounded only in real outputs)
 ```
 
 `query/run_ask_earth.py`'s `run_ask_earth(payload, client, backend)` is
@@ -42,7 +41,7 @@ shape (real dependencies as parameters, no hidden global state).
 
 `query/dispatch.py`'s `execute_plan` runs a validated `Plan`'s steps in
 dependency order, resolving `$step_id.field` references against earlier
-steps' real outputs (Task 7.2's validator already proved every such
+steps' real outputs (the validator already proved every such
 reference is well-formed; this only substitutes). A step whose
 dependency failed is never attempted -- `StepFailed` names every
 failure, never a partial, silently-guessed answer.
@@ -74,7 +73,7 @@ Two of these needed real engineering, not just a function call:
 - **`run_forecast`/`get_result_evidence` go through the real HTTP API,
   not a direct Python call.** A plan step could call
   `query.run_forecast.run_forecast(...)` directly and skip the network
-  entirely, but that would bypass everything Tasks 6.5/6.6/13.3/13.5
+  entirely, but that would bypass everything already
   built: idempotency, retries, tracing, and -- most importantly --
   `ForecastRecovery`. Going through `POST /forecasts` for real means a
   forecast step in a plan gets every one of those guarantees for free.
@@ -90,12 +89,12 @@ strictly mocked test would not have.
 ## The backend resource: `EarthQuery`
 
 `POST /queries` / `GET /queries/{id}` / `GET /queries/{id}/result` --
-mirrors `AnalysisController`'s exact shape (Task 6.3-style Postgres
+mirrors `AnalysisController`'s exact shape (Postgres
 storage via `V6__earth_queries.sql`, synchronous: no queue, the request
 thread blocks for `PythonEarthQueryRunner`'s one subprocess call).
 `EarthQueryRequest` is a bare `{question}`, bounded the same way
-`AnalysisRequest.question` already is (Task 13.4's `RequestShape`).
-`POST /queries` is rate-limited (Task 13.4's `RateLimitFilter`, its own
+`AnalysisRequest.question` already is (`RequestShape`).
+`POST /queries` is rate-limited (`RateLimitFilter`, its own
 `api.rate-limit.queries-per-minute`, default 20/min) since it starts a
 real LLM call plus a whole plan's execution, the same reasoning already
 applied to `/forecasts`/`/analyses`.
@@ -106,7 +105,7 @@ simpler `PythonAnalysisRunner`: a plan can include a `run_forecast` step
 `Backend.max_wait_seconds`, 150 s) and `generate_map` can produce a
 large `FeatureCollection`, so both the bounded wait
 (`ask-earth.python.timeout-seconds`, default 180 s) and the threaded
-stdout/stderr draining (avoiding the OS-pipe-buffer deadlock Task 6.6
+stdout/stderr draining (avoiding the OS-pipe-buffer deadlock
 already found) apply here too.
 
 ### `ServerPort`, and the bug it found
@@ -119,7 +118,7 @@ backend's own real, bound port -- unknowable at construction time
 listens for Boot's own `WebServerInitializedEvent` and is read at
 request time instead.
 
-Task 13.4 gave the app a separate `management.server.port`, which means
+Giving the app a separate `management.server.port` means
 Boot starts *two* embedded web servers, each firing its own
 `WebServerInitializedEvent`. `EarthQueryIntegrationTest` -- the real
 app, not a mock -- caught this immediately: without filtering, whichever
@@ -143,22 +142,22 @@ storage access can throw (private browsing, blocked site data) and
 nothing else depends on it succeeding. Clicking a recent query fills the
 input; it does not resubmit it.
 
-This page **replaces** Task 2.8's structured Earth-analysis form
+This page **replaces** the earlier structured Earth-analysis form
 (`QueryForm`/`ResultView`/`RegionMap`) as `App.tsx`'s own rendered
-content, matching Phase 14's own name, "final frontend product" --
-PROJECT_BIBLE's product definition is natural-language-first, and the
-structured form was always the interim Phase 2 UI, built before the
+content, matching this work's own description as the "final frontend
+product" -- PROJECT_BIBLE's product definition is natural-language-first,
+and the structured form was always an interim UI, built before the
 planner existed at all. The old components and their own tests are
 untouched on disk (still compiling, still passing) since `POST
 /analyses` is still a real, working, separately useful route; they are
 simply no longer what `App.tsx` renders.
 
-## Task 14.2: the result page
+## The result page
 
-`EarthQueryResultView` replaces the placeholder result snippet Task 14.1
-left in `App.tsx` with the handbook's full list -- answer, map, numbers,
+`EarthQueryResultView` replaces the placeholder result snippet
+previously left in `App.tsx` with the handbook's full list -- answer, map, numbers,
 time, region, evidence -- rendered per fact (a plan can produce more than
-one, e.g. a count alongside a forecast). `RegionMap` (Task 2.8) is reused
+one, e.g. a count alongside a forecast). `RegionMap` is reused
 as-is: it only ever needed a bbox and a label, both of which a fact's own
 `Evidence` already carries, so nothing about it changed.
 
@@ -176,11 +175,11 @@ have none of their own (a forecast's evidence needs a separate
 simply absent for them rather than showing an empty or fabricated one.
 
 A `run_forecast` fact deliberately shows only the job reference, not a
-risk grid -- that grid is Task 14.3's own forecast map, which needs
+risk grid -- that grid belongs to the forecast map below, which needs
 fields (legend, forecast horizon, calibration) this general result view
 does not carry.
 
-## Task 14.3: the forecast map
+## The forecast map
 
 `ForecastMap` (`frontend/src/components/ForecastMap.tsx`) renders the
 real `GET /forecasts/{id}/result` shape -- confirmed against the actual
@@ -216,13 +215,13 @@ This component is intentionally standalone: it takes an already-`
 SUCCEEDED` forecast's `ForecastResult` as a prop and renders it, the
 same way `RegionMap` only ever needed a bbox and a label. Fetching a
 forecast by ID and deciding *when* to show this component --
-PENDING/RUNNING/FAILED handling -- is Task 14.4's "real job-status UI";
-wiring it into a `run_forecast` fact on the result page is that task's
+PENDING/RUNNING/FAILED handling -- is the real job-status UI's job below;
+wiring it into a `run_forecast` fact on the result page is that same
 job too, once there is a real status to gate it on. `getForecastResult`
 (`api/client.ts`) exists now, mirroring `getAnalysisResult`/
 `getEarthQueryResult`, but nothing calls it yet.
 
-## Task 14.4: the real job-status UI
+## The real job-status UI
 
 `ForecastPanel` (`frontend/src/components/ForecastPanel.tsx`) is a new,
 second section on the page, alongside Ask Earth -- not a further
@@ -243,7 +242,7 @@ range -- the same region-kind fieldset `QueryForm` already established).
 `dispatch_run_forecast`'s own `poll_interval_seconds=1.0` order of
 magnitude, not hammering the endpoint) until the real
 `Forecast.Status` reaches a terminal value, then fetches
-`GET /forecasts/{id}/result` and renders `ForecastMap` (Task 14.3) on
+`GET /forecasts/{id}/result` and renders `ForecastMap` on
 success or the real backend error message on failure. Never a
 fabricated progress percentage: the handbook's own four states
 (queued/running/completed/failed) are a direct, honest fold of the six
@@ -282,13 +281,13 @@ on the way in.
   `run_forecast` fact wired up.** As above, Ask Earth's embedded
   forecast step is already resolved by the time a `/queries` response
   exists, so there is no separate status UI to add there; a
-  `run_forecast` fact still only ever shows its job reference
-  (Task 14.2), unchanged by this task.
+  `run_forecast` fact still only ever shows its job reference,
+  unchanged by this task.
 - **Nothing here changes `WorkflowExecutor`.** `execute_plan` is its own
   simple, sequential, non-persistent executor purpose-built for one
-  synchronous Ask Earth request; `WorkflowExecutor` (Task 8.3) still has
+  synchronous Ask Earth request; `WorkflowExecutor` still has
   no real caller, unchanged by this task.
-- **The malformed-input properties Task 13.5 already proved** (a corrupt
+- **The malformed-input properties already proved earlier** (a corrupt
   FIRMS row fails cleanly, the service stays up) are not re-proven here;
   `execute_plan` reuses `run_analysis`/`POST /forecasts` exactly, so
   those same guarantees carry over rather than needing a second test.
@@ -360,19 +359,20 @@ half-open time window did not exactly match the question's literal
 wording, rather than silently asserting an exact-sounding number, which
 is precisely the "never fabricate" property PROJECT_BIBLE locks.
 
-Full backend suite after Task 14.1: **173 tests, 0 failures** (155
+Full backend suite after adding the Ask Earth page and its backend:
+**173 tests, 0 failures** (155
 before). Full `ml` suite: **528 -> 545 tests** (17 new, dispatch.py/
 run_ask_earth.py), still 0 failures, 2 skipped (the pre-existing
-real-model forecast tests, unrelated to this task). Frontend after Task
-14.1: **27 tests, 0 failures** (19 before, +8 new for `AskEarthForm`,
+real-model forecast tests, unrelated to this work). Frontend after
+adding the Ask Earth page and its backend: **27 tests, 0 failures** (19 before, +8 new for `AskEarthForm`,
 `App.test.tsx` rewritten for the new flow rather than added to). Frontend
-after Task 14.2: **35 tests, 0 failures** (+8 new for
-`EarthQueryResultView`). Frontend after Task 14.3: **41 tests, 0
-failures** (+6 new for `ForecastMap`). Frontend after Task 14.4: **49
+after adding the result page: **35 tests, 0 failures** (+8 new for
+`EarthQueryResultView`). Frontend after adding the forecast map: **41 tests, 0
+failures** (+6 new for `ForecastMap`). Frontend after adding the real job-status UI: **49
 tests, 0 failures** (+4 new for `ForecastRequestForm`, +4 new for
 `ForecastPanel`).
 
-## Task 14.5: browser end-to-end flow verification
+## Browser end-to-end flow verification
 
 This environment has no browser-automation tool, so a literal
 click-through of a rendered browser page was not possible. Instead,
@@ -390,7 +390,7 @@ tests already are.
 healthy response before this task started, but `POST /queries` 404'd
 against it -- that port was actually being served by a stale kind
 Kubernetes cluster's `ai-earth-backend` image (Docker Desktop/WSL
-forwarding it, not a Maven process), built before Task 14.1 added
+forwarding it, not a Maven process), built before the Ask Earth work added
 `EarthQueryController`. A fresh backend was started for real
 (`./mvnw spring-boot:run` with `SERVER_PORT=8090`/`MANAGEMENT_PORT=8091`
 to avoid that occupied port) against the same Docker Compose stack, and
@@ -434,7 +434,7 @@ full 2019-2024 FIRMS/ERA5 history first, an unscoped, potentially
 long-running job), so a genuine *SUCCEEDED* prediction -- real
 probabilities and a real calibration ("uncertainty") table -- was not
 exercised live here. That response shape was already verified against
-the real `forecast_result_to_dict`/`cell_to_feature` code in Task
-14.3's own research, and `ForecastMap`/`ForecastPanel`'s handling of it
+the real `forecast_result_to_dict`/`cell_to_feature` code in the
+forecast map's own research, and `ForecastMap`/`ForecastPanel`'s handling of it
 is covered by their own component tests; only the live numbers are
 unverified, not the contract.

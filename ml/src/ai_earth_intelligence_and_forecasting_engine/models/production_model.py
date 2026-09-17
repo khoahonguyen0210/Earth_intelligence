@@ -1,20 +1,3 @@
-"""The model the product serves: calibrated XGBoost, trained once.
-
-Before this, every forecast request re-fit XGBoost from scratch on two
-fixed demo cutoffs (query/run_forecast.py's TRAIN/VALIDATION_DEMO_CUTOFF)
-and failed on real data, because those two cutoffs had no real fire
-examples. The product now serves the top of the locked model ladder,
-trained on the real historical dataset (docs/historical-dataset.md)
-exactly the way the benchmark trains it: XGBoost fit on the train split
-with validation early stopping, then isotonic calibration on the
-validation split. The test split is never seen here.
-
-The artifact is a pickle (the fitted sklearn/xgboost objects) plus a
-metadata.json recording what it was trained on and with which library
-versions; loading refuses a version mismatch rather than risk silently
-different predictions.
-"""
-
 from __future__ import annotations
 
 import json

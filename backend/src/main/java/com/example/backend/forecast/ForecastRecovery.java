@@ -11,38 +11,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Finds forecast jobs that no worker will ever finish and puts them
- * back on track -- the recovery path the queue itself does not have
- * (docs/reliability-tests.md). Postgres is the source of truth; the Redis
- * list is only a hint of what to run next.
- *
- * Two cases, both judged by how long a row has gone without changing
- * (forecasts.updated_at, V5):
- *
- *   abandoned attempt  RUNNING for longer than an attempt can take (the
- *                      Python timeout plus a grace period): the worker
- *                      died, or its final database write failed. That
- *                      counts as a failed attempt (WORKER_LOST, transient):
- *                      RETRYING and re-enqueued while attempts remain,
- *                      else FAILED -- the same budget as any retry.
- *   orphaned job       PENDING/RETRYING for longer than the threshold AND
- *                      not in the Redis list: its queue entry was never
- *                      written (Redis down at submit) or was popped by a
- *                      worker that then could not run it. Re-enqueued.
- *                      A job merely waiting behind a backlog is still in
- *                      the list and is left alone.
- *
- * Runs on every replica. Every change is a conditional UPDATE that only
- * succeeds if the row is still in the state and age the sweep saw, so two
- * replicas never both act on one job, and a job a worker claims meanwhile
- * is left to that worker. A duplicate queue entry is harmless: a worker
- * only runs a job it can claim (ForecastStore.claim).
- *
- * A sweep that cannot reach Postgres or Redis logs one WARN and tries
- * again next interval -- recovery must not itself fail loudly during the
- * very outages it exists for.
- */
 @Component
 public class ForecastRecovery {
 

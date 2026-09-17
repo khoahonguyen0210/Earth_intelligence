@@ -1,15 +1,3 @@
-"""Real historical Earth data for the locked 2019-2024 split.
-
-Before this module the project had ingested exactly one real day of FIRMS
-detections (2024-08-15) and one real ERA5-Land hour, so the train and
-validation splits contained no real positive examples and every model in
-the ladder was untrainable on real data (docs/feature-set-freeze.md).
-This module defines, *before* any model is trained on the result, which
-historical cutoffs the benchmark dataset samples and exactly which raw
-FIRMS days and ERA5-Land hours those cutoffs need -- see
-docs/historical-dataset.md for the reasoning.
-"""
-
 from __future__ import annotations
 
 import time
@@ -33,18 +21,6 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.spec import (
     FORECAST_WINDOW_HOURS,
 )
 
-# --- The pre-registered cutoff sample --------------------------------------
-#
-# The spec allows a forecast at every hourly cutoff, but a dataset of every
-# hour x 9,975 cells x 6 years (~524M rows) is not buildable here. The
-# benchmark therefore samples cutoffs with one fixed rule, identical for
-# every year and chosen before any model result exists:
-#
-#   10:00 UTC, every 7 days from June 1, while still in October.
-#
-# Fire season (June-October) is where California's fire occurrence is;
-# a year-round sample would be dominated by near-certain negatives. 10:00
-# UTC matches every earlier real sample and demo cutoff in this project.
 FIRE_SEASON_START_MONTH = 6
 FIRE_SEASON_END_MONTH = 10
 CUTOFF_HOUR_UTC = 10
@@ -74,9 +50,7 @@ def historical_cutoffs(
 
 
 def observation_window(cutoff: datetime) -> tuple[datetime, datetime]:
-    """The only observation times that can affect `cutoff`'s row: the
-    longest fire-history lookback (cutoff - 30d, cutoff] plus the label
-    window (cutoff, cutoff + 24h]. Returned half-open as (start, end]."""
+    """Returned half-open as (start, end]."""
     return (
         cutoff - timedelta(hours=LOOKBACK_HOURS),
         cutoff + timedelta(hours=FORECAST_WINDOW_HOURS),
@@ -148,8 +122,7 @@ def fetch_firms_span(
     """One FIRMS area request for `span`, written verbatim to `output_path`.
 
     Validated before writing: the response must parse as FIRMS CSV and
-    every row's acq_date must fall inside the span, so a truncated or
-    wrong-window response is never saved as if it were real data."""
+    every row's acq_date must fall inside the span."""
     url = build_span_url(config, bbox, span)
     last_error: Exception | None = None
 
@@ -161,8 +134,7 @@ def fetch_firms_span(
             response.raise_for_status()
             break
         except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as error:
-            # The map key is part of the URL; never let it reach an error
-            # message (docs/structured-logging.md, "Never log secrets").
+            # The map key is part of the URL; never let it reach an error message.
             last_error = RuntimeError(str(error).replace(config.map_key, "***"))
             time.sleep(2**attempt)
     else:
@@ -187,10 +159,7 @@ def load_firms_history(
     product: str = "VIIRS_SNPP_SP",
 ) -> list[Observation]:
     """Every observation with start < observed_at <= end, from the span
-    files under `history_dir` that overlap that window.
-
-    Observation ids embed the span file name, so ids stay unique across
-    files (the single-file loader's per-file row index would collide)."""
+    files under `history_dir` that overlap that window."""
     ingested_at = datetime.now(timezone.utc)
     observations: list[Observation] = []
 
@@ -233,10 +202,7 @@ def require_firms_coverage(
 ) -> None:
     """Raise unless real FIRMS history covers every UTC day in [start, end].
 
-    The history holds fire seasons only (May 2 - Oct 27, 2019-2024). A day
-    outside it has no data, which is not the same as no fires -- counting
-    it as zero would fabricate an observation, so callers refuse instead
-    (PROJECT_BIBLE.md: never silently fill missing data)."""
+    The history holds fire seasons only (May 2 - Oct 27, 2019-2024)."""
     covered = firms_covered_days(history_dir)
     if not covered:
         raise ValueError(f"no FIRMS history found in {history_dir}")
@@ -259,9 +225,7 @@ def required_era5_requests(
     cutoffs: Iterable[datetime],
 ) -> list[tuple[int, int, list[int], str]]:
     """One CDS request per (year, month): the cutoff days in that month at
-    the cutoff hour. Each cutoff's environmental features use the latest
-    ERA5-Land record with valid_time <= cutoff (environmental_features.py),
-    so the record at exactly the cutoff hour is the one that matters."""
+    the cutoff hour."""
     by_month: dict[tuple[int, int], set[int]] = {}
     hours: set[int] = set()
     for cutoff in cutoffs:

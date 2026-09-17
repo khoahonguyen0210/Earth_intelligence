@@ -1,7 +1,7 @@
 # Object Storage Contract — LOCKED
 
-This document freezes the object storage abstraction per Task 6.4 of the
-Execution Handbook. It is not a brainstorming document.
+This document freezes the object storage abstraction. It is not a
+brainstorming document.
 
 Infrastructure: `infra/docker/docker-compose.yml` runs `quay.io/minio/minio`
 (MinIO moved off Docker Hub; `minio/minio` there 404s) on port `9000`
@@ -24,7 +24,7 @@ public interface ObjectStore {
 Exactly the four operations the handbook lists. `get` returns
 `Optional.empty()` for a missing key rather than throwing, matching how
 `AnalysisStore`/`ForecastStore` already return `Optional` for a missing
-id (Tasks 2.7/6.3).
+id.
 
 ## Why MinIO, and why the S3 SDK
 

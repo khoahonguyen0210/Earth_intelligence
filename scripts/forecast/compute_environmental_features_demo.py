@@ -18,9 +18,6 @@ METADATA_OUTPUT_PATH = Path(
     "data/processed/forecast/environmental_features_sample_metadata.json"
 )
 
-# The real ERA5-Land sample was fetched for 2024-08-15T10:00 UTC.
-# A cutoff at that same hour makes every cell that has an ERA5 grid point
-# cutoff-compatible.
 CUTOFF = datetime(2024, 8, 15, 10, 0, tzinfo=timezone.utc)
 
 

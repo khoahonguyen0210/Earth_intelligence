@@ -1,9 +1,9 @@
 # Bottleneck Identification — LOCKED
 
-This document freezes bottleneck identification per Task 9.4 of the
-Execution Handbook. It is not a brainstorming document. It explains,
+This document freezes bottleneck identification. It is not a
+brainstorming document. It explains,
 with direct real measurements rather than inference, why
-`docs/multi-worker-scaling.md` (Task 9.3) found more workers making the
+`docs/multi-worker-scaling.md` found more workers making the
 workload monotonically slower.
 
 ## The implementation
@@ -13,16 +13,16 @@ ml/src/ai_earth_intelligence_and_forecasting_engine/distributed/bottleneck.py
 scripts/distributed/run_bottleneck_report.py
 ```
 
-Task 9.3's numbers alone only show *that* more workers were slower, not
+Those numbers alone only show *that* more workers were slower, not
 *which* of the handbook's six candidate factors (CPU, I/O, network,
 database, serialization, coordination) caused it. This task isolates
 each candidate with its own direct measurement rather than guessing from
 aggregate wall-clock numbers:
 
 ```text
-cpu           -- Task 9.2's own real per-tile compute time
+cpu           -- the real per-tile compute time
                  (DistributedRunResult.total_cpu_seconds)
-i_o           -- Task 9.2's own real data-loading stage time
+i_o           -- the real data-loading stage time
                  (RunContext.data_loading)
 serialization -- pickling one real ChunkTask directly (the exact object
                  multiprocessing.Pool.map sends across the process
@@ -62,7 +62,7 @@ directly, not inferred.** 8 *empty* workers -- doing zero real work --
 already cost 24.9 seconds just to start, which alone exceeds the
 entire real computational workload (1.08 seconds of CPU across all 500
 tiles) by more than 20x. This is the direct, isolated confirmation of
-what Task 9.3's aggregate numbers already implied: adding workers adds
+what the aggregate scaling numbers already implied: adding workers adds
 this same fixed per-process startup cost (Windows' `spawn` start method
 re-launching a Python interpreter and re-importing the whole `ml`
 package -- numpy, xgboost, scikit-learn, rasterio -- from scratch for
@@ -82,7 +82,7 @@ measured cost, and a concrete lead for anyone optimizing this pipeline
 later (shipping only each chunk's already-filtered relevant records,
 not the shared full dataset, to each worker).
 
-## Why this does not change Task 9.3's numbers or conclusion
+## Why this does not change the scaling numbers or conclusion
 
 This task explains the mechanism; it does not re-run or revise the
 scaling benchmark. The fix this measurement points to -- a persistent
@@ -104,6 +104,6 @@ this project.
 ## What this document does not define
 
 Whether a fork-based or persistent-pool redesign would actually change
-Task 9.3's scaling numbers is a real, open, untested question -- this
+the scaling numbers is a real, open, untested question -- this
 task only names the cause on the current implementation and platform,
 it does not build or measure an alternative one.

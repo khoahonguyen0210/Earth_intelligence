@@ -8,14 +8,6 @@ import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/**
- * The JPA row shape for the `jobs` table. `id` is synthesized as
- * `workflowId + ":" + taskId` (WorkflowStore's job): a WorkflowNode's
- * own task_id is only unique within one workflow, not globally, so it
- * cannot be the primary key on its own -- see
- * V3__workflow_persistence.sql. `jobType` is the column's existing name
- * for what is conceptually a node's task type.
- */
 @Entity
 @Table(name = "jobs")
 public class JobEntity {

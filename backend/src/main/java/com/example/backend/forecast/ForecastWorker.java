@@ -14,41 +14,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * The consumer side of ForecastQueue. pollOnce is scheduled
- * back-to-back (fixedDelay); since ForecastQueue.dequeue already blocks
- * for forecast.queue.poll-timeout-seconds when the queue is empty, this
- * is a continuous blocking-poll loop rather than a busy-wait, without
- * needing a dedicated thread.
- *
- * A dequeued id whose forecast is missing or not PENDING/RETRYING
- * (already terminal, or a stale duplicate entry) is skipped rather than
- * reprocessed.
- *
- * A transient outcome (ForecastRunner couldn't reach its dependency, or
- * timed out -- see PythonForecastRunner) is retried by re-enqueueing the
- * same id, up to forecast.worker.max-attempts, moving through RETRYING
- * in between. A permanent outcome (the request/data itself is the
- * problem) goes straight to FAILED on the first attempt, never retried.
- * See docs/forecast-retry-and-idempotency.md.
- *
- * Every log line written while a job is processed carries `job_id`
- * (MDC), and each attempt ends in exactly one of the job_succeeded /
- * job_retry_scheduled / job_failed events, with the attempt number,
- * duration and, on failure, the error code and the redacted error text.
- *
- * The same outcomes feed ForecastMetrics -- attempt duration by
- * outcome, failures by error code, the Python stage timings, and the
- * busy gauge around each attempt (docs/metrics.md).
- *
- * Each attempt is a `forecast.job.attempt` span continuing the trace of
- * the request that submitted the job (its traceparent is on the
- * forecast row), so the Python run and the store writes below it --
- * including the one that records the result -- belong to that request's
- * trace, and so do this attempt's log lines (docs/tracing.md). A failed
- * attempt's span is marked failed with the error code and the same
- * redacted text the log line gets.
- */
 @Component
 public class ForecastWorker {
 
@@ -101,14 +66,6 @@ public class ForecastWorker {
         dequeued.ifPresent(this::process);
     }
 
-    /**
-     * The job runs only if this worker's claim flips it to RUNNING
-     * (ForecastStore.claim), so a duplicate queue entry is a no-op. If
-     * Postgres or Redis fails mid-way -- after the pop, or on the
-     * attempt's own writes -- the job is left as it is (waiting, or
-     * RUNNING) and ForecastRecovery finishes the story once the
-     * dependency is back, instead of the job being lost.
-     */
     private void process(String forecastId) {
         MDC.put(MDC_JOB_ID, forecastId);
         try {
@@ -130,11 +87,6 @@ public class ForecastWorker {
         }
     }
 
-    /**
-     * One WARN per outage rather than one per poll (every 100 ms), and a
-     * pause before the next poll, so a Redis or Postgres outage neither
-     * floods the logs nor spins the scheduler thread.
-     */
     private void dependencyUnavailable(String during, DataAccessException e) {
         if (!dependencyDown) {
             dependencyDown = true;

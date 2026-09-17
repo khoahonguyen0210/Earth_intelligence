@@ -1,9 +1,9 @@
 # Forecast Async Jobs — LOCKED
 
-This document freezes the Redis-backed async job design per Task 6.5 of
-the Execution Handbook. It is not a brainstorming document. It builds on
-`docs/forecast-api-contract.md` (Task 6.1) and `docs/persistence-schema.md`
-(Task 6.3) rather than redefining either.
+This document freezes the Redis-backed async job design. It is not a
+brainstorming document. It builds on
+`docs/forecast-api-contract.md` and `docs/persistence-schema.md`
+rather than redefining either.
 
 Infrastructure: `infra/docker/docker-compose.yml` runs `redis:7-alpine` on
 port `6379`, no auth (matching the other local dev services). Run
@@ -15,16 +15,16 @@ port `6379`, no auth (matching the other local dev services). Run
 ```text
 POST /forecasts
   -> ForecastController creates a Forecast row, status PENDING (durable,
-     Task 6.3's Postgres-backed ForecastStore)
+     the Postgres-backed ForecastStore)
   -> ForecastController pushes the forecast id onto a Redis list
      (ForecastQueue/RedisForecastQueue)
   -> ForecastWorker, polling on a fixed schedule, blocking-pops the next
      id (Redis RPOP with a timeout)
-  -> ForecastWorker flips the row to RUNNING, calls the existing Task 6.2
+  -> ForecastWorker flips the row to RUNNING, calls the existing
      ForecastRunner (still one synchronous Python subprocess per job --
      only the caller moved), then flips it to a terminal status
   -> GET /forecasts/{id} and GET /forecasts/{id}/result read whatever the
-     row currently says, same as before Task 6.5
+     row currently says, same as before
 ```
 
 `ForecastController` no longer calls `ForecastRunner` at all -- it only
@@ -50,8 +50,8 @@ needs no dedicated worker thread.
 
 A worker that dies between popping an id and finishing the job loses that
 job today -- there is no redelivery or visibility timeout. That gap, and
-the resulting use of `RETRYING`, is explicitly Task 6.6's scope (see
-below), not this one's.
+the resulting use of `RETRYING`, is explicitly the scope of later
+retry/timeout/idempotency work (see below), not this document's.
 
 ## States
 
@@ -64,7 +64,7 @@ PENDING | RUNNING | SUCCEEDED | FAILED | RETRYING | CANCELLED
 reachable, driven by the flow above. `RETRYING` (retry a transiently
 failed job) and `CANCELLED` (cancel a queued/running job) are defined so
 the state space is complete, but nothing produces either yet -- retry
-policy, timeouts, and idempotency are Task 6.6's job. There is no cancel
+policy, timeouts, and idempotency are handled by later work. There is no cancel
 endpoint; adding one is out of scope here since
 `docs/forecast-api-contract.md` locks the three existing routes.
 
@@ -84,7 +84,7 @@ failure case already uses, rather than `200` with a null result:
 ## What this document does not define
 
 Retry-on-transient-failure, worker timeouts, and idempotency keys
-(Task 6.6) are not implemented here -- `RETRYING` exists as an enum value
+are not implemented here -- `RETRYING` exists as an enum value
 only. The generic `jobs` table `docs/persistence-schema.md` describes
 stays schema-only: `forecasts` already is the durable job record for this
 flow (its own id/status/error), so this task does not add a second,

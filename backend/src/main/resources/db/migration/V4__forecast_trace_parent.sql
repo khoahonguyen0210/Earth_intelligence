@@ -1,4 +1,4 @@
--- Task 13.3 (Execution Handbook Phase 13): the W3C traceparent of the
+-- The W3C traceparent of the
 -- span that submitted the forecast job, so the worker that later picks
 -- the job up off the queue -- on another thread or another replica --
 -- continues the submitting HTTP request's trace. See docs/tracing.md.

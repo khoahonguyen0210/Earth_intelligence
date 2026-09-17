@@ -1,9 +1,8 @@
 # Workflow DAG Execution — LOCKED
 
-This document freezes DAG execution per Task 8.3 of the Execution
-Handbook. It is not a brainstorming document. It builds on
-`docs/workflow-dag-schema.md` (Task 8.1) and
-`docs/workflow-state-machine.md` (Task 8.2) rather than redefining
+This document freezes DAG execution. It is not a brainstorming
+document. It builds on `docs/workflow-dag-schema.md` and
+`docs/workflow-state-machine.md` rather than redefining
 either.
 
 ## The two types
@@ -16,7 +15,7 @@ backend/src/main/java/com/example/backend/workflow/WorkflowExecutor.java
 `WorkflowTaskDispatcher` is a one-method seam (`dispatch(WorkflowNode) ->
 DispatchOutcome`) between the DAG-walking algorithm and whatever
 actually performs a node's real work. `DispatchOutcome` deliberately
-mirrors `ForecastOutcome` (Task 6.6) exactly: success/output, or a
+mirrors `ForecastOutcome` exactly: success/output, or a
 failure marked transient (worth retrying) vs permanent (retrying would
 only reproduce it) -- the same distinction, not a second, competing one.
 
@@ -24,7 +23,7 @@ only reproduce it) -- the same distinction, not a second, competing one.
 state and returns the finished `Workflow`. It is synchronous and
 single-call: it loops until nothing changes in a full pass over every
 node, rather than polling a queue across separate invocations the way
-`ForecastWorker` (Task 6.5) does for one job. This is the right shape to
+`ForecastWorker` does for one job. This is the right shape to
 prove the algorithm itself -- dependency ordering, fan-out, failure
 propagation, retry -- against the handbook's own example DAG; a
 restart-safe, queue-backed version (the natural next step once this
@@ -51,7 +50,7 @@ repeat until no node changes in a full pass:
       exactly ForecastWorker's own rule)
 ```
 
-Every status change goes through `WorkflowStateMachine` (Task 8.2), so
+Every status change goes through `WorkflowStateMachine`, so
 an algorithm bug that tried an illegal transition would raise
 `IllegalStateTransitionException` rather than silently corrupting a
 node's state -- `WorkflowExecutorTest` caught exactly this once, live:
@@ -95,15 +94,15 @@ Python, no cost):
 ## What this document does not define
 
 There is no real `WorkflowTaskDispatcher` implementation here -- bridging
-each of Task 7.1's six tools to its actual caller
+each of the planner's six tools to its actual caller
 (`docs/planner-tool-schemas.md`'s own mapping: resolve_region/get_data/
 calculate_statistics/generate_map/get_result_evidence to the real Python
 functions, run_forecast to the existing `POST /forecasts` pipeline), and
 resolving a step's `$step_id.field` references against an
 already-completed dependency's `outputRef`, is real integration work a
 later task must still do. There is also no code here that turns a
-Python `Plan` (Task 7.3) into a `Workflow` -- that conversion is the
+Python `Plan` into a `Workflow` -- that conversion is the
 other half of wiring the planner to real execution. Persisting a
 `Workflow`'s state as it runs (surviving a controller/worker restart,
-per the handbook's own Task 8.4) is not implemented either: `execute`
+per the handbook's own later persistence work) is not implemented either: `execute`
 holds everything in memory for the duration of one call.

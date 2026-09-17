@@ -1,10 +1,7 @@
 """dispatch.py wires the six locked planner tools to real,
 already-existing computation. Each dispatch_* test proves the real
 function actually ran (a real count, a real bbox, a real evidence
-record) -- not that some object was returned. run_forecast/
-get_result_evidence reach the real backend over HTTP, mocked the same
-way tests/data/test_firms.py already mocks `requests` (a real
-`requests.Response`, not a bespoke fake)."""
+record), not that some object was returned."""
 
 import json
 from datetime import datetime, timezone
@@ -79,7 +76,6 @@ def era5_history(tmp_path, monkeypatch):
         coords={
             "valid_time": [np.datetime64("2024-08-15T10:00:00")],
             "latitude": [37.5],
-            # one point inside the requested bbox, one far outside it.
             "longitude": [-119.5, 10.0],
         },
     )
@@ -260,10 +256,6 @@ def test_dispatch_get_result_evidence_returns_the_forecasts_own_evidence():
 
 
 def test_dispatch_get_result_evidence_raises_when_the_forecast_has_not_finished():
-    # docs/forecast-api-contract.md: 409 while PENDING/RUNNING/RETRYING,
-    # 422 for a FAILED forecast -- neither is a 200, so raise_for_status
-    # is what actually rejects it here (_execute_step is what turns this
-    # into a clean per-step StepFailed message; proven separately below).
     backend = Backend(base_url="http://backend.test")
     with patch(
         "ai_earth_intelligence_and_forecasting_engine.query.dispatch.requests.get"
@@ -341,18 +333,14 @@ def test_execute_plan_runs_steps_in_order_and_resolves_refs(firms_history):
 
     assert execution.outputs["count"]["count"] == 3
     assert execution.outputs["forecast"]["forecast_id"] == "f-42"
-    # proves the $forecast.forecast_id reference was really substituted,
-    # not just accepted: the mocked GET was called with the real id.
     assert (
         mock_get.call_args_list[1].args[0]
         == "http://backend.test/forecasts/f-42/result"
     )
     assert execution.outputs["evidence"]["dataset"] == "wildfire_forecast:v1"
-    # calculate_statistics's own evidence is tracked separately from its
-    # result, not mixed into the field-indexable output.
     assert execution.evidence["count"]["dataset"] == "NASA_FIRMS:VIIRS_SNPP_SP"
-    assert "forecast" not in execution.evidence  # run_forecast has none of its own
-    assert "evidence" not in execution.evidence  # get_result_evidence likewise
+    assert "forecast" not in execution.evidence
+    assert "evidence" not in execution.evidence
 
 
 def test_execute_plan_cancels_steps_depending_on_a_failed_step_without_running_them(
@@ -393,7 +381,6 @@ def test_execute_plan_cancels_steps_depending_on_a_failed_step_without_running_t
             "ai_earth_intelligence_and_forecasting_engine.query.dispatch.requests.get"
         ) as mock_get,
     ):
-        # the backend itself refuses the request -- run_forecast's own step fails.
         mock_post.return_value = _response(
             400, {"error": "cutoff: must be an ISO 8601 date-time"}
         )
@@ -404,16 +391,11 @@ def test_execute_plan_cancels_steps_depending_on_a_failed_step_without_running_t
     assert "forecast" in str(excinfo.value)
     assert "evidence" in str(excinfo.value)
     assert "dependency 'forecast' failed" in str(excinfo.value)
-    mock_get.assert_not_called()  # get_result_evidence was cancelled, never dispatched
-    # the independent "count" step is not among the reported failures: it ran.
+    mock_get.assert_not_called()
     assert "count" not in str(excinfo.value)
 
 
 def test_execute_plan_defends_against_a_ref_to_a_step_never_run_without_depends_on():
-    # A validated Plan always declares depends_on for every $ref it uses,
-    # so this shouldn't occur in practice -- but the dispatcher does not
-    # trust that blindly, and fails the referencing step cleanly rather
-    # than raising a raw KeyError.
     plan = Plan(
         question="reference a step that never ran",
         steps=(

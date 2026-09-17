@@ -75,7 +75,7 @@ covering the requested bounding box:
 
 This 0.1 degree resolution matches the locked project grid. Assignment
 to the canonical grid's stable tile IDs happens once the grid artifact
-from Task 1.6 exists.
+exists.
 
 ## Format
 

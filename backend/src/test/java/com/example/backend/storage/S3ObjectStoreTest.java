@@ -16,12 +16,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 
-/**
- * Runs against the real local MinIO (`docker compose up -d` in
- * infra/docker/, same as BackendApplicationTests needs real Postgres) --
- * proving the actual network/serialization wiring works, not just the
- * wrapping logic.
- */
 class S3ObjectStoreTest {
 
     private static ObjectStore newStore() {

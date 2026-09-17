@@ -6,9 +6,6 @@ interface ForecastRequestFormProps {
   disabled: boolean;
 }
 
-// Same named-region set and region-kind pattern as QueryForm; a forecast
-// job only ever needs a region and a cutoff, not an
-// operation or a time range.
 const NAMED_REGIONS = [
   "california",
   "northern_california",
@@ -48,8 +45,6 @@ export function ForecastRequestForm({ onSubmit, disabled }: ForecastRequestFormP
               value: [coordinates.latitude, coordinates.longitude],
             };
 
-    // <input type="datetime-local"> has no timezone of its own; this
-    // form's value is always read as UTC.
     onSubmit({ region, cutoff: `${cutoff}:00Z` });
   }
 

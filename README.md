@@ -1,332 +1,353 @@
+<div align="center">
+
 # AI Earth Intelligence & Forecasting Engine
 
-A web-based Earth intelligence platform: a user asks a natural-language
-question about Earth, and the system identifies the geographic and
-temporal scope, retrieves the required Earth data, executes a
-validated analysis workflow, and returns an evidence-backed answer —
-never a fabricated one. Forecasting is one capability used to validate
-the platform's scientific and computational depth, not the whole
-product.
+AI Earth Intelligence & Forecasting Engine is a web application that answers natural-language questions about Earth, such as wildfire counts and trends or a 24-hour wildfire-risk forecast. Every answer is backed by real ingested Earth data and a trained model, and the evidence behind each number is attached to it.
 
-## What it is
+![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?logo=springboot&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-844FBA?logo=terraform&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?logo=amazonaws&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Ask a question like "How many wildfires occurred in the Bay Area
-during August 2024?" or "What's the wildfire risk for California
-starting tomorrow?" and the system:
+![AI Earth Intelligence Preview](docs/images/home.png)
 
-1. Sends the question to an LLM planner, which produces a structured,
-   typed plan (never free-form code).
-2. Runs that plan through a deterministic validator before anything
-   executes — the LLM chooses tools, it never bypasses this gate or
-   runs arbitrary logic.
-3. Executes the validated plan against real Earth data (fire history,
-   weather, geography) and a real trained forecasting model.
-4. Returns an answer with its evidence attached: dataset, time range,
-   region, model version, and calibration — so every number is
-   traceable back to what actually produced it.
-
-## Problem
-
-The first flagship capability is a locked scientific problem:
-**24-hour wildfire occurrence-risk forecasting on a fixed California
-0.1° grid**, using public Earth-observation, weather, and geographic
-data.
-
-For each grid cell `G` at hourly cutoff `T`:
+</div>
 
 ```text
-target = 1 if at least one qualifying NASA FIRMS active-fire
-           observation occurs in G during the next 24 hours
-target = 0 otherwise
+"How many wildfires occurred in the Bay Area during August 2024?"
+"What's the wildfire risk for California starting tomorrow?"
 ```
 
-A feature may only use information available at or before its own
-cutoff — enforced by a dedicated, consolidated leakage-safety test
-suite (`ml/tests/forecast/test_leakage.py`), not just by convention.
-The historical split is fixed and never reopened after configuration
-is frozen:
+## Table of Contents
 
-```text
-TRAIN       2019-01-01 -> 2022-12-31
-VALIDATION  2023-01-01 -> 2023-12-31
-TEST        2024-01-01 -> 2024-12-31   (held out until config is frozen)
-```
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Quick Start with Docker](#quick-start-with-docker)
+- [Local Development](#local-development)
+- [Environment Variables](#environment-variables)
+- [REST API](#rest-api)
+- [Project Structure](#project-structure)
+- [Deployment](#deployment)
+- [Results](#results)
+- [Testing](#testing)
+- [Security Notes](#security-notes)
+- [Docs](#docs)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Product
+## Features
 
-- **Earth Intelligence**: event counts, recent activity, change
-  between two periods, spatial aggregation, time-series summaries, map
-  results — all through the same natural-language pipeline.
-- **Wildfire forecasting**: a near-term risk request returns
-  probability/risk, a map, the forecast window, the data cutoff, the
-  model version, a calibration table, and evidence — submitted as an
-  async job with real queued/running/completed/failed status, not a
-  blocking call.
-- **Natural-language orchestration**: the LLM interprets intent,
-  extracts geography/time, chooses from a fixed tool surface, and
-  explains the executed result. It is explicitly not the scientific
-  calculator — every number it reports was computed by deterministic
-  code, not generated.
-- **Evidence, always**: every result carries its source/dataset,
-  period, geographic scope, processing/model version, and workflow
-  provenance.
+- Ask questions in plain English. An LLM turns the question into a plan, and a deterministic validator checks that plan before anything runs, so the LLM never executes arbitrary logic.
+- Query real Earth data: NASA FIRMS fire history, Copernicus ERA5-Land weather, Copernicus DEM elevation and slope, and ESA WorldCover land cover.
+- Request a 24-hour wildfire-risk forecast from a calibrated XGBoost model that scores a fixed California grid.
+- Track each forecast as an async job with a real queued, running, completed, or failed status.
+- See the evidence for every answer, including the dataset, time range, region, model version, and calibration.
+- View results on an interactive map and browse the measured benchmark results in the app.
 
-## Results
+## Technology Stack
 
-Selected, real, measured, reproducible results
-(`docs/headline-results.md`; full detail in each linked doc):
+<div align="center">
 
-> **Achieved a PR-AUC of 0.4513 with XGBoost — nearly double
-> climatology's 0.2522 baseline — by training the locked feature set
-> on the real 2019-2022 California fire history and weather record
-> (877,800 rows, 88 weekly cutoffs).**
-> `docs/final-ml-benchmark.md`
+**Languages**
 
-> **Achieved a PR-AUC gain of +0.081 (0.370 -> 0.451) by adding real
-> terrain and land-cover features — elevation, slope, ESA WorldCover
-> class — on top of fire history and weather, more than five times
-> weather's own +0.014 contribution.**
-> `docs/final-ablation-benchmark.md`
+![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![SQL](https://img.shields.io/badge/SQL-4479A1?logo=postgresql&logoColor=white)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
+![Bash](https://img.shields.io/badge/Bash-4EAA25?logo=gnubash&logoColor=white)
+![HCL](https://img.shields.io/badge/HCL-844FBA?logo=terraform&logoColor=white)
 
-> **Achieved well-calibrated probabilities — predicted and observed
-> fire frequency matching to three decimal places across the dominant
-> bin (218,223 of 219,450 real test rows) — by isotonic-calibrating
-> XGBoost on the validation split before evaluating on the held-out
-> test split.**
-> `docs/final-ml-benchmark.md`
+**Frontend**
 
-> **Achieved zero lost tiles after a real killed worker — recovered in
-> 1.353 seconds — by detecting the failure via a per-chunk timeout and
-> retrying only the lost chunk against the same worker pool.**
-> `docs/final-distributed-benchmark.md`
+![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
+![React Router](https://img.shields.io/badge/React_Router-CA4245?logo=reactrouter&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![npm](https://img.shields.io/badge/npm-CB3837?logo=npm&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?logo=nginx&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)
+![Testing Library](https://img.shields.io/badge/Testing_Library-E33332?logo=testinglibrary&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)
 
-> **Achieved 100% intent correctness, 100% region correctness, and
-> 100% execution success across 14 real natural-language questions
-> against the live Gemini API, by validating every planner-produced
-> plan against the real backend tool schema before any step executes.**
-> `docs/final-planner-benchmark.md`
+**Backend and API**
 
-Real findings that did **not** clear the bar for a headline (mixed
-effect sizes, platform limitations, run-to-run LLM variance) are listed
-honestly in `docs/headline-results.md` rather than omitted.
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?logo=springboot&logoColor=white)
+![Spring Web MVC](https://img.shields.io/badge/Spring_Web_MVC-6DB33F?logo=spring&logoColor=white)
+![Spring Data JPA](https://img.shields.io/badge/Spring_Data_JPA-6DB33F?logo=spring&logoColor=white)
+![REST API](https://img.shields.io/badge/REST_API-009688?logoColor=white)
+![Hibernate](https://img.shields.io/badge/Hibernate-59666C?logo=hibernate&logoColor=white)
+![Bean Validation](https://img.shields.io/badge/Bean_Validation-6DB33F?logo=spring&logoColor=white)
+![Flyway](https://img.shields.io/badge/Flyway-CC0200?logo=flyway&logoColor=white)
+![Maven](https://img.shields.io/badge/Maven-C71A36?logo=apachemaven&logoColor=white)
+![JUnit](https://img.shields.io/badge/JUnit-25A162?logo=junit5&logoColor=white)
+
+**Data and storage**
+
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![PostGIS](https://img.shields.io/badge/PostGIS-336791?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
+![MinIO](https://img.shields.io/badge/MinIO-C72E49?logo=minio&logoColor=white)
+![Amazon S3](https://img.shields.io/badge/Amazon_S3-569A31?logo=amazons3&logoColor=white)
+![NetCDF](https://img.shields.io/badge/NetCDF-0E4C92?logoColor=white)
+![GeoTIFF](https://img.shields.io/badge/GeoTIFF-2E7D32?logoColor=white)
+
+**ML and data science**
+
+![XGBoost](https://img.shields.io/badge/XGBoost-EC6B23?logo=xgboost&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?logo=numpy&logoColor=white)
+![xarray](https://img.shields.io/badge/xarray-0E4C92?logo=xarray&logoColor=white)
+![rasterio](https://img.shields.io/badge/rasterio-2E7D32?logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?logo=googlegemini&logoColor=white)
+![NASA FIRMS](https://img.shields.io/badge/NASA_FIRMS-0B3D91?logo=nasa&logoColor=white)
+![Copernicus](https://img.shields.io/badge/Copernicus-003399?logoColor=white)
+![ERA5-Land](https://img.shields.io/badge/ERA5--Land-003399?logoColor=white)
+![ESA WorldCover](https://img.shields.io/badge/ESA_WorldCover-0B3D91?logoColor=white)
+
+**Containers and orchestration**
+
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)
+![kind](https://img.shields.io/badge/kind-326CE5?logo=kubernetes&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)
+![KEDA](https://img.shields.io/badge/KEDA-326CE5?logo=keda&logoColor=white)
+![HPA](https://img.shields.io/badge/HPA-326CE5?logo=kubernetes&logoColor=white)
+
+**Cloud and infrastructure as code**
+
+![Terraform](https://img.shields.io/badge/Terraform-844FBA?logo=terraform&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?logo=amazonaws&logoColor=white)
+![VPC](https://img.shields.io/badge/VPC-8C4FFF?logo=amazonvpc&logoColor=white)
+![EKS](https://img.shields.io/badge/EKS-FF9900?logo=amazoneks&logoColor=white)
+![RDS](https://img.shields.io/badge/RDS-527FFF?logo=amazonrds&logoColor=white)
+![ElastiCache](https://img.shields.io/badge/ElastiCache-C925D1?logo=amazonelasticache&logoColor=white)
+![ECR](https://img.shields.io/badge/ECR-FF9900?logo=amazonecs&logoColor=white)
+![S3](https://img.shields.io/badge/S3-569A31?logo=amazons3&logoColor=white)
+![ALB](https://img.shields.io/badge/ALB-8C4FFF?logo=awselasticloadbalancing&logoColor=white)
+![ACM](https://img.shields.io/badge/ACM-DD344C?logo=awscertificatemanager&logoColor=white)
+![Route 53](https://img.shields.io/badge/Route_53-8C4FFF?logo=amazonroute53&logoColor=white)
+![Secrets Manager](https://img.shields.io/badge/Secrets_Manager-DD344C?logo=awssecretsmanager&logoColor=white)
+![External Secrets](https://img.shields.io/badge/External_Secrets-0F1689?logo=kubernetes&logoColor=white)
+![CloudWatch](https://img.shields.io/badge/CloudWatch-FF4F8B?logo=amazoncloudwatch&logoColor=white)
+![EKS Pod Identity](https://img.shields.io/badge/EKS_Pod_Identity-FF9900?logo=amazoneks&logoColor=white)
+
+**Observability**
+
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)
+![Micrometer](https://img.shields.io/badge/Micrometer-6DB33F?logo=micrometer&logoColor=white)
+![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-425CC7?logo=opentelemetry&logoColor=white)
+![Jaeger](https://img.shields.io/badge/Jaeger-66CFE3?logo=jaeger&logoColor=white)
+![Structured Logging](https://img.shields.io/badge/Structured_Logging-555555?logo=elastic&logoColor=white)
+
+**CI, quality and security**
+
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
+![Trivy](https://img.shields.io/badge/Trivy-1904DA?logo=trivy&logoColor=white)
+![Ruff](https://img.shields.io/badge/Ruff-D7FF64?logo=ruff&logoColor=black)
+![mypy](https://img.shields.io/badge/mypy-2A6DB2?logo=python&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?logo=pytest&logoColor=white)
+![uv](https://img.shields.io/badge/uv-DE5FE9?logo=uv&logoColor=white)
+![Git](https://img.shields.io/badge/Git-F05032?logo=git&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-181717?logo=github&logoColor=white)
+
+</div>
 
 ## Architecture
 
 ```text
 React + TypeScript
       |
-Java 21 / Spring Boot
+Java / Spring Boot
       |
-   +--+-----------------+
-   |                     |
-sync analysis       async jobs
-   |                     |
-   |                   Redis
-   |                     |
-   |               Python workers
-   |                     |
-   +----------> PostGIS / Object Storage
-                         |
-                   Earth Data Sources
+   +--+------------------+
+   |                      |
+sync (analysis,      async (forecast)
+ ask-earth)                |
+   |                      Redis -> Python workers
+   |                      |
+   +----------> PostGIS / Object Storage -> Earth data sources
 ```
 
-Natural-language requests additionally pass through:
+A natural-language question first passes through an LLM planner and a deterministic validator before it reaches this pipeline.
+
+## Prerequisites
+
+- Docker Desktop or Docker Engine with Docker Compose v2.
+- A NASA FIRMS map key (`FIRMS_MAP_KEY`) to fetch fire data.
+- A Gemini API key (`GEMINI_API_KEY`) for the natural-language planner.
+- A Copernicus CDS key (`CDSAPI_KEY`) if you want to download ERA5-Land weather data.
+- For local development without Docker: JDK 21, Node.js, and Python 3.12 with [uv](https://docs.astral.sh/uv/).
+
+## Quick Start with Docker
+
+1. Create the environment file and fill in your keys.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Start all services.
+
+   ```bash
+   cd infra/docker
+   docker compose up -d --build
+   ```
+
+3. Check that the backend is ready.
+
+   ```bash
+   curl http://localhost:8080/readyz
+   ```
+
+4. Open the application.
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8080 |
+| Readiness and metrics | http://localhost:8081/actuator/health/readiness |
+| Jaeger UI | http://localhost:16686 |
+| MinIO console | http://localhost:9001 |
+
+To stop all containers and remove their volumes, run `docker compose down -v` from `infra/docker`.
+
+## Local Development
+
+The frontend and backend can run outside Docker against the same `docker compose` services for Postgres, Redis, and MinIO.
+
+Start only the infrastructure services:
+
+```bash
+cd infra/docker
+docker compose up -d postgres redis minio
+```
+
+Run the backend:
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Run the frontend:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+## Environment Variables
+
+The `.env` file holds the API keys for the data sources and the planner. The backend reads its other settings from `backend/src/main/resources/application.properties`, and each one can be overridden with an environment variable.
+
+| Variable | Description |
+|---|---|
+| `GEMINI_API_KEY` | API key for the natural-language planner. |
+| `FIRMS_MAP_KEY` | NASA FIRMS key used to download fire detections. |
+| `CDSAPI_URL`, `CDSAPI_KEY` | Copernicus Climate Data Store credentials for ERA5-Land. |
+| `SPRING_DATASOURCE_URL` | JDBC URL of the database. The default is `jdbc:postgresql://localhost:5432/ai_earth`. |
+| `REDIS_HOST`, `REDIS_PORT` | Redis location. The defaults are `127.0.0.1` and `6379`. |
+| `OBJECT_STORE_ENDPOINT`, `OBJECT_STORE_BUCKET` | MinIO or S3 endpoint and bucket. |
+| `OBJECT_STORE_ACCESS_KEY`, `OBJECT_STORE_SECRET_KEY` | Object storage credentials. |
+| `RATE_LIMIT_FORECASTS_PER_MINUTE`, `RATE_LIMIT_ANALYSES_PER_MINUTE`, `RATE_LIMIT_QUERIES_PER_MINUTE` | Per-client request limits. The defaults are 10, 30, and 20. |
+| `FORECAST_WORKER_MAX_ATTEMPTS` | How many times a failed forecast job is retried. The default is 3. |
+| `LOG_FORMAT` | Log format. The default is `ecs` (structured JSON). |
+
+Do not commit the `.env` file. It is already excluded by `.gitignore`.
+
+## REST API
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/queries` | Ask a natural-language question. |
+| GET | `/queries/{id}` | Get the status of a question. |
+| GET | `/queries/{id}/result` | Get the answer and its evidence. |
+| POST | `/analyses` | Run a fire-history analysis for a region and time range. |
+| GET | `/analyses/{id}` | Get an analysis. |
+| POST | `/forecasts` | Submit a 24-hour wildfire-risk forecast job. |
+| GET | `/forecasts/{id}` | Get the status of a forecast job. |
+| GET | `/forecasts/{id}/result` | Get the forecast result. |
+| GET | `/results/{id}` | Get a stored result by ID. |
+| GET | `/readyz` | Check that the backend, database, and Redis are ready. |
+
+Request and response bodies use snake_case field names. The full contracts are in [`docs/forecast-api-contract.md`](docs/forecast-api-contract.md) and [`docs/ask-earth.md`](docs/ask-earth.md).
+
+## Project Structure
 
 ```text
-question -> LLM planner -> structured plan -> deterministic validator
-         -> workflow -> Redis/workers -> scientific computation
-         -> evidence-backed result
+.
+|-- backend/      # Spring Boot API, JPA entities, Flyway migrations
+|-- frontend/     # React + Vite app
+|-- ml/           # Python package for data, features, models, planner, and distributed runs
+|-- scripts/      # Data download, benchmark, and demo scripts
+|-- infra/        # docker, k8s, kind, and terraform
+|-- docs/         # Architecture, contracts, and benchmark write-ups
+|-- portfolio/    # Self-contained evidence package
+`-- data/         # Raw and processed datasets
 ```
 
-The Java backend never runs Python inline; it spawns a real Python
-subprocess per request (analysis/forecast/ask-earth), communicating
-over stdin/stdout JSON, with a bounded timeout and threaded
-stdout/stderr draining. Async forecast jobs are queued in Redis and
-picked up by a worker loop inside the same backend process; a
-scheduled recovery sweep (`ForecastRecovery`) re-claims any job left
-`RUNNING` past its timeout, so a crashed worker never silently loses a
-job (verified with a real killed process — see Results above).
+## Deployment
 
-## Data
+The `infra/` directory holds three deployment targets. `infra/docker` is the Docker Compose stack used in the quick start. `infra/k8s` and `infra/kind` contain Kubernetes manifests that can be tried locally on a kind cluster. `infra/terraform` defines the AWS deployment in `us-west-2`, with separate modules for the network, EKS, database, cache, storage, registry, secrets, and TLS.
 
-| Source | Provides | Access |
-|---|---|---|
-| NASA FIRMS | historical active-fire detections | public API |
-| ERA5-Land (Copernicus CDS) | 2m temperature, precipitation, 10m wind, humidity | CDS API |
-| Copernicus DEM GLO-30 | elevation, slope | public AWS Open Data S3 |
-| ESA WorldCover 10m v200 | land-cover class | public AWS Open Data S3 |
+The Terraform code is complete and passes `fmt`, `validate`, and a Trivy security scan. It has not been applied to a live AWS account yet, because the environment costs about $0.40 per hour to run. See [`docs/cloud-deployment.md`](docs/cloud-deployment.md) and [`docs/terraform-layout.md`](docs/terraform-layout.md) for the details.
 
-The real historical training dataset (`data/processed/historical_dataset_v1.csv`,
-1,316,700 rows) is built once by `scripts/forecast/build_historical_dataset.py`
-from real, ingested history for all four sources — not sample data.
-None of the four providers' contract docs (`docs/firms-input-contract.md`,
-`docs/era5-land-input-contract.md`, `docs/static-geography-input-contract.md`)
-state explicit license terms; check each provider's current terms
-before reuse beyond this project's own research use.
+## Results
 
-## Scientific method
+![Measured results page](docs/images/results.png)
 
-- **Locked feature groups**: fire history (previous 24h/72h/7d/30d
-  counts, neighboring-cell 24h count), weather (temperature,
-  precipitation, wind u/v, relative humidity), static geography
-  (elevation, slope, land-cover class) — no arbitrary feature
-  expansion beyond these.
-- **Locked model ladder**: Climatology baseline -> Logistic Regression
-  -> XGBoost -> Calibrated XGBoost (isotonic). No neural model in the
-  main benchmark.
-- **Metrics**: PR-AUC, ROC-AUC, Brier score, log loss, calibration
-  curve (primary); training/inference time, artifact size (secondary).
-  Accuracy is deliberately not used — wrong metric for this class
-  imbalance (~0.45% positive rate).
-- **Leakage safety**: a dedicated, consolidated test suite proves
-  every feature/target/split property that could otherwise leak future
-  information (`ml/tests/forecast/test_leakage.py`,
-  `docs/scientific-regression-tests.md`).
-- **Reproducibility**: every trained model artifact carries its own
-  `metadata.json` — dataset/feature version, split summaries, the
-  fixed random seed actually used, and pinned library versions;
-  loading refuses a library-version mismatch rather than risk silently
-  different predictions (`ml/src/.../models/production_model.py`,
-  proven deterministic by `ml/tests/models/test_production_model.py`).
+- **Model accuracy.** The XGBoost model reaches a PR-AUC of 0.4513, compared with 0.2522 for the climatology baseline.
+- **Ablation.** Adding terrain and land cover improves PR-AUC by 0.081 over fire history and weather alone.
+- **Distributed recovery.** After a worker was killed, no tiles were lost and the system recovered in 1.35 seconds.
+- **Planner accuracy.** The planner got intent, region, and execution right on all 14 live test questions.
 
-## How to run
-
-Local, Docker Compose, from a clean clone:
-
-```bash
-cp .env.example .env        # fill in FIRMS_MAP_KEY at minimum
-cd infra/docker
-docker compose up -d --build
-curl http://localhost:8080/readyz
-```
-
-Brings up Postgres/PostGIS, Redis, MinIO, Jaeger, the backend
-(`:8080`), and the frontend (`:5173`) — five containers, no reverse
-proxy; the browser talks to the backend directly. Verified end to end
-in `docs/clean-start-test.md`.
-
-For local development instead of the packaged images: `cd frontend &&
-npm run dev` (Vite, port 5173) and `cd backend && ./mvnw spring-boot:run`
-against the same `docker compose` Postgres/Redis/MinIO.
-
-## How to reproduce
-
-Python environment (`ml/`, uv-managed, Python >= 3.12):
-
-```bash
-uv sync --project ml
-```
-
-Build the real dataset and the production model (once; each takes
-real time and real ingested history under `data/raw/`):
-
-```bash
-python scripts/forecast/build_historical_dataset.py
-python scripts/models/train_production_model.py
-```
-
-Run each of the four final Phase 16 benchmarks:
-
-```bash
-python scripts/models/run_final_ml_benchmark.py          # PR-AUC/ROC-AUC/Brier/log loss/calibration
-python scripts/models/run_final_ablation_benchmark.py    # fire history vs +weather vs +weather+geography
-python scripts/distributed/run_scaling_benchmark.py      # 1/2/4/8-worker runtime/throughput/speedup
-python scripts/query/run_planner_benchmark.py            # needs GEMINI_API_KEY in .env
-```
-
-Each prints a summary table and writes its raw result under
-`ml/artifacts/` or `data/processed/` (both gitignored, regenerable).
-Re-running the planner benchmark calls a real, unseeded LLM — expect
-the exact plan wording, and possibly a metric or two, to vary run to
-run (documented directly in `docs/final-planner-benchmark.md`).
+The full detail, including the mixed and negative findings, is in [`docs/headline-results.md`](docs/headline-results.md). Nothing is left out because it did not clear a headline bar.
 
 ## Testing
 
 ```bash
-cd backend && ./mvnw test          # needs docker compose up -d first
+cd backend && ./mvnw test                # needs docker compose up -d first
 uv run --project ml pytest ml/tests -q   # from repo root
-cd frontend && npm test            # PowerShell on Windows, not Git Bash
+cd frontend && npm test
 ```
 
-Last full pass: ml 539 passed / 0 skipped, backend 173 passed,
-frontend 49 passed (`docs/scientific-regression-tests.md`,
-`docs/unit-test-pass.md`) — 761 tests total, real infrastructure
-throughout (this codebase has no mocked-datasource tier; every backend
-test boots against a real Postgres/Redis/MinIO). End-to-end and
-reliability evidence (earth analysis, forecast, worker crash,
-duplicate request) is in `docs/end-to-end-test-pass.md` and
-`docs/reliability-tests.md`. CI (`.github/workflows/ci.yml`) runs
-Python, Java, frontend, and a dependency/secret security scan as four
-parallel jobs.
+The last full run passed 177 backend, 539 ML, and 49 frontend tests, 765 in total. There is no mocked-datasource tier, so every backend test runs against a real Postgres, Redis, and MinIO.
 
-## Deployment
+## Security Notes
 
-- **Docker**: two images — `backend/Dockerfile` (Java 21 JRE plus a
-  bundled Python venv; the Java-to-Python bridge is an in-process
-  subprocess, not a network call) and `frontend/Dockerfile` (nginx
-  serving the built Vite app). `docs/docker-images.md`.
-- **Kubernetes**: 7 manifests under `infra/k8s/`, verified against a
-  local `kind` cluster — health, job execution, service connectivity,
-  and pod-restart recovery all confirmed live. `docs/kubernetes-manifests.md`,
-  `docs/local-kubernetes-deployment.md`.
-- **Cloud (AWS)**: Terraform for EKS, RDS PostgreSQL/PostGIS,
-  ElastiCache Redis, S3, Secrets Manager, and an ALB, across
-  `infra/terraform/modules/`. **Written and validated
-  (`terraform fmt`/`validate` pass, Trivy clean), never applied** —
-  the project owner chose not to incur real AWS cost for a demo
-  deployment. No domain was purchased, so the design serves HTTP on
-  the ALB's own AWS DNS name rather than HTTPS on a custom domain;
-  HTTPS config exists but is not enabled. `docs/cloud-deployment.md`,
-  `docs/terraform-layout.md`.
+- The LLM only produces a plan. A deterministic validator checks the plan against a fixed set of tools before anything executes.
+- The backend limits request size, rate-limits each endpoint, redacts secrets from logs, and sets security headers.
+- The API does not authenticate users yet, so do not expose it publicly without adding authentication in front of it.
+- The default database and object storage passwords in the Compose files are for local development only. Replace them before any real deployment.
 
-## Limitations
+## Docs
 
-Reported the same way every result above is — real and specific, not
-hedged:
+- [`docs/`](docs/) describes the architecture, data contracts, API contracts, benchmarks, and deployment in full detail.
+- [`docs/headline-results.md`](docs/headline-results.md) lists the measured results, including the negative and mixed findings.
+- [`portfolio/`](portfolio/) is a self-contained evidence package for a reader who does not know the rest of the repository.
 
-- **No redelivery/visibility-timeout protocol on the Redis queue
-  itself.** Recovery works entirely off the database's own
-  `updated_at` column, not broker-level redelivery.
-- **No cancel endpoint** for a submitted forecast or analysis job.
-- **The malformed-Earth-data reliability scenario covers the analysis
-  pipeline only, not the full forecast pipeline** — a forecast-pipeline
-  version needs a fixture this project's sample data can't support
-  (`docs/reliability-tests.md`).
-- **Weather features contribute little on top of fire history alone**
-  at this feature set and data volume (+0.014 PR-AUC, -0.012 ROC-AUC)
-  — a real, measured, mixed finding, not a bug.
-- **More distributed workers made the benchmark workload slower, not
-  faster, on this project's Windows/`multiprocessing.spawn` platform**
-  — process-spawn overhead dominates a workload this small; a
-  fork-based Linux target or a persistent worker pool is unexplored.
-- **The planner sometimes answers an unanswerable causal question**
-  ("why does California have so many wildfires") with an adjacent
-  count plan instead of rejecting it — a real, reproduced limitation,
-  not a validator gap (the produced plan is structurally valid).
-- **Cloud deployment was never applied to a real AWS account** — the
-  Terraform is validated but unexercised; no real cloud runtime or
-  cost numbers exist, only the estimate in `docs/cloud-deployment.md`.
-- **No HTTPS/custom domain** — internal/demo deployment only, by the
-  project owner's own choice.
+## Contributing
 
-## Reuse/attribution
+This is a personal project, built end to end by one person. Issues and suggestions are welcome. Open a pull request if you would like to contribute a fix or improvement.
 
-MIT licensed (see `LICENSE`).
+| Name | Role | Github |
+|---|---|---|
+| Khoa Ho Nguyen | Author and maintainer | [@khoahonguyen0210](https://github.com/khoahonguyen0210) |
 
-Reused, unmodified third-party infrastructure (Apache-2.0), recorded
-per this project's own reuse policy:
+## License
 
-| Module | Version | License | Used as |
-|---|---|---|---|
-| `terraform-aws-modules/vpc/aws` | 6.7.3 | Apache-2.0 | `infra/terraform/modules/network` |
-| `terraform-aws-modules/eks/aws` | 21.26.0 | Apache-2.0 | `infra/terraform/modules/eks` |
-| `terraform-aws-modules/eks-pod-identity/aws` | 2.9.0 | Apache-2.0 | `infra/terraform/modules/eks`, `modules/platform` |
-
-Built with (no modifications, standard library use — not a §13 reuse
-record, just attribution): Spring Boot, PostgreSQL/PostGIS, Redis,
-MinIO/AWS SDK v2, Micrometer, OpenTelemetry (backend); XGBoost,
-scikit-learn, xarray, rasterio, `google-genai` (ML); React, Vite,
-TypeScript, Vitest (frontend); Docker, Kubernetes, Terraform, GitHub
-Actions (infrastructure). Data from NASA FIRMS, Copernicus CDS
-(ERA5-Land), Copernicus DEM GLO-30, and ESA WorldCover — see **Data**
-above.
+This project is released under the MIT license. See [`LICENSE`](LICENSE).

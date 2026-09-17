@@ -16,14 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Exercises WorkflowStore against a real local Postgres (run
- * `docker compose up -d` in infra/docker/ first -- same requirement
- * BackendApplicationTests already has, see docs/persistence-schema.md).
- * @Transactional rolls each test's writes back afterward, the same
- * isolation BackendApplicationTests' plain @SpringBootTest does not need
- * (it writes nothing) but a real read/write test does.
- */
 @SpringBootTest
 @Transactional
 class WorkflowStoreTest {
@@ -92,13 +84,6 @@ class WorkflowStoreTest {
         assertEquals(Status.SUCCEEDED, reloaded.get().nodes().get(0).status());
     }
 
-    /**
-     * Restarting a worker/controller during a controlled run must not lose
-     * active state: a fresh WorkflowExecutor (standing in for a brand-new
-     * process after a restart, with no in-memory state at all) resumes a
-     * workflow loaded purely from what a previous, now-gone process
-     * persisted mid-run.
-     */
     @Test
     void aWorkflowSavedMidRunCanBeReloadedAndResumedToCompletionAfterASimulatedRestart() {
         String id = freshId();

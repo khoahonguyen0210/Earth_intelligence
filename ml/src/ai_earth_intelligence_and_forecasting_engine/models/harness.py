@@ -107,8 +107,7 @@ def load_sample_rows(
     validation_cutoff: datetime,
     test_cutoff: datetime,
 ) -> list[DatasetRow]:
-    """Loads the real sample data (the only real historical data the
-    project has ingested so far) and builds dataset rows for the given
+    """Loads the real sample data and builds dataset rows for the given
     cutoffs."""
     firms_config = load_firms_config()
     firms_records = parse_firms_records(

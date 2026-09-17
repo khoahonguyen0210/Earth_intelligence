@@ -3,8 +3,8 @@ data "aws_caller_identity" "current" {}
 locals {
   name = "${var.project}-${var.environment}"
 
-  # Service account the backend Deployment runs as (Task 12.4 adds it to
-  # the cloud manifests); its Pod Identity role is scoped to the artifact
+  # Service account the backend Deployment runs as in the cloud
+  # manifests; its Pod Identity role is scoped to the artifact
   # bucket only.
   backend_namespace       = "default"
   backend_service_account = "backend"

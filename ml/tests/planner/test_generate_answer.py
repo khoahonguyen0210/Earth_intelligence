@@ -33,10 +33,6 @@ class _FakeResponse:
 
     @property
     def text(self):
-        # Mirrors the real google-genai SDK: accessing `.text` itself
-        # raises ValueError when the response has no text part (e.g. a
-        # safety-blocked response), rather than exposing a separate
-        # refusal field to check first.
         if self._raises is not None:
             raise self._raises
         return self._text
@@ -69,9 +65,10 @@ class _MustNotBeCalledClient:
 
 
 def _real_count_fact():
-    """Builds a genuine StepResult/evidence pair using the real Task
-    2.4/2.6 functions, not a hand-typed fixture -- proving generate_answer
-    works against the actual shapes those functions produce."""
+    """Builds a genuine StepResult/evidence pair using the real
+    underlying functions, not a hand-typed fixture -- proving
+    generate_answer works against the actual shapes those functions
+    produce."""
     region = normalize_region(RegionSpec(kind="named", value="california"))
     time_range = normalize_time_range(
         TimeRangeSpec(start="2024-08-08", end="2024-08-15")
@@ -104,8 +101,6 @@ def _real_count_fact():
 
 
 def test_result_category_by_tool_only_covers_fact_producing_tools():
-    # resolve_region resolves geometry (not a fact); get_result_evidence
-    # fetches metadata about a fact another step already produced.
     assert set(RESULT_CATEGORY_BY_TOOL.keys()) == {
         "get_data",
         "calculate_statistics",

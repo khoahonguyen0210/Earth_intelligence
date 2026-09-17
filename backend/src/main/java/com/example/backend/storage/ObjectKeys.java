@@ -3,20 +3,6 @@ package com.example.backend.storage;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
-/**
- * The only object keys ObjectStore accepts. No caller writes through
- * the store yet (docs/object-storage-contract.md), so the rule is
- * fixed before one does -- and before any key is built from request data:
- *
- *   - relative "segment/segment/name" of [A-Za-z0-9._-] segments,
- *   - no empty, "." or ".." segment, no leading or trailing "/",
- *   - at most 1,024 bytes (S3's own key limit).
- *
- * S3 itself has no directories, so ".." is not a traversal there. But a
- * key is also a path wherever objects are mirrored to a filesystem or
- * shown to a person, and nothing legitimate needs one. A key that breaks
- * the rule is a programming error, so it is refused, never repaired.
- */
 public final class ObjectKeys {
 
     private static final Pattern SEGMENT = Pattern.compile("[A-Za-z0-9._-]+");

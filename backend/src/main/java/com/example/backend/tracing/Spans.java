@@ -8,30 +8,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 
-/**
- * The one place the backend opens its own spans, over Micrometer
- * Tracing's vendor-neutral API (the OpenTelemetry bridge and
- * OTLP exporter sit behind it, see docs/tracing.md).
- *
- * Three kinds of span, so a trace only ever starts where real work
- * starts:
- *
- *   child      -- store/queue/Python calls. Recorded only inside a trace
- *                 that is already running; outside one they run
- *                 untraced, so a stray call never becomes a one-span
- *                 orphan trace.
- *   root       -- a unit of work with nothing above it (a workflow run):
- *                 a child if something is being traced, else a new trace.
- *   continued  -- a forecast job attempt: a child of the span that
- *                 submitted the job, whose W3C traceparent was stored on
- *                 the forecast row, because the worker picks the job up
- *                 later on another thread (or another replica) where
- *                 nothing of the HTTP request's context survives.
- *
- * Every span is put in scope while its work runs, so nested spans become
- * its children and every log line written meanwhile carries its traceId
- * and spanId (MDC), the same way request_id/job_id do.
- */
 @Component
 public class Spans {
 
@@ -100,12 +76,7 @@ public class Spans {
         }
     }
 
-    /**
-     * Marks the current span failed for a failure that is an outcome, not
-     * a thrown exception (a Python exit code, a failed workflow node). The
-     * message must already be redacted -- a trace backend is as readable
-     * as the logs are.
-     */
+    // The message must already be redacted -- a trace backend is as readable as the logs are.
     public void fail(String message) {
         Span current = tracer.currentSpan();
         if (current != null) {
@@ -131,11 +102,6 @@ public class Spans {
         };
     }
 
-    /**
-     * Carries a failure message to the span's error status. No stack
-     * trace: it would only show where Spans.fail was called, not where
-     * anything went wrong.
-     */
     static final class OutcomeFailure extends RuntimeException {
         OutcomeFailure(String message) {
             super(message, null, false, false);

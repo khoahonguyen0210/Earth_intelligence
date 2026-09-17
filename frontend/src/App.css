@@ -32,8 +32,6 @@
   }
 }
 
-/* Anyone who has asked their OS for less motion gets none of it -- the
-   content and its real values are identical either way. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -42,6 +40,182 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ---------- Ambient background ---------- */
+
+@keyframes blob-drift-a {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(12vw, 14vh) scale(1.3);
+  }
+}
+
+@keyframes blob-drift-b {
+  from {
+    transform: translate(0, 0) scale(1.1);
+  }
+  to {
+    transform: translate(-14vw, -10vh) scale(0.9);
+  }
+}
+
+@keyframes blob-drift-c {
+  from {
+    transform: translate(0, 0) scale(0.9);
+  }
+  to {
+    transform: translate(10vw, -14vh) scale(1.25);
+  }
+}
+
+@keyframes aurora-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes stars-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(124, 58, 237, 0.22), transparent 60%),
+    radial-gradient(ellipse at 50% -20%, rgba(34, 211, 238, 0.16), transparent 55%),
+    var(--bg);
+}
+
+.ambient-aurora {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160vmax;
+  height: 160vmax;
+  margin: -80vmax 0 0 -80vmax;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(34, 211, 238, 0.22) 50deg,
+    transparent 110deg,
+    rgba(167, 139, 250, 0.26) 180deg,
+    transparent 240deg,
+    rgba(244, 114, 182, 0.2) 290deg,
+    transparent 360deg
+  );
+  filter: blur(80px);
+  opacity: 0.75;
+  animation: aurora-spin 90s linear infinite;
+  will-change: transform;
+}
+
+.ambient-glow {
+  position: absolute;
+  width: min(60vmax, 720px);
+  height: min(60vmax, 720px);
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.ambient-glow-ember {
+  top: -15%;
+  left: -12%;
+  background: radial-gradient(circle, var(--cyan), transparent 70%);
+  animation: blob-drift-a 22s ease-in-out infinite alternate;
+}
+
+.ambient-glow-teal {
+  bottom: -20%;
+  right: -12%;
+  background: radial-gradient(circle, var(--violet), transparent 70%);
+  animation: blob-drift-b 28s ease-in-out infinite alternate;
+}
+
+.ambient-glow-pink {
+  top: 35%;
+  right: 10%;
+  opacity: 0.35;
+  background: radial-gradient(circle, #f472b6, transparent 70%);
+  animation: blob-drift-c 34s ease-in-out infinite alternate;
+}
+
+.ambient-glow-blue {
+  bottom: 5%;
+  left: 5%;
+  opacity: 0.35;
+  background: radial-gradient(circle, #3b82f6, transparent 70%);
+  animation: blob-drift-a 38s ease-in-out infinite alternate-reverse;
+}
+
+.ambient-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 90px 140px, rgba(186, 230, 253, 0.8), transparent),
+    radial-gradient(1.5px 1.5px at 170px 70px, rgba(221, 214, 254, 0.9), transparent),
+    radial-gradient(1px 1px at 230px 190px, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 310px 110px, rgba(251, 207, 232, 0.8), transparent);
+  background-size: 340px 240px;
+  animation: stars-twinkle 6s ease-in-out infinite;
+}
+
+/* ---------- Particle field (hero only) ---------- */
+
+@keyframes ember-rise {
+  from {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--ember-peak, 0.85);
+  }
+  90% {
+    opacity: var(--ember-peak, 0.85);
+  }
+  to {
+    transform: translateY(-260px) translateX(var(--ember-drift, 12px));
+    opacity: 0;
+  }
+}
+
+.ember-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ember {
+  position: absolute;
+  bottom: -10px;
+  width: var(--ember-size, 3px);
+  height: var(--ember-size, 3px);
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px 1px var(--cyan);
+  animation: ember-rise var(--ember-duration, 6s) ease-in var(--ember-delay, 0s) infinite;
+}
+
+.ember:nth-child(3n) {
+  background: var(--violet);
+  box-shadow: 0 0 6px 1px var(--violet);
 }
 
 /* ---------- Navbar ---------- */
@@ -54,8 +228,8 @@
   align-items: center;
   gap: 28px;
   padding: 16px 24px;
-  background: rgba(11, 11, 10, 0.92);
-  backdrop-filter: blur(8px);
+  background: rgba(5, 7, 13, 0.78);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 
   @media (max-width: 720px) {
@@ -66,15 +240,19 @@
 }
 
 .navbar-brand {
-  font-family: var(--serif);
+  font-family: var(--display);
   font-weight: 700;
   font-size: 18px;
-  color: var(--text-h);
+  letter-spacing: -0.3px;
   text-decoration: none;
-  letter-spacing: -0.2px;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: filter 0.2s;
 
   &:hover {
-    color: var(--accent);
+    filter: brightness(1.2);
   }
 }
 
@@ -84,24 +262,44 @@
   flex: 1;
 
   a {
+    position: relative;
     font-family: var(--sans);
     font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
     color: var(--text);
     text-decoration: none;
     padding: 4px 0;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.15s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -2px;
+      width: 100%;
+      height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--cyan), var(--violet));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
     &:hover {
       color: var(--text-h);
     }
 
+    &:hover::after {
+      transform: scaleX(1);
+    }
+
     &.active {
-      color: var(--accent);
-      border-color: var(--accent);
+      color: var(--text-h);
+    }
+
+    &.active::after {
+      transform: scaleX(1);
     }
   }
 }
@@ -113,30 +311,61 @@
 
 /* ---------- Hero ---------- */
 
+@keyframes hero-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
 .hero {
   position: relative;
-  padding: 64px 24px 40px;
+  overflow: hidden;
+  padding: 96px 24px 56px;
   text-align: center;
-  background:
-    radial-gradient(ellipse 900px 420px at 50% -10%, rgba(255, 90, 31, 0.16), transparent 65%),
-    var(--bg);
-  border-bottom: 3px solid var(--accent);
   animation: fade-in-up 0.6s ease-out;
 
   @media (max-width: 1024px) {
-    padding: 40px 20px 28px;
+    padding: 56px 20px 36px;
   }
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 760px 420px at 30% -10%, rgba(34, 211, 238, 0.22), transparent 60%),
+    radial-gradient(ellipse 760px 420px at 75% 10%, rgba(167, 139, 250, 0.2), transparent 60%);
+  animation: hero-glow-breathe 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.hero > *:not(.ember-field) {
+  position: relative;
 }
 
 .hero .kicker {
   animation: kicker-in 0.5s ease-out;
 }
 
+.hero h1 {
+  background: linear-gradient(135deg, var(--text-h) 40%, var(--cyan) 75%, var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .hero-sub {
-  max-width: 56ch;
-  margin: 14px auto 0;
-  font-size: 17px;
-  line-height: 155%;
+  max-width: 58ch;
+  margin: 18px auto 0;
+  font-size: 18px;
+  line-height: 160%;
   color: var(--text);
 }
 
@@ -149,59 +378,92 @@
   justify-content: center;
   align-items: center;
   gap: 18px;
-  margin-top: 28px;
+  margin-top: 32px;
   flex-wrap: wrap;
+}
+
+@keyframes cta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4);
+    opacity: 1;
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(34, 211, 238, 0);
+    opacity: 0;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+    opacity: 0;
+  }
 }
 
 .btn-primary,
 .btn-secondary {
+  position: relative;
   display: inline-flex;
   align-items: center;
   font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
   text-decoration: none;
-  padding: 14px 28px;
-  border-radius: 2px;
-  transition: filter 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.15s, color 0.15s;
+  padding: 15px 30px;
+  border-radius: var(--radius-md);
+  transition:
+    filter 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    border-color 0.15s,
+    color 0.15s;
 
   &:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.03);
   }
   &:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.98);
   }
 }
 
 .btn-primary {
   color: var(--accent-ink);
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  border: none;
+  font-weight: 700;
 
   &:hover {
     filter: brightness(1.1);
-    box-shadow: 0 6px 18px -6px rgba(255, 204, 0, 0.55);
+    box-shadow: 0 10px 30px -8px rgba(34, 211, 238, 0.45);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    animation: cta-pulse 2.6s ease-out infinite;
+    pointer-events: none;
   }
 }
 
 .btn-secondary {
   color: var(--text-h);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
 
   &:hover {
     border-color: var(--accent);
     color: var(--accent);
+    background: rgba(34, 211, 238, 0.06);
   }
 }
 
 /* ---------- Stats strip ---------- */
 
 .stats-strip {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 36px 24px;
+  padding: 40px 24px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
@@ -222,10 +484,13 @@
   }
 
   strong {
-    font-family: var(--serif);
-    font-size: 34px;
+    font-family: var(--display);
+    font-size: 36px;
     font-weight: 700;
-    color: var(--accent);
+    background: linear-gradient(135deg, var(--cyan), var(--violet));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
     line-height: 1;
 
     @media (max-width: 720px) {
@@ -245,12 +510,12 @@
 /* ---------- Feature grid ---------- */
 
 .feature-grid {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 48px 24px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 28px;
+  gap: 24px;
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
@@ -259,17 +524,27 @@
 
   div {
     animation: fade-in-up 0.45s ease-out;
-    transition: transform 0.2s;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    transition:
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s ease,
+      border-color 0.3s ease;
 
     &:hover {
-      transform: translateY(-3px);
+      transform: translateY(-4px);
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+      box-shadow: 0 20px 40px -20px rgba(34, 211, 238, 0.25);
     }
   }
 
   h3 {
     font-size: 18px;
+    font-family: var(--display);
     position: relative;
-    padding-top: 14px;
+    padding-top: 18px;
 
     &::before {
       content: '';
@@ -278,15 +553,16 @@
       left: 0;
       width: 32px;
       height: 3px;
-      background: var(--accent);
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--cyan), var(--violet));
     }
   }
 
   p {
     font-size: 14px;
-    line-height: 160%;
+    line-height: 165%;
     color: var(--text);
-    margin-top: 6px;
+    margin-top: 8px;
   }
 }
 
@@ -316,21 +592,18 @@
   }
 }
 
-/* Every direct panel-like block on the page shares one card treatment:
-   a raised dark surface framed by a thin top rule in the brand yellow,
-   echoing Nat Geo's signature yellow-rectangle motif without literally
-   boxing every element in it. */
 .ask-earth,
 section[aria-label='Forecast'],
 section[aria-label='Answer'],
 section[aria-label='Forecast map'] {
-  background: var(--bg-raised);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01)), var(--bg-raised);
   border: 1px solid var(--border);
-  border-top: 3px solid var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-lg);
   padding: 28px;
   box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
   animation: fade-in-up 0.45s ease-out;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 
   @media (max-width: 1024px) {
     padding: 20px;
@@ -340,16 +613,17 @@ section[aria-label='Forecast map'] {
 .ask-earth {
   animation-delay: 0.08s;
   animation-fill-mode: backwards;
+  border-top: 3px solid var(--accent);
 }
 
 section[aria-label='Forecast'] {
+  --accent: var(--violet);
+  --accent-ink: #14081f;
   animation-delay: 0.16s;
   animation-fill-mode: backwards;
+  border-top: 3px solid var(--accent);
 }
 
-/* A forecast map nested inside the Forecast panel is its own natural
-   sub-card, so it drops the outer panel treatment (no shadow/margin) to
-   avoid a card-inside-a-card look. */
 section[aria-label='Forecast'] section[aria-label='Forecast map'] {
   margin-top: 24px;
   box-shadow: none;
@@ -380,10 +654,10 @@ select {
   width: 100%;
   font: 15px/145% var(--sans);
   color: var(--text-h);
-  background: var(--bg);
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
   transition: border-color 0.15s;
 
   &:hover {
@@ -402,7 +676,7 @@ textarea {
 
 fieldset {
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   padding: 16px 16px 20px;
   margin: 14px 0 0;
 }
@@ -426,26 +700,28 @@ fieldset > div {
 button[type='submit'],
 button[type='button'] {
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.2px;
   color: var(--accent-ink);
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2, var(--accent)));
   border: none;
-  border-radius: 2px;
-  padding: 12px 22px;
+  border-radius: var(--radius-md);
+  padding: 13px 24px;
   margin-top: 18px;
   cursor: pointer;
-  transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition:
+    filter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease;
 
   &:hover:not(:disabled) {
     filter: brightness(1.1);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px -4px rgba(255, 204, 0, 0.5);
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 8px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent);
   }
   &:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.98);
   }
   &:disabled {
     cursor: default;
@@ -457,8 +733,6 @@ button[type='button'] {
   }
 }
 
-/* Recent-query pills use the same button element but read as tags, not
-   as the form's primary call to action. */
 div[aria-label='Recent queries'] {
   margin-top: 22px;
   padding-top: 18px;
@@ -487,7 +761,6 @@ div[aria-label='Recent queries'] {
     font-family: var(--sans);
     font-size: 13px;
     font-weight: 400;
-    text-transform: none;
     letter-spacing: normal;
     color: var(--text-h);
     background: var(--code-bg);
@@ -508,7 +781,7 @@ div[aria-label='Recent queries'] {
 /* ---------- Status text ---------- */
 
 p[role='alert'] {
-  color: var(--ng-ember);
+  color: var(--ember);
   font-weight: 600;
 }
 
@@ -525,9 +798,6 @@ p[role='status'] {
   animation: fade-in-up 0.3s ease-out, pulse 1.6s ease-in-out 0.3s infinite;
 }
 
-/* A terminal outcome (the job is done, successfully or not) is no
-   longer "in progress", so it stops pulsing -- the animation itself is
-   part of the honest status signal, not just decoration. */
 .status-completed,
 .status-failed {
   animation: fade-in-up 0.3s ease-out;
@@ -537,7 +807,7 @@ p[role='status'] {
 
 section[aria-label='Answer'] > p {
   font-size: 18px;
-  line-height: 155%;
+  line-height: 160%;
   color: var(--text-h);
 }
 
@@ -591,10 +861,10 @@ table {
   }
 
   tbody tr {
-    transition: background-color 0.1s;
+    transition: background-color 0.15s;
 
     &:hover {
-      background-color: rgba(255, 204, 0, 0.06);
+      background-color: color-mix(in srgb, var(--accent) 8%, transparent);
     }
   }
 
@@ -633,7 +903,7 @@ dl {
 
 .forecast-summary {
   font-size: 17px;
-  line-height: 155%;
+  line-height: 160%;
   color: var(--text-h);
   max-width: 60ch;
   margin: 6px 0 16px;
@@ -663,16 +933,16 @@ dl {
 section[aria-label='Forecast map'] svg[role='img'] {
   display: block;
   margin: 12px 0;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 section[aria-label='Forecast map'] svg[role='img'] rect[data-testid^='forecast-cell-'] {
-  transition: filter 0.1s;
+  transition: filter 0.15s, stroke-width 0.15s;
   cursor: default;
 
   &:hover {
     filter: brightness(1.25) saturate(1.15);
-    stroke: var(--ng-yellow);
+    stroke: var(--accent);
     stroke-width: 1.5;
   }
 }
@@ -703,7 +973,7 @@ figure[aria-label='Risk scale legend'] {
   }
 
   p {
-    line-height: 165%;
+    line-height: 170%;
     font-size: 16px;
   }
 
@@ -724,7 +994,7 @@ figure[aria-label='Risk scale legend'] {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  line-height: 155%;
+  line-height: 160%;
 
   li::marker {
     color: var(--accent);
@@ -736,7 +1006,7 @@ figure[aria-label='Risk scale legend'] {
 
 .results-intro {
   font-size: 16px;
-  line-height: 165%;
+  line-height: 170%;
   max-width: 62ch;
   color: var(--text);
 }
@@ -750,22 +1020,26 @@ figure[aria-label='Risk scale legend'] {
   gap: 4px;
 
   li {
-    background: var(--bg-raised);
+    background: rgba(255, 255, 255, 0.025);
     border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
-    border-radius: 2px;
+    border-radius: var(--radius-md);
     padding: 20px 24px;
     animation: fade-in-up 0.4s ease-out;
-    transition: border-left-color 0.15s, transform 0.15s;
+    transition:
+      border-left-color 0.15s,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.25s ease;
 
     &:hover {
-      transform: translateX(2px);
+      transform: translateX(4px);
+      box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.5);
     }
   }
 }
 
 .result-headline {
-  font-family: var(--serif);
+  font-family: var(--display);
   font-weight: 700;
   font-size: 19px;
   color: var(--text-h);
@@ -774,7 +1048,7 @@ figure[aria-label='Risk scale legend'] {
 
 .result-detail {
   font-size: 15px;
-  line-height: 155%;
+  line-height: 160%;
   color: var(--text);
   margin: 0 0 10px;
 }
@@ -797,11 +1071,15 @@ figure[aria-label='Risk scale legend'] {
 }
 
 .site-footer-grid {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 32px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+  }
 
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
@@ -843,16 +1121,19 @@ figure[aria-label='Risk scale legend'] {
 }
 
 .footer-brand {
-  font-family: var(--serif);
+  font-family: var(--display);
   font-weight: 700;
   font-size: 17px;
-  color: var(--text-h);
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   margin: 0 0 8px;
 }
 
 .footer-tagline {
   font-size: 14px;
-  line-height: 155%;
+  line-height: 160%;
   color: var(--text);
   opacity: 0.8;
   max-width: 40ch;
@@ -860,7 +1141,7 @@ figure[aria-label='Risk scale legend'] {
 }
 
 .footer-legal {
-  max-width: 900px;
+  max-width: 960px;
   margin: 32px auto 0;
   padding-top: 20px;
   border-top: 1px solid var(--border);

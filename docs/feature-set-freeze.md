@@ -1,7 +1,7 @@
 # Final Feature Set — LOCKED
 
-This document freezes the feature set for the main benchmark per Task 5.3
-of the Execution Handbook. It is not a brainstorming document. Do not alter
+This document freezes the feature set for the main benchmark. It is not a
+brainstorming document. Do not alter
 this decision after looking at test-set numbers; a change here invalidates
 the honesty of every ablation and benchmark result built on top of it.
 
@@ -17,7 +17,7 @@ In code, this is exactly the default behavior of `fit_preprocessor`,
 (`ml/src/ai_earth_intelligence_and_forecasting_engine/models/`): calling
 them with no `feature_columns`/`include_land_cover` override uses
 `NUMERIC_FEATURE_COLUMNS` (fire-history + weather + elevation + slope) plus
-the land-cover one-hot. Task 4.6's `run_final_baseline_benchmark` and every
+the land-cover one-hot. The existing `run_baseline_benchmark` and every
 script under `scripts/models/` that does not explicitly restrict features
 (everything except the two ablation demos) already benchmark against this
 full set. No code change was needed to freeze this — the task is the
@@ -25,7 +25,7 @@ decision not to shrink it.
 
 ## Why this isn't a cherry-pick
 
-Task 5.1 (weather ablation) and Task 5.2 (geography ablation) exist to
+The weather ablation and the geography ablation exist to
 *measure* whether each feature group helps, using
 `ml/src/ai_earth_intelligence_and_forecasting_engine/models/ablation.py`.
 As of this freeze, neither ablation has a real measured result: the
@@ -55,5 +55,5 @@ post-hoc reaction to one experiment.
 
 The exact feature list, model ladder, and metrics are already locked in
 `project-context/PROJECT_BIBLE.md` §4–§6. This document exists only to
-record the Task 5.3 freeze decision and the reasoning behind it, not to
+record the freeze decision and the reasoning behind it, not to
 restate or redefine the feature list itself.

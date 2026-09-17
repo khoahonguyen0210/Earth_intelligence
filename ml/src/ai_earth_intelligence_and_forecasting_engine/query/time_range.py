@@ -18,12 +18,6 @@ def _parse_boundary(value: str, *, is_end: bool) -> datetime:
     if not text:
         raise ValueError("time_range boundary must not be empty")
 
-    # A date-only value ("YYYY-MM-DD") gets day granularity: a start snaps
-    # to the beginning of that day, an end snaps to the beginning of the
-    # *next* day, so a plain date range like start="2024-08-08"
-    # end="2024-08-15" includes the entirety of 2024-08-15. A value that
-    # includes an explicit time component is used exactly as given, with
-    # no adjustment -- the underlying range is always half-open [start, end).
     try:
         parsed_date = date.fromisoformat(text)
     except ValueError:

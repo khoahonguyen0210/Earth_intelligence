@@ -18,9 +18,6 @@ GEOGRAPHY_BBOX = (-119.8, 37.2, -119.4, 37.6)
 DEM_PATH = Path("data/raw/geography/dem_sample.tif")
 LANDCOVER_PATH = Path("data/raw/geography/landcover_sample.tif")
 
-# Small on purpose -- see test_run.py's own comment; the full 4-point
-# 1/2/4/8-worker sweep against the real 500-tile workload is
-# scripts/distributed/run_scaling_benchmark.py's job, not this suite's.
 SMALL_WORKLOAD_SIZE = 8
 
 

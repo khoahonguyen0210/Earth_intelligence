@@ -1,7 +1,7 @@
 # Security Baseline — LOCKED
 
-This document freezes the security baseline per Task 13.4 of the
-Execution Handbook. It is not a brainstorming document.
+This document freezes the security baseline. It is not a brainstorming
+document.
 
 ## The handbook's eight items
 
@@ -75,8 +75,8 @@ port 8080 (Service, NodePort, ALB)     port 8081 (management; no Service, never 
 
 ## Input validation
 
-The contracts already define request shapes (`docs/forecast-api-contract.md`,
-Task 2.1's `RegionSpec`). The backend now enforces them **before** a
+The contracts already define request shapes (`docs/forecast-api-contract.md`'s
+`RegionSpec`). The backend now enforces them **before** a
 Python process or a queued job is spent on a request that can only fail:
 
 ```text
@@ -107,7 +107,7 @@ fields in the JSON sent to Python or stored with a job
   and Secrets Manager → External Secrets in AWS. `application.properties`
   holds only the local compose credentials (`ai_earth`/`ai_earth_dev`),
   which every deployment overrides.
-- **Redaction before storage (new).** Task 13.1 redacted Python's error
+- **Redaction before storage (new).** Earlier work redacted Python's error
   text only in logs, but the same text was stored in Postgres and returned
   in the API's 422 body. A FIRMS URL carries the map key in its path, so a
   failed FIRMS call would have handed the key to any API client. The
@@ -117,7 +117,7 @@ fields in the JSON sent to Python or stored with a job
   text, capped at 2,000 characters. `ForecastWorkerLoggingTest` and
   `AnalysisControllerTest` assert that the stored and returned text no
   longer contains the key.
-- **Spans** carry the same redacted text (Task 13.3).
+- **Spans** carry the same redacted text (per the tracing design).
 - **Scanning.** The CI job below fails on any committed secret. That it
   really detects one was checked by scanning a throwaway repository with
   a planted AWS key pair: 2 CRITICAL findings, exit 1. The **entire git
@@ -166,7 +166,7 @@ over the limit    429, Retry-After = seconds left in the window, {"error"} body
 - **Fails open.** If Redis is unreachable, the request is allowed and
   `rate_limit_unavailable` is logged. A forecast then fails on the queue
   anyway, and an analysis, which does not need Redis, keeps working.
-  Task 13.5 exercises "Redis unavailable".
+  The reliability tests exercise "Redis unavailable".
 
 ## Dependency vulnerability scanning
 
@@ -210,7 +210,7 @@ override once a Boot release manages a fixed Tomcat.
 
 ## LLM tool restrictions
 
-Already true since Phase 7, and unchanged:
+Already true since the planner was built, and unchanged:
 
 - **Not exposed over HTTP.** The planner runs only from
   `scripts/query/run_planner_cli.py`, not from any HTTP route.
@@ -241,7 +241,7 @@ question <= 1,000     same bound as the API; generate_plan refuses before callin
 ```
 
 The prompt and the model's output schema are deliberately unchanged, so
-the Task 7.5 planner benchmark stays comparable.
+the planner benchmark stays comparable.
 
 ## HTTPS and headers
 
@@ -258,9 +258,10 @@ domain, with no code change.
   it stays unset (above). With `route53_zone_id` set, Terraform creates the
   validation records and waits for issuance; otherwise it outputs the
   records to add by hand. `fmt -check` and `validate` pass in
-  `hashicorp/terraform:1.16.4`, as for Task 12.2. The Ingress settings
-  that consume it (HTTPS :443, `ssl-redirect`, TLS 1.3/1.2 policy) are
-  `docs/cloud-deployment.md` gap 9, for Task 12.4.
+  `hashicorp/terraform:1.16.4`, the same as the Terraform layout's own
+  validation. The Ingress settings that consume it (HTTPS :443,
+  `ssl-redirect`, TLS 1.3/1.2 policy) are `docs/cloud-deployment.md`
+  gap 9, for later work.
 - **`SecurityHeadersFilter`** sets these on every response, refusals
   included:
   - `X-Content-Type-Options: nosniff`: a JSON body is never reinterpreted

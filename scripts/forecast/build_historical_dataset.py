@@ -1,4 +1,4 @@
-"""Build the real historical benchmark dataset (docs/historical-dataset.md).
+"""Build the real historical benchmark dataset.
 
 Inputs (all real, all downloaded by scripts/data/*_history.py and
 build_statewide_geography.py):

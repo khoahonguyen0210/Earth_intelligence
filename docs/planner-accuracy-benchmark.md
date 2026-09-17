@@ -1,11 +1,11 @@
 # Final AI Planner Benchmark — LOCKED
 
-This document records Task 16.5, the fifth task of Phase 16. It is not
+This document records the final AI planner benchmark. It is not
 a brainstorming document.
 
-Task 16.5 asks for a final planner benchmark: query count, intent
+It asks for a final planner benchmark: query count, intent
 correctness, region correctness, time correctness, valid-plan rate,
-execution success. Task 7.5 already built and ran this exact benchmark
+execution success. An earlier run already built and ran this exact benchmark
 (`docs/planner-benchmark.md`) against the live Gemini API; this task
 re-runs the same frozen code (`planner/benchmark_set.py` and
 `scripts/query/run_planner_benchmark.py`, both on the `benchmark-v1`
@@ -35,7 +35,7 @@ success across 14 real, live planner queries, with every plan-vs-reject
 decision correct except one genuinely ambiguous unsupported-question
 case.**
 
-## What changed since Task 7.5's original run, and why
+## What changed since the original run, and why
 
 `time_correctness` dropped from the original run's 1.0 to 0.667 here.
 Both misses are the same real cause: `count_california` and

@@ -19,21 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * A forecast DAG plus an independent statistics branch, run by the real
- * WorkflowExecutor and persisted in the real Postgres
- * (docs/reliability-tests.md). One node fails transiently once, another
- * permanently:
- *
- *   get_data -> validate -> build_features (transient once) -> run_forecast (permanent)
- *                        \                                        -> get_result_evidence
- *                         -> calculate_statistics                 -> generate_map
- *
- * Expected: the transient failure is retried and recovers; the permanent
- * one fails only its own node; everything downstream of it is CANCELLED
- * without being dispatched; the independent branch still completes; and
- * the persisted workflow reloads with exactly that state.
- */
 @SpringBootTest
 @Transactional
 class WorkflowPartialFailureIntegrationTest {
@@ -48,7 +33,7 @@ class WorkflowPartialFailureIntegrationTest {
     @Test
     void aFailureIsContainedToItsDependentsAndTheRestOfTheWorkflowCompletes() {
         String id = "wf-" + UUID.randomUUID();
-        store.save(new Workflow(id, "forecast-pipeline", "Task 13.5 partial failure", Instant.now(), List.of(
+        store.save(new Workflow(id, "forecast-pipeline", "partial failure", Instant.now(), List.of(
                 node("get_data"),
                 node("validate", "get_data"),
                 node("build_features", "validate"),

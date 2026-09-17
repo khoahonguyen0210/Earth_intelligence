@@ -27,13 +27,10 @@ def run_scaling_benchmark(
     worker_counts: tuple[int, ...] = WORKER_COUNTS,
 ) -> list[ScalingPoint]:
     """Runs the same implementation (run_distributed_inference) at each
-    worker count in worker_counts, against one shared RunContext (the
-    same loaded data and the same fitted model for every point -- see
-    RunContext's own docstring for why that is what makes "keep
-    workload/data/model fixed" literally true here, not just nominally
-    true). The first worker count's wall time is T1; every point's
-    speedup/efficiency are computed against it, including the first
-    point itself (speedup 1.0, efficiency 1.0/requested_workers)."""
+    worker count in worker_counts, against one shared RunContext. The
+    first worker count's wall time is T1; every point's speedup/efficiency
+    are computed against it, including the first point itself (speedup
+    1.0, efficiency 1.0/requested_workers)."""
     if not worker_counts:
         raise ValueError("worker_counts must not be empty")
 

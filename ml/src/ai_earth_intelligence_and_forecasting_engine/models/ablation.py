@@ -21,11 +21,6 @@ from ai_earth_intelligence_and_forecasting_engine.models.xgboost_model import (
 
 ABLATION_VERSION = "v1"
 
-# The same NUMERIC_FEATURE_COLUMNS (preprocessing.py) split into the two
-# feature groups run_weather_ablation compares. Geography columns
-# (elevation_m, slope_deg, land_cover_class) are deliberately excluded
-# from both variants -- that comparison belongs to run_geography_ablation,
-# not this one.
 FIRE_HISTORY_FEATURE_COLUMNS: tuple[str, ...] = (
     "previous_24h_count",
     "previous_72h_count",
@@ -46,11 +41,6 @@ FIRE_HISTORY_PLUS_WEATHER_FEATURE_COLUMNS: tuple[str, ...] = (
     FIRE_HISTORY_FEATURE_COLUMNS + WEATHER_FEATURE_COLUMNS
 )
 
-# run_geography_ablation adds these on top of fire-history+weather: the
-# two static, numeric geography columns plus (via include_land_cover=True
-# below) the ESA WorldCover land-cover one-hot. Together with
-# fire-history and weather, this is the complete locked feature set --
-# the same columns as NUMERIC_FEATURE_COLUMNS, in the same order.
 GEOGRAPHY_FEATURE_COLUMNS: tuple[str, ...] = (
     "elevation_m",
     "slope_deg",

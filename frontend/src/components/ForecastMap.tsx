@@ -1,8 +1,5 @@
 import type { CalibrationBin, ForecastGridFeature, ForecastResult } from "../api/types";
 
-// Same California reference frame RegionMap draws against, so a forecast
-// grid (docs/forecast-api-contract.md's CALIFORNIA_BBOX) reads at the same
-// scale as the region maps elsewhere on the page.
 const REFERENCE_BBOX: [number, number, number, number] = [
   -124.5, 32.5, -114.0, 42.0,
 ];
@@ -10,10 +7,6 @@ const REFERENCE_BBOX: [number, number, number, number] = [
 const VIEW_SIZE = 320;
 const PADDING = 12;
 
-// Sequential "blue" ramp, steps 100/200/300/400/500/600/700 from the
-// dataviz skill's validated reference palette -- a magnitude encoding
-// (probability), never identity, so no CVD re-validation is needed: this
-// is the unmodified reference instance.
 const RISK_RAMP = [
   "#cde2fb",
   "#9ec5f4",
@@ -24,10 +17,6 @@ const RISK_RAMP = [
   "#0d366b",
 ];
 
-// A plain-language reading of the real probability, shown alongside the
-// exact number (never in place of it) -- the same "fold real values into
-// a readable label without hiding the raw number" pattern ForecastPanel's
-// own status badge already uses for job status.
 function riskLevel(probability: number): string {
   if (probability >= 0.6) return "Severe";
   if (probability >= 0.3) return "High";
@@ -88,21 +77,12 @@ function RiskLegend({ min, max }: { min: number; max: number }) {
         ))}
       </svg>
       <figcaption>
-        {min.toFixed(3)} (lowest risk) &ndash; {max.toFixed(3)} (highest risk)
+        {min.toFixed(3)} (lowest risk) to {max.toFixed(3)} (highest risk)
       </figcaption>
     </figure>
   );
 }
 
-/**
- * The forecast map: California grid, risk value, legend, forecast
- * horizon, data cutoff, model, calibration/evidence -- rendered only
- * from the real GET /forecasts/{id}/result shape
- * (forecast_result_to_dict), nothing fabricated. A job's own status
- * polling (queued/running/failed) and wiring this into the result page
- * happen elsewhere; this component only ever receives an already
- * SUCCEEDED forecast's result.
- */
 export function ForecastMap({ result }: ForecastMapProps) {
   const { grid, model_version, data_cutoff, forecast_window, calibration, evidence } = result;
   const [refWest, refSouth, refEast, refNorth] = REFERENCE_BBOX;
@@ -132,7 +112,7 @@ export function ForecastMap({ result }: ForecastMapProps) {
       <h3>Wildfire risk forecast</h3>
       <p className="forecast-summary">
         <strong>{riskLevel(maxProbability)} risk</strong> in the highest-risk area of{" "}
-        {regionName} &mdash; up to <strong>{(maxProbability * 100).toFixed(1)}%</strong>{" "}
+        {regionName}, up to <strong>{(maxProbability * 100).toFixed(1)}%</strong>{" "}
         estimated probability of a wildfire starting, for the {forecast_window.hours}{" "}
         hours from {formatDateTime(forecast_window.start)} to{" "}
         {formatDateTime(forecast_window.end)}.
@@ -187,11 +167,11 @@ export function ForecastMap({ result }: ForecastMapProps) {
         </dd>
         <dt>Forecast covers</dt>
         <dd>
-          {formatDateTime(forecast_window.start)} &ndash; {formatDateTime(forecast_window.end)}{" "}
+          {formatDateTime(forecast_window.start)} to {formatDateTime(forecast_window.end)}{" "}
           ({forecast_window.hours}h)
           <br />
           <span className="dd-raw">
-            {forecast_window.start} &ndash; {forecast_window.end}
+            {forecast_window.start} to {forecast_window.end}
           </span>
         </dd>
         <dt>Model version</dt>
@@ -200,8 +180,8 @@ export function ForecastMap({ result }: ForecastMapProps) {
         <dd>
           {calibration.method}{" "}
           <span className="dd-hint">
-            &mdash; predicted probabilities are adjusted so they match how often
-            fires actually occurred at that predicted level in real historical data
+            (predicted probabilities are adjusted so they match how often
+            fires actually occurred at that predicted level in real historical data)
           </span>
         </dd>
       </dl>

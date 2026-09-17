@@ -1,9 +1,8 @@
 # Planner Tool Schemas — LOCKED
 
-This document freezes the AI planner's fixed tool schemas per Task 7.1 of
-the Execution Handbook, the first task of Phase 7. It is not a
-brainstorming document. Task 7.2 (deterministic plan validator) and Task
-7.3 (natural-language planner) build against this surface rather than
+This document freezes the AI planner's fixed tool schemas. It is not a
+brainstorming document. The deterministic plan validator and the
+natural-language planner build against this surface rather than
 redefining it.
 
 ## The six tools, and nothing else
@@ -28,12 +27,12 @@ Each tool mirrors a capability that already exists rather than inventing
 new vocabulary:
 
 ```text
-resolve_region        -> query.region.normalize_region            (Task 2.2)
-get_data               -> the two time-ranged Phase 1 sources       (Tasks 1.2/1.4)
-calculate_statistics   -> query.run_analysis's non-map operations   (Tasks 2.4/2.9)
-generate_map           -> query.map_result.build_regional_map_result (Task 2.5)
-run_forecast           -> POST /forecasts                           (Tasks 6.1-6.6)
-get_result_evidence    -> query.evidence.Evidence                   (Task 2.6)
+resolve_region        -> query.region.normalize_region
+get_data               -> the two time-ranged sources
+calculate_statistics   -> query.run_analysis's non-map operations
+generate_map           -> query.map_result.build_regional_map_result
+run_forecast           -> POST /forecasts
+get_result_evidence    -> query.evidence.Evidence
 ```
 
 `calculate_statistics`'s `operation` enum
@@ -69,7 +68,7 @@ would fetch on demand anyway.
 
 This is deliberately the real `client.messages.create(tools=[...])`
 shape (`input_schema`, not `parameters`), not a planner-specific format
-invented ahead of Task 7.3 actually calling the API.
+invented ahead of the natural-language planner actually calling the API.
 `to_claude_tool_definition`/`all_claude_tool_definitions` produce this
 exact shape from a `ToolSchema`.
 
@@ -91,26 +90,26 @@ needs to be one of `NAMED_REGIONS`), whether a `cutoff` is a real
 parseable datetime, whether a `result_id` refers to something that
 exists. `REGION_SPEC_SCHEMA.value` is intentionally typed as
 `anyOf: [string, number[]]`, not the full conditional shape, because
-that finer-grained check belongs to Task 7.2's deterministic validator
+that finer-grained check belongs to the deterministic plan validator
 (the handbook's own list -- "region", "parameter ranges" -- names this
 as validator work), which already has real Python doing exactly this
 validation (`normalize_region`'s own `ValueError`s) to check plans
 against, rather than duplicating it in JSON Schema.
 
 `ToolSchema.returns` documents each tool's result shape (for the
-validator and for whoever wires up real dispatch in Tasks 7.3/8.x) but
-is not sent to the model -- `to_claude_tool_definition` strips it, since
+validator and for whoever wires up real dispatch in later planner and
+workflow-engine work) but is not sent to the model -- `to_claude_tool_definition` strips it, since
 it is not part of the real Claude tool-definition format.
 
 ## What this document does not define
 
 Nothing here calls the Claude API, executes a tool, or validates a
-plan -- this task only fixes the tool surface those later tasks build
+plan -- this document only fixes the tool surface those later tasks build
 against. Which Python function each tool's `dispatch` actually calls,
-and the plan/workflow shape itself, are Task 7.2 (validator) and Task
-7.3 (planner)'s job, not this one's.
+and the plan/workflow shape itself, are the validator's and the
+planner's job, not this one's.
 
-Correction found while building Task 7.2: `resolve_region`'s tool
+Correction found while building the deterministic plan validator: `resolve_region`'s tool
 description originally implied its `NormalizedRegion` output feeds into
 another tool's `region` argument. It does not -- every other tool
 accepts the same raw `RegionSpec` directly and normalizes it internally

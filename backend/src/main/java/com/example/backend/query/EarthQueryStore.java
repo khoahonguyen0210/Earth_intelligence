@@ -5,11 +5,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Durable Postgres-backed storage for the Ask Earth page's queries --
- * mirrors AnalysisStore/ForecastStore exactly. Each call is a child
- * span, the same pattern those stores use.
- */
 @Repository
 public class EarthQueryStore {
 

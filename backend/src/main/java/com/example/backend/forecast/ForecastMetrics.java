@@ -12,16 +12,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Component;
 
-/**
- * The forecast pipeline's Micrometer meters, exported in
- * Prometheus format at /actuator/prometheus (docs/metrics.md). Names
- * below are Micrometer's dotted form; Prometheus sees them snake-cased
- * with unit suffixes (forecast.job.duration -> forecast_job_duration_seconds).
- *
- * Every tag has a small, closed value set -- outcome, error code,
- * stage -- never an id or user input, so no request can create a new
- * time series.
- */
 @Component
 public class ForecastMetrics {
 
@@ -36,9 +26,6 @@ public class ForecastMetrics {
     public ForecastMetrics(MeterRegistry registry, ForecastQueue queue) {
         this.registry = registry;
 
-        // Reads Redis LLEN on every scrape -- the same number KEDA scales
-        // on. NaN (a gap in the graph) if Redis is unreachable, rather than
-        // failing the whole scrape or reporting a fake 0.
         Gauge.builder("forecast.queue.depth", queue, ForecastMetrics::sizeOrNaN)
                 .description("Forecast job ids waiting in the Redis queue")
                 .register(registry);
@@ -70,11 +57,6 @@ public class ForecastMetrics {
                 .record(durationNanos, TimeUnit.NANOSECONDS);
     }
 
-    /**
-     * One failed attempt. terminal=true means the job ended FAILED (the
-     * handbook's "job failure count"); terminal=false means it was
-     * retried.
-     */
     void recordFailure(ErrorCode errorCode, boolean terminal) {
         Counter.builder("forecast.job.failures")
                 .description("Failed forecast job attempts")
@@ -84,11 +66,6 @@ public class ForecastMetrics {
                 .increment();
     }
 
-    /**
-     * The Python pipeline's self-reported stage timings. stage=
-     * "model_inference" is the handbook's "model inference time": scoring
-     * the inference rows only, excluding data loading and model fitting.
-     */
     void recordStageTimings(Map<String, Double> timingsMs) {
         timingsMs.forEach((stage, millis) -> {
             if (STAGES.contains(stage) && millis != null && millis >= 0) {

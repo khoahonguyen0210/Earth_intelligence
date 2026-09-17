@@ -1,6 +1,3 @@
-// California bbox, matching the fixed extent used throughout the pipeline
-// (FIRMS/ERA5-Land/geography/grid). Used as a reference frame so a small
-// region still shows its position in context, not just fill the viewport.
 const REFERENCE_BBOX: [number, number, number, number] = [
   -124.5, 32.5, -114.0, 42.0,
 ];

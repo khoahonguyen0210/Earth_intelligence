@@ -1,11 +1,11 @@
 # Distributed Result Demo — LOCKED
 
-This document records Task 18.3, the third task of Phase 18. It is not
+This document records the distributed result demo. It is not
 a brainstorming document. It presents the actual 1/2/4/8-worker
 benchmark table the handbook asks for -- already measured twice,
-independently, in this project (Task 16.4's own run and Task 17.5's
-clean-clone reproduction), not re-run a third time to restate the same
-real numbers.
+independently, in this project (once for the final distributed
+benchmark and once for the clean-clone reproduction), not re-run a
+third time to restate the same real numbers.
 
 ## The table
 
@@ -21,12 +21,12 @@ workers   wall_s    throughput(tiles/s)   speedup   efficiency
       8   22.381                22.34       0.038       0.005
 ```
 
-(`docs/final-distributed-benchmark.md`, Task 16.4.)
+(`docs/distributed-benchmark.md`.)
 
 ## Reproduced independently
 
 Run again from a genuinely fresh clone with no shared state
-(`docs/final-clean-clone-test.md`, Task 17.5):
+(`docs/clean-clone-test.md`):
 
 ```text
 workers   wall_s    speedup   efficiency
@@ -42,8 +42,8 @@ seconds differ run to run (real process-spawn timing on a shared
 machine varies), but the pattern -- and the conclusion it supports --
 does not: **this workload's real compute is small enough that Windows'
 per-process `spawn` cold-start cost dominates at every worker count
-tested**, the same finding `docs/bottleneck-identification.md` (Task
-9.4) named directly.
+tested**, the same finding `docs/bottleneck-identification.md`
+named directly.
 
 ## What this task does not do
 
@@ -52,7 +52,7 @@ tested**, the same finding `docs/bottleneck-identification.md` (Task
   copy, and a from-scratch clean clone), already establish the pattern
   is reproducible; a third run would not add evidence.
 - **Does not reinterpret the result as a regression or a bug.**
-  `docs/multi-worker-scaling.md` and `docs/final-distributed-benchmark.md`
+  `docs/multi-worker-scaling.md` and `docs/distributed-benchmark.md`
   both already establish this is the correct, honestly-reported answer
   for this fixed workload and platform, not something to redesign
   around for this demo.

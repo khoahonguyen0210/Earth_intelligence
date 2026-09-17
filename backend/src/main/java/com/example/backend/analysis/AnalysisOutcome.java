@@ -3,10 +3,6 @@ package com.example.backend.analysis;
 import com.example.backend.logging.ErrorCode;
 import com.example.backend.logging.SecretRedactor;
 
-/**
- * A failure carries a stable ErrorCode for the structured logs; like
- * ForecastOutcome's, it is not persisted or returned by the API.
- */
 public record AnalysisOutcome(boolean success, Object result, Object evidence, String error, ErrorCode errorCode) {
 
     public static AnalysisOutcome success(Object result, Object evidence) {

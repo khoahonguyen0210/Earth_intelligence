@@ -2,12 +2,11 @@
 construction, training, inference, memory, and I/O -- against the real
 sample data footprint.
 
-Honesty note: data loading, feature construction, and I/O are measured
-against 100% real data. Training/inference for climatology are also
-real. For logistic regression, XGBoost, and calibrated XGBoost, the real
-train/validation splits still have zero real positive examples (see the
-other baseline demos for why), so those models cannot really fit;
-profile_model falls back to
+Data loading, feature construction, and I/O are measured against 100%
+real data. Training/inference for climatology are also real. For
+logistic regression, XGBoost, and calibrated XGBoost, the real
+train/validation splits still have zero real positive examples, so
+those models cannot really fit; profile_model falls back to
 synthetically-shaped (but realistically-sized) data purely to measure
 wall-clock time and memory, never to report an accuracy number. Each
 model's profile records used_synthetic_timing_data so this is never

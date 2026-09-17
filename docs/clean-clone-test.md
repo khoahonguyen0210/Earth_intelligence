@@ -1,7 +1,7 @@
 # Final Clean-Clone Test — LOCKED
 
-This document records Task 17.5, the fifth and last task of Phase 17,
-and the handbook's own final implementation gate. It is not a
+This document records the final clean-clone test,
+the handbook's own final implementation gate. It is not a
 brainstorming document.
 
 The full chain, run for real from a genuinely fresh clone: clone ->
@@ -35,13 +35,13 @@ genuine, current documentation bugs -- both fixed in this same commit:
    (`docs/clean-start-test.md`, and this project's own `README.md` and
    `docs/reproducibility-package.md` before this fix) documented
    `curl http://localhost:8080/actuator/health` as the health check.
-   That was correct when Task 10.3 wrote it -- Task 13.4 (security
-   baseline) later moved full actuator health to an internal-only
+   That was correct when the clean-start test was written -- the security
+   baseline work later moved full actuator health to an internal-only
    management port and put a status-only `/readyz` on the public one,
    and nothing had re-checked the older doc's command since. Fixed
    `README.md` and `docs/reproducibility-package.md` to `curl
    http://localhost:8080/readyz`; `docs/clean-start-test.md` itself is
-   left as the historical record of what Task 10.3 actually ran, not
+   left as the historical record of what actually ran at the time, not
    rewritten.
 2. **The documented `/analyses` request body was missing required
    fields.** `docs/reproducibility-package.md`'s own example (written
@@ -54,7 +54,7 @@ Also cleaned up along the way: a stale local `kind` Kubernetes cluster
 (`ai-earth-control-plane`, leftover from earlier Kubernetes-deployment
 work) had been squatting on host ports 8080 and 5173 via its own
 port-forwarding this whole time -- the same recurring conflict
-`docs/ask-earth.md` (Task 14.5) already ran into once. Removed for
+`docs/ask-earth.md` already ran into once. Removed for
 real (`docker rm -f`), confirmed with the project owner first since it
 was pre-existing infrastructure, not something this session created.
 
@@ -85,7 +85,7 @@ was pre-existing infrastructure, not something this session created.
                  model -- 9,975 grid cells, model version v1
 [x] reproduce   scripts/distributed/run_scaling_benchmark.py: the same
     one         monotonically-slower-with-more-workers pattern as
-    benchmark   docs/final-distributed-benchmark.md (1 worker 0.879s,
+    benchmark   docs/distributed-benchmark.md (1 worker 0.879s,
                  8 workers 18.7s) -- reproduced, not just repeated
 ```
 

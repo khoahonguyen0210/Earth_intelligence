@@ -4,11 +4,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * Durable Postgres-backed storage for analyses. save/find present a
- * stable shape so callers like AnalysisController don't need to know how
- * persistence is implemented underneath.
- */
 @Repository
 public class AnalysisStore {
 

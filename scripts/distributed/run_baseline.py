@@ -41,7 +41,7 @@ def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(record, indent=2), encoding="utf-8")
 
-    print(f"Task 9.2 one-worker baseline ({result.workload_size} tiles):")
+    print(f"One-worker baseline ({result.workload_size} tiles):")
     print(f"  wall_seconds:        {result.wall_seconds:.3f}")
     print(f"  throughput (tiles/s): {result.throughput_tiles_per_second:.3f}")
     print(f"  total_cpu_seconds:   {result.total_cpu_seconds:.3f}")

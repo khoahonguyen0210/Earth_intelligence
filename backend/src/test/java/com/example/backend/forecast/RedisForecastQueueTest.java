@@ -15,12 +15,6 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/**
- * Runs against the real local Redis (`docker compose up -d` in
- * infra/docker/, same as BackendApplicationTests needs real Postgres and
- * S3ObjectStoreTest needs real MinIO) -- proving the actual list-based
- * queue wiring works, not just the wrapping logic.
- */
 class RedisForecastQueueTest {
 
     private static ForecastQueue newQueue(String queueKey) {

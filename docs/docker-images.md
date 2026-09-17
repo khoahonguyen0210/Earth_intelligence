@@ -1,8 +1,7 @@
 # Docker Images — LOCKED
 
-This document freezes the service Docker images per Task 10.1 of the
-Execution Handbook, the first task of Phase 10. It is not a
-brainstorming document. `docs/docker-compose-stack.md` (Task 10.2) wires
+This document freezes the service Docker images. It is not a
+brainstorming document. `docs/docker-compose-stack.md` wires
 these images together; this task only builds them.
 
 ## Two images, not three
@@ -14,8 +13,8 @@ frontend/Dockerfile  -- React/Vite static build, served by nginx
 
 The handbook lists three: backend, python-worker, frontend. There is no
 separate python-worker image here, and this is a deliberate reading of
-Task 10.2's own "use only the services the application actually needs,"
-not a shortcut: Task 6.2 already locked how Java reaches Python --
+the handbook's own "use only the services the application actually needs,"
+not a shortcut: earlier work already locked how Java reaches Python --
 `PythonForecastRunner`/`PythonAnalysisRunner` construct a `ProcessBuilder`
 and run `python scripts/query/run_forecast_cli.py` as a same-machine
 subprocess, communicating over the child process's stdin/stdout, not a
@@ -25,10 +24,10 @@ environment is a same-machine dependency of the backend process, the
 same way a JDBC driver is. `backend/Dockerfile`'s single image bundles
 both runtimes for exactly this reason: splitting them into two
 containers would require redesigning that bridge into a real network
-call, which is Task 6.2's already-locked decision to reopen, not
-something Phase 10 (packaging what already exists) is scoped to do.
+call, which is an already-locked decision to reopen, not
+something packaging what already exists is scoped to do.
 
-`ForecastWorker` (Task 6.5) -- the actual "worker" role, a Java
+`ForecastWorker` -- the actual "worker" role, a Java
 `@Scheduled` component polling Redis -- already runs inside the same
 Spring Boot process as the rest of the backend; it was never a separate
 deployable unit either.
@@ -49,7 +48,7 @@ so the image's Python version tracks `ml/pyproject.toml`'s own
 base image's package manager happens to carry.
 `FORECAST_PYTHON_EXECUTABLE`/`ANALYSIS_PYTHON_EXECUTABLE`/
 `*_PYTHON_WORKDIR` (already-overridable `application.properties`
-placeholders, Task 6.2) point at this image's own venv and `/app`
+placeholders) point at this image's own venv and `/app`
 working directory -- no Java source change was needed to containerize
 the existing bridge.
 
@@ -70,6 +69,6 @@ a local compose stack.
 ## What this document does not define
 
 Wiring these two images together with the existing postgres/redis/minio
-services, and the environment variables that connect them, is Task
-10.2's job. Verifying the whole stack actually works end to end (health
-checks, a real Earth analysis, a real forecast) is Task 10.3's.
+services, and the environment variables that connect them, is the
+Docker Compose stack's job. Verifying the whole stack actually works end to end (health
+checks, a real Earth analysis, a real forecast) is the clean-start test's.

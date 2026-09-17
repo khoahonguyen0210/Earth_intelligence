@@ -50,7 +50,7 @@ def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")
 
-    print("Task 9.4 bottleneck report:")
+    print("Bottleneck report:")
     print(f"  real_compute_seconds: {report.real_compute_seconds_for_full_workload:.4f}")
     print(f"  data_loading_seconds: {report.data_loading_seconds:.4f}")
     print(

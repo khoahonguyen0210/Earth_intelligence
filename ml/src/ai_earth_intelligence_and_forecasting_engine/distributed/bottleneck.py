@@ -11,10 +11,6 @@ from ai_earth_intelligence_and_forecasting_engine.distributed.run import (
     RunContext,
 )
 
-# The full set of bottleneck factors under consideration. "network" and
-# "database" are listed for completeness even though identify_bottleneck
-# never measures them: nothing in this pipeline makes a network or
-# database call, so they can never be the dominant factor.
 CANDIDATE_FACTORS: tuple[str, ...] = (
     "cpu",
     "i_o",
@@ -26,11 +22,6 @@ CANDIDATE_FACTORS: tuple[str, ...] = (
 
 
 def _noop(value: int) -> int:
-    """A trivial worker function: isolates pure process-spawn/coordination
-    overhead (interpreter startup, Windows' `spawn` start method
-    re-importing this module and everything transitively imported by it
-    -- numpy, xgboost, scikit-learn, rasterio) from real per-tile
-    computation."""
     return value
 
 
@@ -41,11 +32,6 @@ class SpawnOverhead:
 
 
 def measure_spawn_overhead(num_workers: int) -> SpawnOverhead:
-    """Real, direct measurement of what starting a Pool(num_workers) and
-    having every worker return immediately costs, with zero real work
-    mixed in -- this isolates "coordination" (the handbook's own
-    candidate name for process-management/start overhead) from every
-    other candidate factor."""
     if num_workers < 1:
         raise ValueError(f"num_workers must be >= 1, got {num_workers}")
 
@@ -68,9 +54,6 @@ class SerializationCost:
 
 
 def build_sample_chunk_task(context: RunContext, tile_id: str) -> ChunkTask:
-    """A real, single-tile ChunkTask built from a real RunContext -- the
-    same object shape multiprocessing.Pool.map actually sends across the
-    process boundary for every real worker call."""
     return ChunkTask(
         tile_ids=(tile_id,),
         cutoff=INFERENCE_CUTOFF,
@@ -83,15 +66,6 @@ def build_sample_chunk_task(context: RunContext, tile_id: str) -> ChunkTask:
 
 
 def measure_serialization_cost(task: ChunkTask) -> SerializationCost:
-    """Real, direct measurement of what pickling one worker's real
-    ChunkTask actually costs -- the same pickle protocol
-    multiprocessing.Pool.map uses internally to send an argument across
-    the process boundary, applied directly rather than inferred from a
-    Pool run's total wall time. Isolates "serialization" from
-    "coordination": a task carries every worker's full copy of the real
-    observations/era5_records/geography_cells and the fitted model
-    (RunContext), not just its own tile slice, so this cost scales with
-    dataset size and worker count, not with tile count."""
     start = time.perf_counter()
     payload = pickle.dumps(task)
     pickle_seconds = time.perf_counter() - start
@@ -122,14 +96,6 @@ def identify_bottleneck(
     worker_counts: tuple[int, ...],
     real_compute_seconds: float,
 ) -> BottleneckReport:
-    """Compares four real, directly-measured numbers -- pure process-spawn
-    overhead at each worker count, one real ChunkTask's serialization
-    cost, the one-time data-loading stage ("i_o"), and the actual
-    per-tile compute time -- and names whichever dominates. "network"
-    and "database" are never reached: nothing in this pipeline makes a
-    network or database call (it is pure in-process Python plus local
-    multiprocessing), so they are correctly never the answer here, not
-    candidates this function forgot to check."""
     spawn_overhead = [measure_spawn_overhead(n) for n in worker_counts]
     max_spawn_seconds = max(overhead.wall_seconds for overhead in spawn_overhead)
 

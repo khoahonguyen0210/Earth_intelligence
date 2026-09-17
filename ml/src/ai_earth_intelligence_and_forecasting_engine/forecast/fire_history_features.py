@@ -18,10 +18,6 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.labels import (
 
 FEATURE_DATASET_VERSION = "v1"
 
-# name -> lookback window length in hours. Every window is
-# (cutoff - hours, cutoff] -- closed at the cutoff, per "every window ends
-# at or before the cutoff" (the complement of the forward label window,
-# which excludes the cutoff itself).
 FIRE_HISTORY_WINDOWS_HOURS: dict[str, int] = {
     "previous_24h_count": 24,
     "previous_72h_count": 72,

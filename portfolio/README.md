@@ -1,7 +1,7 @@
 # Portfolio Evidence Package
 
-This directory records Task 18.4, the fourth task of Phase 18. It is
-not a brainstorming document. It is the one place a reader unfamiliar
+This directory records the portfolio evidence package. It is not a
+brainstorming document. It is the one place a reader unfamiliar
 with the rest of this repository can find every piece of evidence the
 handbook asks for, without having to know where each was produced.
 
@@ -10,7 +10,7 @@ handbook asks for, without having to know where each was produced.
 ```text
 portfolio/
 ├── README.md                      this file
-├── benchmark-results.json         all four final benchmarks (Phase 16),
+├── benchmark-results.json         all four final benchmarks,
 ├── benchmark-results.csv          the same data, flat (category,
 │                                   experiment, metric, value) for a
 │                                   spreadsheet or pandas.read_csv
@@ -22,32 +22,32 @@ portfolio/
   there, not copied here, so there is exactly one version to keep
   current).
 - **README** — `../README.md`, the project's main entry point: what it
-  is, the problem, real results, architecture, data, scientific
-  method, how to run/reproduce, testing, deployment, limitations.
+  does, how to run it, architecture, testing, and links to everything
+  else below.
 - **Reproduction instructions** — `../docs/reproducibility-package.md`,
   exact commands for clean setup, local services, Earth analysis,
   forecast, ML benchmark, distributed benchmark. Every command in it
-  was actually run (`docs/final-clean-clone-test.md`).
+  was actually run (`docs/clean-clone-test.md`).
 
 ## `benchmark-results.{json,csv}`
 
-Copied verbatim from each benchmark's own locked doc (Phase 16) --
+Copied verbatim from each benchmark's own locked doc --
 nothing recomputed or rounded differently here:
 
 | Category | Source |
 |---|---|
-| `ml_benchmark` | `docs/final-ml-benchmark.md` |
-| `ablation_benchmark` | `docs/final-ablation-benchmark.md` |
-| `distributed_benchmark` | `docs/final-distributed-benchmark.md` |
-| `planner_benchmark` | `docs/final-planner-benchmark.md` |
+| `ml_benchmark` | `docs/ml-benchmark.md` |
+| `ablation_benchmark` | `docs/ablation-benchmark.md` |
+| `distributed_benchmark` | `docs/distributed-benchmark.md` |
+| `planner_benchmark` | `docs/planner-accuracy-benchmark.md` |
 
 The CSV is machine-generated from the JSON (one `category, experiment,
 metric, value` row per number), so the two files cannot drift apart.
 
 ## `forecast-result-example.json`
 
-One real, complete forecast result (`docs/forecasting-demo.md`'s Task
-18.2 run, cutoff `2024-08-10T10:00:00Z`, California): full
+One real, complete forecast result (`docs/forecasting-demo.md`'s
+run, cutoff `2024-08-10T10:00:00Z`, California): full
 `model_version`, `data_cutoff`, `forecast_window`, `calibration` table,
 and `evidence`, plus a **representative sample** of the real risk grid
 -- the 10 highest-probability and 5 lowest-probability real cells out
@@ -60,7 +60,7 @@ truncates only the grid itself, with the truncation stated in the file
 ## Demo screenshots/recording — a real gap, stated honestly
 
 This environment has no browser-automation tool, a limitation already
-stated identically in `docs/ask-earth.md` (Task 14.5),
+stated identically in `docs/ask-earth.md`,
 `docs/earth-intelligence-demo.md`, and `docs/forecasting-demo.md`: no
 screenshot or recording of the rendered React UI exists in this
 package. What exists instead, and is not a lesser substitute so much

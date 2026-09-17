@@ -1,6 +1,6 @@
 # Reproducibility Package — LOCKED
 
-This document records Task 17.4, the fourth task of Phase 17. It is
+This document records the reproducibility package. It is
 not a brainstorming document. Every command below is either copied
 from its own locked source doc or was run for real during this
 project's own test passes (`docs/clean-start-test.md`,
@@ -111,16 +111,16 @@ python scripts/models/train_production_model.py       # writes
                                                         # ml/artifacts/production_model_v1/
                                                         # -- needed for section 4 above
 
-python scripts/models/run_final_ml_benchmark.py        # PR-AUC/ROC-AUC/Brier/
+python scripts/models/run_ml_benchmark.py        # PR-AUC/ROC-AUC/Brier/
                                                         # log loss/inference time,
                                                         # all four locked models
-python scripts/models/run_final_ablation_benchmark.py  # fire history vs
+python scripts/models/run_ablation_benchmark.py  # fire history vs
                                                         # +weather vs
                                                         # +weather+geography
 ```
 
-Real results from these exact commands: `docs/final-ml-benchmark.md`,
-`docs/final-ablation-benchmark.md`.
+Real results from these exact commands: `docs/ml-benchmark.md`,
+`docs/ablation-benchmark.md`.
 
 ## 6. Distributed benchmark
 
@@ -135,17 +135,17 @@ python scripts/distributed/run_fault_injection_test.py    # a real killed worker
 Uses the small, frozen 500-tile sample workload
 (`distributed/workload.py`) — no historical dataset build needed for
 this one. Real results from these exact commands:
-`docs/final-distributed-benchmark.md`.
+`docs/distributed-benchmark.md`.
 
 ## What this package does not cover
 
 **The AI planner benchmark** (`python scripts/query/run_planner_benchmark.py`,
 needs `GEMINI_API_KEY`) is real and reproducible but calls a live,
 unseeded LLM — README's "How to reproduce" and
-`docs/final-planner-benchmark.md` cover it; it is left out of this
+`docs/planner-accuracy-benchmark.md` cover it; it is left out of this
 numbered package because re-running it does not reproduce the same
 exact numbers the way every command above does (documented directly in
-`docs/final-planner-benchmark.md`'s own run-to-run comparison).
+`docs/planner-accuracy-benchmark.md`'s own run-to-run comparison).
 **Cloud/Kubernetes deployment** commands are in `docs/local-kubernetes-deployment.md`
 and `docs/cloud-deployment.md` — out of scope for a local
 reproducibility package (and, per README's Deployment section, the

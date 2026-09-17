@@ -3,10 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-# Locked per docs/forecasting-specification.md and
-# project-context/PROJECT_BIBLE.md section 3. Do not alter for the main
-# benchmark.
-
 FORECAST_WINDOW_HOURS = 24
 
 

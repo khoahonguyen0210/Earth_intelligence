@@ -13,12 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.dao.DataIntegrityViolationException;
 import tools.jackson.databind.ObjectMapper;
 
-/**
- * An in-memory ForecastJpaRepository for unit tests, with the database
- * behaviour the code relies on: the unique idempotency-key index and the
- * conditional claim -- a job is claimed only from PENDING/RETRYING, so a
- * second claim of the same job fails.
- */
 final class InMemoryForecasts {
 
     private InMemoryForecasts() {

@@ -1,9 +1,9 @@
 # Deterministic Plan Validator — LOCKED
 
-This document freezes the plan shape and validator per Task 7.2 of the
-Execution Handbook. It is not a brainstorming document. It builds on
-`docs/planner-tool-schemas.md` (Task 7.1) rather than redefining it; Task
-7.3 (natural-language planner) and Phase 8 (workflow engine) build
+This document freezes the plan shape and validator. It is not a
+brainstorming document. It builds on
+`docs/planner-tool-schemas.md` rather than redefining it; the
+natural-language planner and the workflow engine build
 against this validator rather than reimplementing validation themselves.
 
 ## The plan shape
@@ -27,7 +27,7 @@ A plan is a static, upfront, fully-specified sequence of steps -- matching
 validator -> workflow" (the whole plan is produced once, then validated,
 *then* executed), not a live turn-by-turn agentic loop. This is also why
 `depends_on` exists as an explicit field rather than being inferred: a
-future workflow engine (Phase 8's DAG, whose nodes already carry
+future workflow engine (the DAG, whose nodes already carry
 `dependencies`) needs the ordering declared up front, before anything
 runs.
 
@@ -39,11 +39,11 @@ plain string: `"$<step_id>.<field>"`, e.g.
 string, not a nested object marker, because it only makes sense on
 string-typed fields (`result_id` today), which means it automatically
 satisfies that field's `input_schema` type -- no special-casing needed
-in the schema-shape check. `ToolSchema` (Task 7.1) gained an
+in the schema-shape check. `ToolSchema` gained an
 `output_fields: frozenset[str]` for exactly this: checking that a
 reference names a field the referenced tool's result actually has.
-Resolving the reference to a real value is Phase 8's job; this validator
-only checks the reference is well-formed.
+Resolving the reference to a real value is the workflow engine's job;
+this validator only checks the reference is well-formed.
 
 In practice, the only tool whose output is ever worth referencing later
 is `run_forecast` (it returns a `forecast_id`) feeding
@@ -61,9 +61,9 @@ validation rather than re-implementing it:
 ```text
 tool name              -> step.tool must be one of planner.tools.TOOL_NAMES
 input schema           -> jsonschema.validate against the tool's input_schema
-region                 -> query.region.normalize_region (Task 2.2) -- same
+region                 -> query.region.normalize_region -- same
                            ValueErrors normalize_region already raises
-time range             -> query.time_range.normalize_time_range (Task 2.3)
+time range             -> query.time_range.normalize_time_range
 allowed operations     -> the tool's own operation enum, via input schema
 parameter ranges       -> region/time_range above, plus run_forecast's
                            cutoff via query.forecast_result.parse_cutoff
@@ -93,17 +93,17 @@ mirroring the exact convention `query.schema.validate_structured_query`/
 `validate_plan_or_raise` joins and raises, mirroring
 `run_analysis.run_analysis`'s `if errors: raise ValueError("; ".join(errors))` --
 this is what "invalid plans are rejected" concretely means: whoever
-executes a plan (Phase 8) calls this before running anything.
+executes a plan (the workflow engine) calls this before running anything.
 
 ## What this document does not define
 
-No plan is ever produced by an LLM here -- that is Task 7.3's job; this
-task only defines the shape a produced plan must have and rejects one
-that doesn't. `calculate_statistics`'s `output_fields` is a union across
+No plan is ever produced by an LLM here -- that is the natural-language
+planner's job; this document only defines the shape a produced plan
+must have and rejects one that doesn't. `calculate_statistics`'s `output_fields` is a union across
 its three operations (`count`/`daily`/`weekly`), so a reference to a
 field that operation doesn't actually produce (e.g. `count` from a
 `weekly_aggregate` step) is not caught -- a real limitation, acceptable
 because the only field genuinely referenced across steps in this tool
 surface is `run_forecast`'s `forecast_id`. There is no retry/backoff
-concept here (Task 6.6's is a different, execution-time retry); a
+concept here (that is a different, execution-time retry); a
 rejected plan is simply invalid, not retried.

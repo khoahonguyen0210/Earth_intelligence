@@ -47,13 +47,6 @@ function isForecastJobReference(
   return typeof (result as ForecastJobReference).forecast_id === "string";
 }
 
-/**
- * One executed step's contribution to the answer -- the "numbers"/"map"
- * view, rendered from the real result shape run_ask_earth.py actually
- * produced, never fabricated. A run_forecast step only ever creates a
- * job here (docs/forecast-api-contract.md); its real risk grid is
- * rendered by the forecast map component, not duplicated here.
- */
 function FactBody({ result }: { result: EarthQueryFactResult }) {
   if (isCountResult(result)) {
     return (
@@ -163,7 +156,7 @@ function Fact({ fact }: { fact: EarthQueryFact }) {
 
           <h4>Time</h4>
           <p>
-            {evidence.period_start} &ndash; {evidence.period_end}
+            {evidence.period_start} to {evidence.period_end}
           </p>
 
           <h4>Evidence</h4>

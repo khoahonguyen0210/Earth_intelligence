@@ -68,10 +68,6 @@ def test_score_case_flags_wrong_tool_as_intent_incorrect():
 
 
 def test_score_case_region_check_tolerates_the_same_casing_the_real_validator_does():
-    # query.region._normalize_named lowercases and underscores named
-    # region values before matching ("Bay Area" -> "bay_area"), so a
-    # plan using human-readable casing is just as valid as one using the
-    # exact NAMED_REGIONS key -- region correctness must accept both.
     case = next(c for c in BENCHMARK_CASES if c.name == "count_bay_area")
     plan = _plan(
         PlanStep(
@@ -256,8 +252,6 @@ def test_summarize_computes_rates_excluding_not_applicable_cases():
     summary = summarize(outcomes)
 
     assert summary["total_cases"] == 2
-    # The ambiguous case contributes None to every per-metric rate, so
-    # each rate is computed over the one applicable case only.
     assert summary["intent_correctness"] == 1.0
     assert summary["region_correctness"] == 1.0
     assert summary["time_correctness"] == 1.0

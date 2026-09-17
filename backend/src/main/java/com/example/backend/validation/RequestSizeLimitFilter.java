@@ -12,21 +12,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Caps a request body before anything reads it. Every API
- * request is a small JSON object (a region, a cutoff, a question of at
- * most 1,000 characters), but nothing else bounds what Tomcat accepts and
- * Jackson parses -- the form-post limit does not apply to JSON.
- *
- * A body must declare its length: over api.max-request-bytes is 413, and
- * a body with no Content-Length (chunked) is 411, since its size cannot
- * be checked up front. Browsers' fetch, curl and Python's requests all
- * send Content-Length for a JSON body.
- *
- * Runs after RequestIdFilter and SecurityHeadersFilter, so a refused
- * request still gets its request ID, its http_request log line and the
- * security headers.
- */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class RequestSizeLimitFilter extends OncePerRequestFilter {

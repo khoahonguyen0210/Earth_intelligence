@@ -1,12 +1,12 @@
 # Final ML Benchmark — LOCKED
 
-This document records Task 16.2, the second task of Phase 16. It is
+This document records the final ML benchmark. It is
 not a brainstorming document.
 
-Task 16.2 asks for a real benchmark of the locked model ladder
+It asks for a real benchmark of the locked model ladder
 (Climatology, Logistic Regression, XGBoost, Calibrated XGBoost),
 producing PR-AUC, ROC-AUC, Brier score, log loss, calibration, and
-inference time. Task 4.6's own script (`scripts/models/run_final_benchmark.py`,
+inference time. The earlier benchmark run's own script (`scripts/models/run_baseline_benchmark.py`,
 part of the `benchmark-v1` freeze) predates the real historical
 dataset entirely -- its docstring says outright that only climatology
 could succeed, since the sample data it used had zero real positive
@@ -14,11 +14,11 @@ examples in the training/validation splits. The real dataset
 (`data/processed/historical_dataset_v1.csv`, built by
 `scripts/forecast/build_historical_dataset.py`, 1,316,700 rows) has
 since been built and already backs the production model. This task
-adds `scripts/models/run_final_ml_benchmark.py`, a new runner that
+adds `scripts/models/run_ml_benchmark.py`, a new runner that
 loads the real dataset and calls the frozen, unmodified
 `models/benchmark.py::run_baseline_benchmark` -- the comparison logic
 itself is untouched; only what data it is run against changes,
-consistent with the `benchmark-v1` freeze (`docs/final-benchmark-freeze.md`)
+consistent with the `benchmark-v1` freeze (`docs/benchmark-freeze.md`)
 that new data doesn't require a new benchmark version, only a change to
 the harness code would.
 
@@ -32,7 +32,7 @@ test split       219,450 rows, cutoffs 2024-06-01 -> 2024-10-26
 model config     the one fixed, documented XGBoost config (n_estimators=500,
                   max_depth=4, learning_rate=0.1, subsample=0.8,
                   colsample_bytree=0.8, random_state=20240815) --
-                  unchanged from Task 4.3
+                  unchanged since it was first locked
 ```
 
 ## Results
@@ -91,8 +91,8 @@ the same directory plots this visually.
 - **Does not change `models/benchmark.py` or `models/harness.py`.**
   Both are on the `benchmark-v1` frozen list and are used exactly as
   frozen; only a new data-loading script was added.
-- **Does not delete or overwrite Task 4.6's original result**
+- **Does not delete or overwrite the original result**
   (`ml/artifacts/final_baseline_benchmark_v1`), which stays as the
   honest historical record of what running against sample-only data
   produced -- kept, not archived over, the same way
-  `ml/artifacts/reliability_tests/before.json` was kept in Task 13.5.
+  `ml/artifacts/reliability_tests/before.json` was kept previously.

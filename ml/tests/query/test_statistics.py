@@ -19,49 +19,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
     normalize_time_range,
 )
 
-# --- Hand-verified fixture -------------------------------------------------
-#
-# Region 1: bbox (-120.0, 37.0, -119.0, 38.0)
-# Region 2: bbox (-118.5, 37.0, -117.5, 38.0) -- disjoint from region 1
-# Query window: 2024-08-01 .. 2024-08-14 inclusive (14 calendar days)
-#
-# 2024-08-01 is a Thursday; ISO week (Monday-start) boundaries for the
-# 14-day window are:
-#   2024-07-29 (Mon) .. 2024-08-04 (Sun)  <- partial week, only Aug 1-4 in range
-#   2024-08-05 (Mon) .. 2024-08-11 (Sun)
-#   2024-08-12 (Mon) .. 2024-08-14 (Wed)  <- partial week, only Aug 12-14 in range
-#
-# Observations, hand-classified:
-#   1. Aug 1 10:00, (37.5, -119.5) -> region 1, in range
-#   2. Aug 1 14:00, (37.6, -119.6) -> region 1, in range
-#   3. Aug 1 20:00, (37.1, -119.9) -> region 1, in range          (3 on Aug 1)
-#   4. Aug 2 09:00, (37.5, -119.5) -> region 1, in range
-#   5. Aug 2 15:00, (37.5, -119.4) -> region 1, in range          (2 on Aug 2)
-#   6. Aug 8 12:00, (37.5, -119.5) -> region 1, in range          (1 on Aug 8)
-#   7. Aug 14 23:00, (37.5, -119.5) -> region 1, in range         (1 on Aug 14)
-#   8. Aug 20 10:00, (37.5, -119.5) -> region 1, OUTSIDE range (excluded)
-#   9. Aug 1 10:00, (37.5, -118.0) -> region 2 only (excluded from region 1)
-#  10. Jul 31 23:00, (37.5, -119.5) -> region 1, OUTSIDE range (excluded)
-#
-# Region 1 total in range: 3 + 2 + 1 + 1 = 7
-# Region 2 total in range: 1 (observation 9)
-#
-# Daily breakdown for region 1 (14 buckets, Aug 1 .. Aug 14):
-#   08-01: 3, 08-02: 2, 08-03..07: 0, 08-08: 1, 08-09..13: 0, 08-14: 1
-#   sum = 7 (matches count)
-#
-# Weekly breakdown for region 1 (3 week buckets):
-#   2024-07-29: Aug01(3)+Aug02(2)+Aug03(0)+Aug04(0) = 5
-#   2024-08-05: Aug05..Aug11, only Aug08(1)         = 1
-#   2024-08-12: Aug12(0)+Aug13(0)+Aug14(1)          = 1
-#   sum = 7 (matches count)
-#
-# Period-over-period (region 1): period_a = Aug 1-7, period_b = Aug 8-14
-#   period_a count = 3 + 2 = 5
-#   period_b count = 1 + 1 = 2
-#   absolute_change = 2 - 5 = -3
-#   percent_change = -3/5 * 100 = -60.0
-
 
 def _obs(
     observation_id: str, when: str, latitude: float, longitude: float

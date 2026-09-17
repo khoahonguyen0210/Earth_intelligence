@@ -10,12 +10,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 
-/**
- * Points the AWS S3 SDK at the local MinIO container (infra/docker), not
- * real AWS -- MinIO is S3-API-compatible, so the same S3Client code will
- * work unchanged against real AWS S3 in the later infra phase
- * (PROJECT_BIBLE.md's final definition of done).
- */
 @Configuration
 public class S3ClientConfig {
 

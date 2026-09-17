@@ -1,12 +1,12 @@
 # Forecasting Demo — LOCKED
 
-This document records Task 18.2, the second task of Phase 18. It is
+This document records the forecasting demo. It is
 not a brainstorming document. It runs the full chain the handbook asks
 for -- forecast request -> AI plan -> validation -> workflow -> data ->
 model -> risk map -> calibration -> evidence -- for real, against the
 packaged Docker container, using the same documented historical cutoff
 (`2024-08-10T10:00:00Z`, an on-grid weekly cutoff) as
-`docs/final-ml-benchmark.md` and `docs/end-to-end-test-pass.md`.
+`docs/ml-benchmark.md` and `docs/end-to-end-test-pass.md`.
 
 ## The request
 
@@ -16,7 +16,7 @@ curl -X POST http://localhost:8080/queries \
   -d '{"question": "Run a wildfire risk forecast for California with cutoff 2024-08-10T10:00:00Z"}'
 ```
 
-Unlike Task 18.1's map query, this one goes through the *forecast* tool
+Unlike the earlier map-query demo, this one goes through the *forecast* tool
 specifically, so it exercises `AI plan -> validation -> workflow` before
 `data -> model` ever runs -- the same distinction
 `docs/architecture-diagram.md` draws between the two paths.
@@ -64,7 +64,7 @@ evidence
 ```
 
 The Ask Earth fact itself only ever carries `{forecast_id, status}` --
-`docs/ask-earth.md` (Task 14.2) documents this deliberately: a
+`docs/ask-earth.md` documents this deliberately: a
 `run_forecast` fact is a job reference, not the map. Following that
 same real `forecast_id` through `GET /forecasts/{id}/result` (the exact
 call `ForecastPanel` makes) is what surfaces the risk map, calibration,
@@ -75,7 +75,7 @@ number, not two unrelated demos.
 
 - **Does not use a fabricated or rounded cutoff.** `2024-08-10T10:00:00Z`
   is the same on-grid weekly cutoff already locked in
-  `docs/final-ml-benchmark.md`'s own training/evaluation split, reused
+  `docs/ml-benchmark.md`'s own training/evaluation split, reused
   here rather than a new, undocumented one.
 - **Does not add browser screenshots**, for the same reason
   `docs/earth-intelligence-demo.md` does not: no browser-automation

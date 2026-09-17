@@ -1,11 +1,11 @@
 # Experiment Documentation — LOCKED
 
-This document records Task 17.3, the third task of Phase 17. It is not
+This document records the experiment documentation. It is not
 a brainstorming document. Every final experiment below follows the
 handbook's own fixed card: purpose, dataset/version, feature version,
 split, configuration, command, metrics, result, limitations. Every
 number is copied from its own locked source document
-(`docs/final-*-benchmark.md`); nothing here is re-derived.
+(`docs/*-benchmark.md`); nothing here is re-derived.
 
 ---
 
@@ -41,7 +41,7 @@ loaded by every real forecast request (`docs/end-to-end-test-pass.md`'s
 live `SUCCEEDED` run: 9,975 grid cells, real calibration table).
 
 **Limitations.** One fixed configuration, never hyperparameter-tuned
-beyond Task 4.3's original documented starting point; refuses to load
+beyond its original documented starting point; refuses to load
 on any library-version drift rather than risk silently different
 predictions.
 
@@ -63,7 +63,7 @@ time.
 **Configuration.** Same `BASE_CONFIG` as production training; identical
 across every model in the ladder except the model class itself.
 
-**Command.** `python scripts/models/run_final_ml_benchmark.py`
+**Command.** `python scripts/models/run_ml_benchmark.py`
 
 **Metrics.** PR-AUC, ROC-AUC, Brier score, log loss, training/inference
 time.
@@ -75,7 +75,7 @@ logistic_regression   PR-AUC 0.2782   ROC-AUC 0.9463   Brier 0.0649   LogLoss 0.
 xgboost                PR-AUC 0.4513   ROC-AUC 0.9669   Brier 0.0022   LogLoss 0.0101
 calibrated_xgboost      PR-AUC 0.4361   ROC-AUC 0.9667   Brier 0.0022   LogLoss 0.0108
 ```
-Full detail, including the calibration table: `docs/final-ml-benchmark.md`.
+Full detail, including the calibration table: `docs/ml-benchmark.md`.
 
 **Limitations.** Logistic regression is the slowest of the four
 (70.7s) at this row count with its plain solver; no hyperparameter
@@ -100,7 +100,7 @@ columns + land-cover one-hot).
 **Configuration.** Same `BASE_CONFIG`; only the feature columns fed to
 the model change between variants.
 
-**Command.** `python scripts/models/run_final_ablation_benchmark.py`
+**Command.** `python scripts/models/run_ablation_benchmark.py`
 
 **Metrics.** PR-AUC, ROC-AUC, Brier score, log loss, per variant, plus
 PR-AUC/ROC-AUC deltas between adjacent variants.
@@ -111,7 +111,7 @@ fire_history_only                          PR-AUC 0.3559   ROC-AUC 0.9119
 fire_history_plus_weather                  PR-AUC 0.3703   ROC-AUC 0.9002
 fire_history_plus_weather_plus_geography   PR-AUC 0.4513   ROC-AUC 0.9669
 ```
-Full detail: `docs/final-ablation-benchmark.md`.
+Full detail: `docs/ablation-benchmark.md`.
 
 **Limitations.** Two-step ablation only (weather, then geography) —
 does not measure geography's contribution in isolation without
@@ -124,7 +124,7 @@ weather, or any interaction effect between the two groups.
 **Purpose.** Measure real runtime, throughput, speedup, and efficiency
 at 1/2/4/8 workers, with workload/data/model held fixed.
 
-**Dataset/version.** Task 9.1's frozen 500-tile workload
+**Dataset/version.** The frozen 500-tile workload
 (`distributed/workload.py`) against small real sample data
 (`data/raw/{firms,era5,geography}/*_sample.*`) — not the full
 historical dataset; this experiment measures computational cost, not
@@ -154,7 +154,7 @@ workers   wall_s    throughput   speedup   efficiency
       4   12.109        41.29      0.070       0.018
       8   22.381        22.34      0.038       0.005
 ```
-Full detail: `docs/final-distributed-benchmark.md`.
+Full detail: `docs/distributed-benchmark.md`.
 
 **Limitations.** Monotonically slower with more workers on this
 project's Windows/`multiprocessing.spawn` platform — process-spawn
@@ -193,7 +193,7 @@ all_chunks_eventually_succeeded: true
 total_tiles_recovered:           500 / 500
 total_recovery_seconds:          1.353
 ```
-Full detail: `docs/final-distributed-benchmark.md`.
+Full detail: `docs/distributed-benchmark.md`.
 
 **Limitations.** One crash scenario (a single killed worker, one
 chunk) — does not cover multiple simultaneous crashes or a crash during
@@ -237,10 +237,10 @@ valid_plan_rate:             0.917 (11/12 scored)
 execution_success:           1.0   (14/14)
 unsupported_request_handling: 0.5   (1/2)
 ```
-Full detail, including run-to-run comparison: `docs/final-planner-benchmark.md`.
+Full detail, including run-to-run comparison: `docs/planner-accuracy-benchmark.md`.
 
 **Limitations.** The LLM call is real and unseeded — re-running this
 exact experiment does not guarantee the same exact numbers (this run's
-`time_correctness` differs from Task 7.5's original 1.0, a genuine
+`time_correctness` differs from the original 1.0, a genuine
 date-range-convention variance, not a code regression); one known,
 reproduced miss (a causal "why" question answered instead of rejected).

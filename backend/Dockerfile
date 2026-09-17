@@ -1,8 +1,8 @@
 # Multi-stage: build the Spring Boot jar, then bundle it with the Python
-# + ml/ environment Task 6.2's PythonForecastRunner/PythonAnalysisRunner
+# + ml/ environment PythonForecastRunner/PythonAnalysisRunner
 # need for their subprocess bridge. See docs/docker-images.md for why
-# this one image plays both the "backend" and "python-worker" roles the
-# handbook names separately -- the real bridge (ProcessBuilder) is a
+# this one image plays both the "backend" and "python-worker" roles --
+# the real bridge (ProcessBuilder) is a
 # same-machine subprocess call, not a network call, so there is no
 # separate networked service to containerize on its own.
 #

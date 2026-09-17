@@ -1,15 +1,14 @@
 """The final ablation benchmark, against the real historical
 dataset (data/processed/historical_dataset_v1.csv), not the tiny sample
 data scripts/models/run_weather_ablation.py / run_geography_ablation.py
-use (their own docstrings: zero real positive examples in the sample
-data's train/validation splits).
+use.
 
 Runs the frozen, unmodified models/ablation.py::run_weather_ablation
-and run_geography_ablation (benchmark-v1) against the real dataset,
-producing the three-way comparison: fire history
-alone, fire history + weather, fire history + weather + geography.
+and run_geography_ablation against the real dataset, producing the
+three-way comparison: fire history alone, fire history + weather, fire
+history + weather + geography.
 
-    python scripts/models/run_final_ablation_benchmark.py
+    python scripts/models/run_ablation_benchmark.py
 """
 
 from pathlib import Path

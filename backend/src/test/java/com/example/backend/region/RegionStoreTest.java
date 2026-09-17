@@ -10,12 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * RegionStore against the real Postgres/PostGIS the whole backend runs
- * against (same `docker compose up -d` stack as BackendApplicationTests),
- * exercising the actual ST_MakeEnvelope insert -- not a mock -- since the
- * point of this table is durable proof a region was really resolved.
- */
 @SpringBootTest
 class RegionStoreTest {
 

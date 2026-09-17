@@ -30,9 +30,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
     NormalizedTimeRange,
 )
 
-# Locked per docs/forecast-api-contract.md. The full lifecycle is owned by
-# the backend's Redis-based async job system; do not alter without
-# updating that document.
 FORECAST_STATUS_VALUES: tuple[str, ...] = (
     "PENDING",
     "RUNNING",
@@ -42,9 +39,6 @@ FORECAST_STATUS_VALUES: tuple[str, ...] = (
     "CANCELLED",
 )
 
-# The Java<->Python bridge for forecasts is a synchronous subprocess call
-# (the same interim pattern PythonAnalysisRunner already uses), so from
-# this side only these two terminal states are ever reachable.
 SYNCHRONOUS_STATUS_VALUES: tuple[str, ...] = ("SUCCEEDED", "FAILED")
 
 
@@ -128,11 +122,6 @@ def build_forecast_result(
     calibration_table: list[CalibrationBin],
     inputs: dict[str, Any] | None = None,
 ) -> ForecastResult:
-    """`inputs` (optional) records what real data and which trained model
-    produced this forecast -- the FIRMS window and count, the ERA5-Land
-    hour used, the model's training summary -- under the evidence's
-    query_parameters["inputs"], so a result always says what it was
-    computed from."""
     forecast_window = build_forecast_window(cutoff)
 
     query_parameters: dict[str, Any] = {
