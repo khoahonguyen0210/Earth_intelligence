@@ -15,6 +15,16 @@ from ai_earth_intelligence_and_forecasting_engine.data.history import (
     load_firms_history,
     require_firms_coverage,
 )
+from ai_earth_intelligence_and_forecasting_engine.data.live import (
+    LIVE_FIRMS_PRODUCT,
+    check_live_cutoff,
+    ensure_live_era5,
+    ensure_live_firms,
+)
+from ai_earth_intelligence_and_forecasting_engine.data.outlook import (
+    check_outlook_cutoff,
+    fetch_weather_outlook,
+)
 from ai_earth_intelligence_and_forecasting_engine.data.statewide_geography import (
     load_geography_records,
 )
@@ -133,6 +143,7 @@ def run_forecast(
     era5_history_dir: Path,
     geography_path: Path,
     model_dir: Path,
+    live_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Validates the request, builds the inference cutoff's feature rows
     from the real history (FIRMS strictly before the cutoff -- nothing
@@ -158,21 +169,54 @@ def run_forecast(
             f"No grid cells fall within the requested region: {region.bbox}"
         )
 
-    require_lookback_coverage(firms_history_dir, cutoff)
+    now = datetime.now(timezone.utc)
+    outlook = live_dir is not None and cutoff > now
+    live = False
+    if outlook:
+        check_outlook_cutoff(cutoff, now)
+        data_cutoff = now
+    else:
+        data_cutoff = cutoff
+        try:
+            require_lookback_coverage(firms_history_dir, cutoff)
+        except ValueError:
+            if live_dir is None:
+                raise
+            check_live_cutoff(cutoff, now)
+            live = True
 
+    lookback_start = data_cutoff - timedelta(hours=LOOKBACK_HOURS)
     load_start = time.perf_counter()
-    lookback_start = cutoff - timedelta(hours=LOOKBACK_HOURS)
-    observations = load_firms_history(firms_history_dir, lookback_start, cutoff)
-    era5_records = ERA5History(era5_history_dir).for_cutoff(cutoff)
-    fresh_era5 = [r for r in era5_records if cutoff - r.valid_time <= MAX_ERA5_AGE]
+    if outlook:
+        ensure_live_firms(live_dir, data_cutoff)
+        observations = load_firms_history(
+            live_dir, lookback_start, data_cutoff, LIVE_FIRMS_PRODUCT
+        )
+        era5_records = fetch_weather_outlook(
+            target_cells, cutoff, data_cutoff - timedelta(hours=1)
+        )
+    elif live:
+        ensure_live_firms(live_dir, cutoff)
+        observations = load_firms_history(
+            live_dir, lookback_start, cutoff, LIVE_FIRMS_PRODUCT
+        )
+        era5_records = ensure_live_era5(live_dir, cutoff)
+    else:
+        observations = load_firms_history(firms_history_dir, lookback_start, cutoff)
+        era5_records = ERA5History(era5_history_dir).for_cutoff(cutoff)
+    fresh_era5 = [
+        r for r in era5_records if data_cutoff - r.valid_time <= MAX_ERA5_AGE
+    ]
     if not fresh_era5:
         raise ValueError(
             f"no real ERA5-Land weather within {MAX_ERA5_AGE.days} days before "
-            f"{cutoff.isoformat()}"
+            f"{data_cutoff.isoformat()}"
         )
     geography = load_geography_records(geography_path)
 
-    rows = build_dataset(observations, fresh_era5, geography, target_cells, [cutoff])
+    rows = build_dataset(
+        observations, fresh_era5, geography, target_cells, [data_cutoff]
+    )
     timings_ms: dict[str, float] = {
         "data_load": (time.perf_counter() - load_start) * 1000
     }
@@ -182,10 +226,11 @@ def run_forecast(
     timings_ms["model_load"] = (time.perf_counter() - model_start) * 1000
 
     inputs = {
+        "mode": "outlook" if outlook else "live" if live else "history",
         "firms_observations": len(observations),
         "firms_window": {
             "start": lookback_start.isoformat(),
-            "end": cutoff.isoformat(),
+            "end": data_cutoff.isoformat(),
         },
         "era5_valid_time": max(r.valid_time for r in fresh_era5).isoformat(),
         "model": {
@@ -193,6 +238,10 @@ def run_forecast(
             for key in ("model", "model_version", "trained_at", "train", "validation")
         },
     }
+    if outlook:
+        inputs["weather_source"] = "Open-Meteo forecast"
+        inputs["weather_valid_for"] = cutoff.isoformat()
+        inputs["horizon_hours"] = round((cutoff - now).total_seconds() / 3600, 1)
     result = predict_forecast(
         model, rows, target_cells, region, cutoff, timings_ms, inputs
     )
