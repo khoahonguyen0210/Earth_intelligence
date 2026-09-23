@@ -14,7 +14,7 @@ from ai_earth_intelligence_and_forecasting_engine.data.firms import (
     parse_firms_records,
 )
 from ai_earth_intelligence_and_forecasting_engine.data.observation import Observation
-from ai_earth_intelligence_and_forecasting_engine.forecast.fire_history_features import (
+from ai_earth_intelligence_and_forecasting_engine.forecast.fire_history_features import (  # noqa: E501
     FIRE_HISTORY_WINDOWS_HOURS,
 )
 from ai_earth_intelligence_and_forecasting_engine.forecast.spec import (
@@ -133,7 +133,11 @@ def fetch_firms_span(
                 raise requests.HTTPError(f"FIRMS returned {response.status_code}")
             response.raise_for_status()
             break
-        except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as error:
+        except (
+            requests.ConnectionError,
+            requests.Timeout,
+            requests.HTTPError,
+        ) as error:
             # The map key is part of the URL; never let it reach an error message.
             last_error = RuntimeError(str(error).replace(config.map_key, "***"))
             time.sleep(2**attempt)
@@ -185,7 +189,9 @@ def load_firms_history(
 def parse_span_file_name(name: str) -> FIRMSSpan:
     stem = name.removesuffix(".csv")
     _, _, _, start, days = stem.split("_")
-    return FIRMSSpan(start=date.fromisoformat(start), day_range=int(days.removesuffix("d")))
+    return FIRMSSpan(
+        start=date.fromisoformat(start), day_range=int(days.removesuffix("d"))
+    )
 
 
 def firms_covered_days(history_dir: Path) -> set[date]:

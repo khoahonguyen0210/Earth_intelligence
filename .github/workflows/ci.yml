@@ -21,8 +21,7 @@ jobs:
         working-directory: ml
         run: |
           python -m pip install --upgrade pip
-          pip install pytest ruff mypy
-          pip install -e .
+          pip install -e . --group dev types-requests
 
       - name: Ruff
         working-directory: ml
@@ -50,6 +49,11 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+
+      - name: Start Postgres, Redis and MinIO
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker compose -f infra/docker/docker-compose.yml up -d --wait postgres redis minio
 
       - name: Build and test
         working-directory: backend

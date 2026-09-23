@@ -49,27 +49,11 @@ platform behavior with no Docker Compose equivalent (compose has no
 auto env-injection), so nothing in the earlier Docker work could have caught it. Fixed
 by adding `enableServiceLinks: false` to `backend.yaml`'s pod spec.
 
-**2. `quay.io/minio/minio:latest` returned 401 on an anonymous pull from
-inside the kind node**, and both `kind load docker-image` and
-`kind load image-archive` (which both invoke `ctr images import
---all-platforms`) failed the same way -- `content digest ... not found`
--- because the image, as Docker Desktop's containerd-backed store holds
-it, is a multi-platform manifest list referencing architectures whose
-image content was never actually pulled locally (only `linux/amd64`
-was). Worked around by importing manually, restricted to the one real
-platform present:
-
-```bash
-docker save quay.io/minio/minio:latest -o minio-image.tar
-docker cp minio-image.tar ai-earth-control-plane:/minio-image.tar
-docker exec ai-earth-control-plane ctr --namespace=k8s.io images import \
-  --platform linux/amd64 /minio-image.tar
-```
-
-Also set `imagePullPolicy: IfNotPresent` on `minio.yaml`'s container --
-without it, Kubernetes' default `Always` policy for a `:latest` tag
-would re-attempt (and re-fail) the same registry pull on every pod
-restart, undoing the manual import.
+**2. The MinIO image was no longer pullable.** `quay.io/minio/minio` and
+`minio/minio` both return unauthorized, since MinIO stopped publishing
+community images. `minio.yaml` and the Compose file now use
+`bitnamilegacy/minio`, which runs as user 1001, so the pod sets
+`fsGroup: 1001` for the data volume.
 
 ## Verification, run against the real cluster
 

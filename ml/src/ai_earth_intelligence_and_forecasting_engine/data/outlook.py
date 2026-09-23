@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import requests
 
@@ -41,7 +41,9 @@ def record_from_hourly(
     speed = hourly["wind_speed_10m"][hour]
     direction = hourly["wind_direction_10m"][hour]
     u_wind, v_wind = wind_components(speed, direction)
-    precipitation_mm = sum(value or 0.0 for value in hourly["precipitation"][: hour + 1])
+    precipitation_mm = sum(
+        value or 0.0 for value in hourly["precipitation"][: hour + 1]
+    )
 
     return ERA5Record(
         latitude=latitude,
@@ -77,7 +79,11 @@ def _fetch_batch(
             response.raise_for_status()
             payload = response.json()
             return payload if isinstance(payload, list) else [payload]
-        except (requests.ConnectionError, requests.Timeout, requests.HTTPError) as error:
+        except (
+            requests.ConnectionError,
+            requests.Timeout,
+            requests.HTTPError,
+        ) as error:
             last_error = error
             time.sleep(2**attempt)
 

@@ -95,7 +95,9 @@ def test_run_analysis_output_is_json_serializable(firms_csv):
     json.dumps(response)
 
 
-def test_run_analysis_over_history_refuses_a_period_the_history_does_not_cover(tmp_path):
+def test_run_analysis_over_history_refuses_a_period_the_history_does_not_cover(
+    tmp_path,
+):
     # Only Aug 1-5 2024 downloaded: asking about Aug 1-10 must be refused,
     # never answered as if Aug 6-10 had zero fires.
     (tmp_path / "VIIRS_SNPP_SP_2024-08-01_5d.csv").write_text(

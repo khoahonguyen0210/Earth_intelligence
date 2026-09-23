@@ -65,7 +65,13 @@ def _era5(valid_time: datetime, lat: float, lon: float, temperature: float):
 # Fires spread over ~7 weeks: inside and outside every lookback and label
 # window, exactly on window boundaries, and low-confidence (excluded).
 OBSERVATIONS = [
-    _obs(f"f{i}", CUTOFFS[0] - timedelta(days=40) + timedelta(hours=7 * i), lat, lon, conf)
+    _obs(
+        f"f{i}",
+        CUTOFFS[0] - timedelta(days=40) + timedelta(hours=7 * i),
+        lat,
+        lon,
+        conf,
+    )
     for i, (lat, lon, conf) in enumerate(
         [(37.05, -119.95, "n"), (37.15, -119.85, "h"), (37.05, -119.85, "l")] * 60
     )
@@ -81,8 +87,13 @@ ERA5 = [
     for lat, lon in [(37.05, -119.95), (37.15, -119.85)]
 ]
 GEOGRAPHY = [
-    GeographyCell(latitude=37.05, longitude=-119.95, elevation_m=800.0, slope_deg=5.0,
-                  land_cover_class=10),
+    GeographyCell(
+        latitude=37.05,
+        longitude=-119.95,
+        elevation_m=800.0,
+        slope_deg=5.0,
+        land_cover_class=10,
+    ),
 ]
 
 
@@ -129,7 +140,9 @@ def test_historical_cutoffs_follow_the_pre_registered_rule():
     cutoffs = historical_cutoffs()
 
     assert len(cutoffs) == 22 * 6
-    assert all(cutoff.hour == 10 and cutoff.tzinfo is timezone.utc for cutoff in cutoffs)
+    assert all(
+        cutoff.hour == 10 and cutoff.tzinfo is timezone.utc for cutoff in cutoffs
+    )
     assert all(6 <= cutoff.month <= 10 for cutoff in cutoffs)
     assert cutoffs[0] == datetime(2019, 6, 1, 10, tzinfo=timezone.utc)
     assert all(
@@ -151,7 +164,9 @@ def test_required_firms_days_cover_every_lookback_and_label_window():
 
 
 def test_firms_spans_are_contiguous_and_within_the_api_limit():
-    days = [date(2020, 8, 1) + timedelta(days=i) for i in range(12)] + [date(2020, 9, 1)]
+    days = [date(2020, 8, 1) + timedelta(days=i) for i in range(12)] + [
+        date(2020, 9, 1)
+    ]
 
     spans = firms_spans(days)
 

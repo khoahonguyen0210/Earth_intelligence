@@ -23,6 +23,8 @@ SMALL_WORKLOAD_SIZE = 4
 
 @pytest.fixture(scope="module")
 def context():
+    if not RAW_FIRMS_PATH.exists() or not RAW_ERA5_PATH.exists():
+        pytest.skip("real raw sample data not downloaded")
     return prepare_run_context(
         raw_firms_path=RAW_FIRMS_PATH,
         raw_era5_path=RAW_ERA5_PATH,

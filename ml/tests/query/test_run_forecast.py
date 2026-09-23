@@ -215,18 +215,24 @@ def test_run_forecast_rejects_unparseable_cutoff():
         _run_real(payload)
 
 
-def test_require_lookback_coverage_refuses_a_cutoff_without_30_days_of_history(tmp_path):
+def test_require_lookback_coverage_refuses_a_cutoff_without_30_days_of_history(
+    tmp_path,
+):
     (tmp_path / "VIIRS_SNPP_SP_2024-08-01_5d.csv").write_text("x", encoding="utf-8")
 
     with pytest.raises(ValueError, match="no real FIRMS fire history"):
-        require_lookback_coverage(tmp_path, datetime(2024, 8, 5, 10, tzinfo=timezone.utc))
+        require_lookback_coverage(
+            tmp_path, datetime(2024, 8, 5, 10, tzinfo=timezone.utc)
+        )
 
 
 def test_require_lookback_coverage_accepts_a_fully_covered_lookback(tmp_path):
     start = datetime(2024, 7, 1, tzinfo=timezone.utc).date()
     for offset in range(0, 40, 5):
         day = start + timedelta(days=offset)
-        (tmp_path / f"VIIRS_SNPP_SP_{day.isoformat()}_5d.csv").write_text("x", encoding="utf-8")
+        (tmp_path / f"VIIRS_SNPP_SP_{day.isoformat()}_5d.csv").write_text(
+            "x", encoding="utf-8"
+        )
 
     require_lookback_coverage(tmp_path, datetime(2024, 8, 5, 10, tzinfo=timezone.utc))
 
@@ -234,22 +240,36 @@ def test_require_lookback_coverage_accepts_a_fully_covered_lookback(tmp_path):
 @pytest.mark.skipif(not REAL_INPUTS_PRESENT, reason="real history/model not built")
 def test_run_forecast_end_to_end_on_real_history_and_the_trained_model():
     response = _run_real(
-        {"region": {"kind": "named", "value": "california"}, "cutoff": "2024-08-10T10:00:00Z"}
+        {
+            "region": {"kind": "named", "value": "california"},
+            "cutoff": "2024-08-10T10:00:00Z",
+        }
     )
 
     result = response["result"]
     inputs = result["evidence"]["query_parameters"]["inputs"]
     assert result["grid"]["features"], "a real forecast covers real cells"
-    assert all(0.0 <= f["properties"]["probability"] <= 1.0 for f in result["grid"]["features"])
+    assert all(
+        0.0 <= f["properties"]["probability"] <= 1.0 for f in result["grid"]["features"]
+    )
     assert inputs["firms_observations"] > 0
     assert inputs["firms_window"]["end"] == "2024-08-10T10:00:00+00:00"
     assert inputs["era5_valid_time"] == "2024-08-10T10:00:00+00:00"
     assert inputs["model"]["train"]["positives"] > 0
-    assert set(response["timings_ms"]) == {"data_load", "model_load", "model_inference", "total"}
+    assert set(response["timings_ms"]) == {
+        "data_load",
+        "model_load",
+        "model_inference",
+        "total",
+    }
 
 
 @pytest.mark.skipif(not REAL_INPUTS_PRESENT, reason="real history/model not built")
 def test_run_forecast_refuses_a_cutoff_outside_the_real_history():
     with pytest.raises(ValueError, match="no real FIRMS fire history"):
-        _run_real({"region": {"kind": "named", "value": "california"},
-                   "cutoff": "2025-08-15T10:00:00Z"})
+        _run_real(
+            {
+                "region": {"kind": "named", "value": "california"},
+                "cutoff": "2025-08-15T10:00:00Z",
+            }
+        )

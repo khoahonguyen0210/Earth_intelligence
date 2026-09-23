@@ -91,7 +91,11 @@ class ERA5History:
     def for_cutoff(self, cutoff: datetime) -> list[ERA5Record]:
         """Records in the cutoff's lookback with valid_time <= cutoff."""
         current = (cutoff.year, cutoff.month)
-        previous = (cutoff.year - 1, 12) if cutoff.month == 1 else (cutoff.year, cutoff.month - 1)
+        previous = (
+            (cutoff.year - 1, 12)
+            if cutoff.month == 1
+            else (cutoff.year, cutoff.month - 1)
+        )
         for key in list(self._months):
             if key not in (current, previous):
                 del self._months[key]

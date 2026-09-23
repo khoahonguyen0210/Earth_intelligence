@@ -251,7 +251,7 @@ def load_dataset(path: Path) -> list[DatasetRow]:
                 cutoff=datetime.fromisoformat(record["cutoff"]),
                 split=record["split"],
                 target=int(record["target"]),
-                **{column: parse(column, record[column]) for column in FEATURE_COLUMNS},
+                **{column: parse(column, record[column]) for column in FEATURE_COLUMNS},  # type: ignore[arg-type]
             )
             for record in csv.DictReader(handle)
         ]

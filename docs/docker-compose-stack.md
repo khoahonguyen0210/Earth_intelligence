@@ -15,7 +15,7 @@ infra/docker/docker-compose.yml
 ```text
 postgres  -- postgis/postgis:16-3.5, already existed
 redis     -- redis:7-alpine, already existed
-minio     -- quay.io/minio/minio, already existed
+minio     -- bitnamilegacy/minio, already existed
 backend   -- built from backend/Dockerfile -- Spring Boot +
              Python/ml, port 8080
 frontend  -- built from frontend/Dockerfile -- nginx serving

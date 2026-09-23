@@ -188,6 +188,7 @@ def run_forecast(
     lookback_start = data_cutoff - timedelta(hours=LOOKBACK_HOURS)
     load_start = time.perf_counter()
     if outlook:
+        assert live_dir is not None
         ensure_live_firms(live_dir, data_cutoff)
         observations = load_firms_history(
             live_dir, lookback_start, data_cutoff, LIVE_FIRMS_PRODUCT
@@ -196,6 +197,7 @@ def run_forecast(
             target_cells, cutoff, data_cutoff - timedelta(hours=1)
         )
     elif live:
+        assert live_dir is not None
         ensure_live_firms(live_dir, cutoff)
         observations = load_firms_history(
             live_dir, lookback_start, cutoff, LIVE_FIRMS_PRODUCT
@@ -225,7 +227,7 @@ def run_forecast(
     model = load_production_model(model_dir)
     timings_ms["model_load"] = (time.perf_counter() - model_start) * 1000
 
-    inputs = {
+    inputs: dict[str, Any] = {
         "mode": "outlook" if outlook else "live" if live else "history",
         "firms_observations": len(observations),
         "firms_window": {

@@ -76,8 +76,7 @@ def test_fit_xgboost_rejects_single_class_validation_data():
 def test_fit_xgboost_uses_early_stopping_to_pick_fewer_trees_than_the_cap():
     result = fit_xgboost(TRAIN_ROWS, VALIDATION_ROWS)
 
-    assert result.best_iteration <= BASE_CONFIG["n_estimators"]
-    assert result.best_iteration > 0
+    assert 0 <= result.best_iteration < BASE_CONFIG["n_estimators"] - 1
 
 
 def test_fit_xgboost_preserves_the_fixed_base_config():

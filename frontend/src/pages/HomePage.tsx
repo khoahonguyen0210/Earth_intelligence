@@ -11,24 +11,24 @@ import { useCountUp } from "../hooks/useCountUp";
 type Status = "idle" | "loading" | "error" | "success";
 
 const STATS = [
-  { value: "0.45", label: "PR-AUC on real 2024 test data" },
-  { value: "100%", label: "planner execution success, live API" },
-  { value: "1.35s", label: "recovery from a real killed worker" },
-  { value: "4", label: "real Earth-observation data sources" },
+  { value: "0.45", label: "PR-AUC" },
+  { value: "100%", label: "planner success" },
+  { value: "1.35s", label: "worker recovery" },
+  { value: "4", label: "data sources" },
 ];
 
 const FEATURES = [
   {
     title: "Ask in plain English",
-    body: "A real LLM turns your question into a structured plan. A deterministic validator checks that plan before anything runs, so the model can never bypass the gate or run arbitrary code.",
+    body: "An LLM plans, a validator checks, then it runs.",
   },
   {
     title: "24-hour wildfire risk",
-    body: "A calibrated XGBoost model trained on real California fire history, weather, and terrain from 2019 to 2022. Not a guess, and not a black box: every prediction ships with its own calibration table.",
+    body: "Calibrated XGBoost on California fire, weather, and terrain data.",
   },
   {
     title: "Every answer has evidence",
-    body: "Dataset, region, time period, model version, and calibration are attached to every single result, always, so you can trace any number back to exactly what produced it.",
+    body: "Dataset, region, period, and model version on every result.",
   },
 ];
 
@@ -68,19 +68,15 @@ export function HomePage() {
     <>
       <header className="hero">
         <EmberField />
-        <span className="kicker">Earth Intelligence &amp; Wildfire Forecasting</span>
-        <h1>Ask Earth a question. Get a real, evidence-backed answer.</h1>
-        <p className="hero-sub">
-          Ask in plain English and get an answer built from real NASA and Copernicus
-          data, a validated AI workflow, and a trained forecasting model, with every
-          number traceable to what actually produced it, never fabricated.
-        </p>
+        <span className="kicker">Wildfire intelligence</span>
+        <h1>Ask Earth about wildfire risk.</h1>
+        <p className="hero-sub">Plain-English questions, answered from real NASA data and a model you can check.</p>
         <div className="hero-cta">
           <a href="#ask-earth" className="btn-primary">
             Ask Earth a question
           </a>
           <Link to="/results" className="btn-secondary">
-            See real results &rarr;
+            Results &rarr;
           </Link>
         </div>
       </header>

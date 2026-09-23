@@ -1,14 +1,8 @@
 # Headline Results — LOCKED
 
-This document records the headline results.
-It is not a brainstorming document.
-
-It asks for headline results selected from the final benchmarks'
-real, measured numbers -- and only results that are real, measured,
-reproducible, and meaningful, in the fixed communication form
-**Achieved X by doing Z**, with no invented values. Every number below
-is copied unchanged from its own locked source document; nothing here
-is computed or re-derived specifically for this doc.
+These are the headline results, taken from the final benchmarks. Each
+one is real, measured and reproducible, and is stated as **Achieved X by
+doing Z**. Every number is copied unchanged from its source document.
 
 ## The five headline results
 
@@ -46,12 +40,9 @@ Source: `docs/planner-accuracy-benchmark.md`.
 
 ## Real, measured results not selected as headlines, and why
 
-Not every real number the final benchmarks produced fits the "achieved X by
-doing Z" form -- some are honest limitations or mixed findings, not
-achievements. They stay fully documented in their own locked docs;
-leaving them out here is not hiding them, it is the "meaningful" filter
-this task asks for. Reported here so the exclusion itself is not
-silent:
+Some measured results are limitations or mixed findings, so they are not
+headlines. They stay documented in their own source documents and are
+listed here so nothing is hidden:
 
 ```text
 weather's mixed contribution     +0.0144 PR-AUC but -0.0117 ROC-AUC

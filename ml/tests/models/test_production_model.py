@@ -33,7 +33,9 @@ CUTOFF = datetime(2020, 1, 1, tzinfo=timezone.utc)
 LATER_CUTOFF = datetime(2020, 1, 8, tzinfo=timezone.utc)
 
 
-def _row(tile_id: str, target: int, previous_24h_count: int, split: str, cutoff: datetime) -> DatasetRow:
+def _row(
+    tile_id: str, target: int, previous_24h_count: int, split: str, cutoff: datetime
+) -> DatasetRow:
     return DatasetRow(
         tile_id=tile_id,
         cutoff=cutoff,
@@ -70,7 +72,9 @@ def _separable_split(split: str, offset: int, cutoff: datetime) -> list[DatasetR
     return rows
 
 
-TRAIN_ROWS = _separable_split("train", 0, CUTOFF) + _separable_split("train", 1, LATER_CUTOFF)
+TRAIN_ROWS = _separable_split("train", 0, CUTOFF) + _separable_split(
+    "train", 1, LATER_CUTOFF
+)
 VALIDATION_ROWS = _separable_split("validation", 2, LATER_CUTOFF)
 TEST_ROWS = _separable_split("test", 3, LATER_CUTOFF)
 

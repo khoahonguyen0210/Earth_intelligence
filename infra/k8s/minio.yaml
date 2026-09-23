@@ -29,17 +29,8 @@ spec:
     spec:
       containers:
         - name: minio
-          image: quay.io/minio/minio:latest
-          # quay.io returns 401 Unauthorized on an anonymous pull of this
-          # tag from inside a kind node (real, reproduced directly, not
-          # hypothetical -- see docs/local-kubernetes-deployment.md).
-          # IfNotPresent makes `kind load docker-image` (pushing the
-          # already-verified local image straight into containerd) stick
-          # instead of Kubernetes' default "Always" pull policy for a
-          # `:latest` tag re-attempting and failing the same registry
-          # pull on every pod restart.
+          image: bitnamilegacy/minio:2025.7.23-debian-12-r3
           imagePullPolicy: IfNotPresent
-          args: ["server", "/data", "--console-address", ":9001"]
           ports:
             - containerPort: 9000
             - containerPort: 9001
@@ -56,7 +47,7 @@ spec:
                   key: MINIO_ROOT_PASSWORD
           volumeMounts:
             - name: data
-              mountPath: /data
+              mountPath: /bitnami/minio/data
           readinessProbe:
             httpGet:
               path: /minio/health/live

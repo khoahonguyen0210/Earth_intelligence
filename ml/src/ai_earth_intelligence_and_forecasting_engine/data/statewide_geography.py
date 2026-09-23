@@ -35,7 +35,12 @@ def one_degree_tiles(
     tiles = []
     for lat in range(math.floor(south), math.ceil(north)):
         for lon in range(math.floor(west), math.ceil(east)):
-            tile = (max(lon, west), max(lat, south), min(lon + 1, east), min(lat + 1, north))
+            tile = (
+                max(lon, west),
+                max(lat, south),
+                min(lon + 1, east),
+                min(lat + 1, north),
+            )
             if tile[2] > tile[0] and tile[3] > tile[1]:
                 tiles.append(tile)
     return tiles

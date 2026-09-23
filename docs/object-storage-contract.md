@@ -3,8 +3,8 @@
 This document freezes the object storage abstraction. It is not a
 brainstorming document.
 
-Infrastructure: `infra/docker/docker-compose.yml` runs `quay.io/minio/minio`
-(MinIO moved off Docker Hub; `minio/minio` there 404s) on port `9000`
+Infrastructure: `infra/docker/docker-compose.yml` runs `bitnamilegacy/minio`
+(MinIO no longer publishes community images) on port `9000`
 (S3 API) / `9001` (web console), credentials `ai_earth`/`ai_earth_dev` —
 matching Postgres's credentials for consistency, not because they're the
 same service. Run `docker compose up -d` from `infra/docker/` before

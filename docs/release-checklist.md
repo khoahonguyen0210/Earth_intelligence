@@ -155,7 +155,7 @@ as plainly as everything else, not omitted.
 [x] Reliability result       docs/reliability-tests.md,
                              docs/distributed-benchmark.md
 [x] Reproducible benchmark    docs/reproducibility-package.md,
-    artifacts                portfolio/benchmark-results.{json,csv}
+    artifacts                docs/portfolio/benchmark-results.{json,csv}
 [x] Resume bullets based       docs/headline-results.md -- every bullet
     only on measured           in the "Achieved X by doing Z" form,
     results                    copied from a real, measured number

@@ -35,7 +35,7 @@ def test_parse_kubectl_top_pods_multiple_pods():
 
 
 def test_parse_kubectl_top_pods_converts_gi_and_ki_to_mebibytes():
-    output = "NAME   CPU(cores)   MEMORY(bytes)\npod-a  1            1Gi\npod-b  10m          1024Ki\n"
+    output = "NAME   CPU(cores)   MEMORY(bytes)\npod-a  1            1Gi\npod-b  10m          1024Ki\n"  # noqa: E501
 
     usages = parse_kubectl_top_pods(output)
 

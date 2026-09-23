@@ -27,6 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
 		<java.version>21</java.version>
 		<!-- Spring Boot 4.1.1 (the latest release) manages Tomcat
 		     11.0.24, which has three CRITICAL CVEs fixed in 11.0.25

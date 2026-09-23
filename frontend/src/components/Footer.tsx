@@ -6,10 +6,7 @@ export function Footer() {
       <div className="site-footer-grid">
         <div>
           <p className="footer-brand">AI Earth Intelligence &amp; Forecasting Engine</p>
-          <p className="footer-tagline">
-            Natural-language question &rarr; AI planner &rarr; deterministic validator &rarr;
-            real data &rarr; evidence-backed answer.
-          </p>
+          <p className="footer-tagline">Question &rarr; plan &rarr; validate &rarr; answer.</p>
         </div>
 
         <div>
@@ -28,7 +25,7 @@ export function Footer() {
         </div>
 
         <div>
-          <h5>Real Earth data from</h5>
+          <h5>Data</h5>
           <ul>
             <li>NASA FIRMS</li>
             <li>ERA5-Land (Copernicus CDS)</li>
@@ -47,7 +44,7 @@ export function Footer() {
       </div>
 
       <p className="footer-legal">
-        Every number on this site is real and measured, never fabricated. MIT licensed.
+        MIT licensed.
       </p>
     </footer>
   );
