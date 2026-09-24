@@ -22,7 +22,7 @@ describe("App", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /ask earth about wildfire risk/i,
+        name: /^ask earth\.?$/i,
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /ai earth intelligence/i })).toBeInTheDocument();

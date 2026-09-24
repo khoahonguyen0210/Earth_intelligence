@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
 import { Footer } from "./components/Footer";
+import { HeroBackdrop } from "./components/HeroBackdrop";
 import { Navbar } from "./components/Navbar";
 import { AboutPage } from "./pages/AboutPage";
 import { HomePage } from "./pages/HomePage";
@@ -16,6 +17,7 @@ function App() {
         <span className="ambient-glow ambient-glow-pink" />
         <span className="ambient-glow ambient-glow-blue" />
         <span className="ambient-stars" />
+        <HeroBackdrop />
       </div>
       <Navbar />
       <Routes>

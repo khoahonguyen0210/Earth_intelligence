@@ -5,8 +5,7 @@ import type { EarthQueryResult } from "../api/types";
 import { AskEarthForm } from "../components/AskEarthForm";
 import { EarthQueryResultView } from "../components/EarthQueryResultView";
 import { EmberField } from "../components/EmberField";
-import { ForecastPanel } from "../components/ForecastPanel";
-import { useCountUp } from "../hooks/useCountUp";
+import { ForecastPanel } from "../components/ForecastPanel";import { useCountUp } from "../hooks/useCountUp";
 
 type Status = "idle" | "loading" | "error" | "success";
 
@@ -68,9 +67,9 @@ export function HomePage() {
     <>
       <header className="hero">
         <EmberField />
-        <span className="kicker">Wildfire intelligence</span>
-        <h1>Ask Earth about wildfire risk.</h1>
-        <p className="hero-sub">Plain-English questions, answered from real NASA data and a model you can check.</p>
+        <span className="kicker">Earth intelligence</span>
+        <h1>Ask Earth.</h1>
+        <p className="hero-sub">Plain-English questions about our planet, answered from real satellite data with the evidence shown.</p>
         <div className="hero-cta">
           <a href="#ask-earth" className="btn-primary">
             Ask Earth a question

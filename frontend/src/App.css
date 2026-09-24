@@ -348,10 +348,80 @@
 
 .hero > *:not(.ember-field) {
   position: relative;
+  z-index: 1;
+}
+
+.sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 16, 48, 0.97) 0%,
+    rgba(22, 30, 86, 0.94) 35%,
+    rgba(58, 44, 110, 0.9) 65%,
+    rgba(110, 62, 112, 0.85) 88%,
+    rgba(170, 96, 102, 0.8) 100%
+  );
+}
+
+.sky-glow {
+  position: absolute;
+  inset: auto -10% -25% -10%;
+  height: 70%;
+  background: radial-gradient(ellipse 60% 70% at 50% 100%, rgba(255, 150, 110, 0.26), transparent 70%);
+  filter: blur(30px);
+}
+
+.sky-cloud {
+  position: absolute;
+  left: -1000px;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 28% 48% at 22% 62%, rgba(200, 210, 255, 0.85), transparent 72%),
+    radial-gradient(ellipse 30% 62% at 42% 46%, rgba(220, 226, 255, 0.9), transparent 72%),
+    radial-gradient(ellipse 28% 56% at 62% 52%, rgba(200, 205, 250, 0.85), transparent 72%),
+    radial-gradient(ellipse 24% 44% at 80% 64%, rgba(180, 190, 240, 0.8), transparent 72%),
+    radial-gradient(ellipse 60% 26% at 50% 80%, rgba(90, 80, 150, 0.6), transparent 75%);
+  filter: blur(9px);
+  animation-name: cloud-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(100vw + 2000px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-cloud {
+    animation: none;
+    left: 10%;
+  }
 }
 
 .hero .kicker {
   animation: kicker-in 0.5s ease-out;
+  padding: 8px 18px;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--text-h);
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.08);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
+}
+
+.hero:not(.hero-compact) h1 {
+  font-size: clamp(56px, 9vw, 104px);
+  line-height: 100%;
 }
 
 .hero h1 {
@@ -362,6 +432,7 @@
 }
 
 .hero-sub {
+  color: #cbd5e1;
   max-width: 58ch;
   margin: 18px auto 0;
   font-size: 18px;

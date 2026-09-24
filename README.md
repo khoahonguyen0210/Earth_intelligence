@@ -28,7 +28,11 @@
 
 ## Results
 
+<div align="center">
+
 ![Measured results](docs/images/results.png)
+
+</div>
 
 | Measure | Result |
 |---|---|
