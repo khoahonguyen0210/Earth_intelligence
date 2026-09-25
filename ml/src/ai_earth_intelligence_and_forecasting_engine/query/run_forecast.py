@@ -38,6 +38,13 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.historical_dataset im
 from ai_earth_intelligence_and_forecasting_engine.models.calibration import (
     predict_calibrated,
 )
+from ai_earth_intelligence_and_forecasting_engine.models.explain import (
+    EXPLANATION_METHOD,
+    EXPLANATION_UNITS,
+    compute_contributions,
+    mean_absolute_importance,
+    top_drivers,
+)
 from ai_earth_intelligence_and_forecasting_engine.models.production_model import (
     ProductionModel,
     load_production_model,
@@ -45,6 +52,7 @@ from ai_earth_intelligence_and_forecasting_engine.models.production_model import
 )
 from ai_earth_intelligence_and_forecasting_engine.query.forecast_result import (
     CellForecast,
+    Explanation,
     ForecastRequest,
     build_forecast_result,
     forecast_result_to_dict,
@@ -91,13 +99,29 @@ def predict_forecast(
     if timings_ms is not None:
         timings_ms["model_inference"] = (time.perf_counter() - inference_start) * 1000
 
+    explain_start = time.perf_counter()
+    contributions = compute_contributions(model.calibrated, inference_rows)
+    if timings_ms is not None:
+        timings_ms["explanation"] = (time.perf_counter() - explain_start) * 1000
+
     cell_by_tile_id = {cell.tile_id: cell for cell in target_cells}
     cells = [
-        CellForecast(cell=cell_by_tile_id[row.tile_id], probability=probability)
-        for row, probability in zip(inference_rows, probabilities, strict=True)
+        CellForecast(
+            cell=cell_by_tile_id[row.tile_id],
+            probability=probability,
+            drivers=top_drivers(contributions.features, contributions.values[index]),
+        )
+        for index, (row, probability) in enumerate(
+            zip(inference_rows, probabilities, strict=True)
+        )
     ]
+    explanation = Explanation(
+        method=EXPLANATION_METHOD,
+        units=EXPLANATION_UNITS,
+        importance=mean_absolute_importance(contributions),
+    )
     result = build_forecast_result(
-        cells, region, cutoff, model.calibration_table, inputs
+        cells, region, cutoff, model.calibration_table, inputs, explanation
     )
     return forecast_result_to_dict(result)
 

@@ -54,8 +54,18 @@ flowchart LR
     F --> R[(Redis queue)] --> W[Python workers]
     S --> D[(PostGIS + MinIO)]
     W --> D
-    D --> A[Answer + evidence]
+    D --> L[LLM writes answer]
+    L --> C{Number check}
+    C --> A[Answer + evidence]
 ```
+
+## Explainable answers
+
+- **Every forecast explains itself.** Each grid cell lists the three inputs that moved its score most, using exact tree SHAP values from XGBoost. The forecast page shows the main drivers for the region.
+- **The LLM sees real forecast numbers.** A planner tool passes the riskiest cells, peak and mean probability, and their drivers to the answer step.
+- **Every number in an answer is checked.** After the LLM writes its answer, a deterministic check confirms each number appears in the computed results. Answers that fail are shown with a warning.
+
+On the 2024 test year, recent fire history decides where fires actually happened, terrain sets the baseline elsewhere, and weather contributes least. Details are in [`docs/explainability.md`](docs/explainability.md).
 
 
 ## Tech stack

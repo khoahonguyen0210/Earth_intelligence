@@ -22,7 +22,7 @@ safe object/file access      no request value reaches a file path; object keys  
 rate limiting where exposed  per-client limits on the two routes that start work        security/RateLimitFilter
 dependency vulnerability     Trivy over Maven, uv and npm in CI; fails on fixable       scripts/security/scan.sh,
   scanning                   HIGH/CRITICAL; found and fixed 3 CRITICAL Tomcat CVEs      .github/workflows/ci.yml
-LLM tool restrictions        six-tool allowlist, strict schemas, deterministic          planner/validator.py
+LLM tool restrictions        seven-tool allowlist, strict schemas, deterministic          planner/validator.py
                              validator; now also bounded plan size, step ids, question
 ```
 
@@ -212,9 +212,10 @@ override once a Boot release manages a fixed Tomcat.
 
 Already true since the planner was built, and unchanged:
 
-- **Not exposed over HTTP.** The planner runs only from
-  `scripts/query/run_planner_cli.py`, not from any HTTP route.
-- **Allowlisted tools.** Exactly six tools, each with a strict JSON
+- **Reached over HTTP only through `POST /queries`.** That route is
+  rate-limited (20 per minute per IP), caps the question at 1,000
+  characters, and runs the planner as a subprocess with a timeout.
+- **Allowlisted tools.** Exactly seven tools, each with a strict JSON
   Schema (`additionalProperties: false`, enums for kinds, datasets and
   operations).
 - **Structured output only.** The model produces JSON, never runs code,

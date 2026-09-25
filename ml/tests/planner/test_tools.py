@@ -36,7 +36,7 @@ def _assert_strict_safe(schema: dict) -> None:
             _assert_strict_safe(variant)
 
 
-def test_tool_schemas_has_exactly_the_six_locked_tools():
+def test_tool_schemas_has_exactly_the_approved_tools():
     assert {tool.name for tool in TOOL_SCHEMAS} == {
         "resolve_region",
         "get_data",
@@ -44,6 +44,7 @@ def test_tool_schemas_has_exactly_the_six_locked_tools():
         "generate_map",
         "run_forecast",
         "get_result_evidence",
+        "get_forecast_result",
     }
 
 

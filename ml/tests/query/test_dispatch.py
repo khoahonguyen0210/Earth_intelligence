@@ -1,4 +1,4 @@
-"""dispatch.py wires the six locked planner tools to real,
+"""dispatch.py wires the planner tools to real,
 already-existing computation. Each dispatch_* test proves the real
 function actually ran (a real count, a real bbox, a real evidence
 record), not that some object was returned."""
@@ -23,6 +23,7 @@ from ai_earth_intelligence_and_forecasting_engine.query.dispatch import (
     dispatch_calculate_statistics,
     dispatch_generate_map,
     dispatch_get_data,
+    dispatch_get_forecast_result,
     dispatch_get_result_evidence,
     dispatch_resolve_region,
     dispatch_run_forecast,
@@ -244,7 +245,7 @@ def test_dispatch_get_result_evidence_returns_the_forecasts_own_evidence():
         "ai_earth_intelligence_and_forecasting_engine.query.dispatch.requests.get"
     ) as mock_get:
         mock_get.return_value = _response(
-            200, {"forecast_id": "f-1", "result": {}, "evidence": evidence}
+            200, {"forecast_id": "f-1", "result": {"evidence": evidence}}
         )
 
         output = dispatch_get_result_evidence({"result_id": "f-1"}, backend)
@@ -253,6 +254,39 @@ def test_dispatch_get_result_evidence_returns_the_forecasts_own_evidence():
     mock_get.assert_called_once_with(
         "http://backend.test/forecasts/f-1/result", timeout=10
     )
+
+
+def test_dispatch_get_forecast_result_summarizes_the_stored_result():
+    backend = Backend(base_url="http://backend.test")
+    evidence = {"dataset": "wildfire_forecast:v1"}
+    feature = {
+        "type": "Feature",
+        "properties": {
+            "tile_id": "t1",
+            "centroid_lat": 37.05,
+            "centroid_lon": -120.05,
+            "probability": 0.0312,
+        },
+    }
+    result = {
+        "grid": {"type": "FeatureCollection", "features": [feature]},
+        "model_version": "v1",
+        "data_cutoff": "2024-08-15T10:00:00+00:00",
+        "forecast_window": {"start": "a", "end": "b", "hours": 24},
+        "evidence": evidence,
+    }
+    with patch(
+        "ai_earth_intelligence_and_forecasting_engine.query.dispatch.requests.get"
+    ) as mock_get:
+        mock_get.return_value = _response(200, {"forecast_id": "f-1", "result": result})
+
+        summary, summary_evidence = dispatch_get_forecast_result(
+            {"result_id": "f-1"}, backend
+        )
+
+    assert summary["max_probability"] == 0.0312
+    assert summary["top_cells"][0]["tile_id"] == "t1"
+    assert summary_evidence == evidence
 
 
 def test_dispatch_get_result_evidence_raises_when_the_forecast_has_not_finished():
@@ -323,8 +357,7 @@ def test_execute_plan_runs_steps_in_order_and_resolves_refs(firms_history):
                 200,
                 {
                     "forecast_id": "f-42",
-                    "result": {},
-                    "evidence": {"dataset": "wildfire_forecast:v1"},
+                    "result": {"evidence": {"dataset": "wildfire_forecast:v1"}},
                 },
             ),
         ]

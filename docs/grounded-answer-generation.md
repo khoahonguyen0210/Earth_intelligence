@@ -43,10 +43,11 @@ RESULT_CATEGORY_BY_TOOL = {
     "calculate_statistics": "computed",
     "generate_map": "computed",
     "run_forecast": "predicted",
+    "get_forecast_result": "predicted",
 }
 ```
 
-Only four of the six tools appear. `resolve_region` is absent: it
+Five of the seven tools appear. `resolve_region` is absent: it
 resolves geometry, it does not produce a fact about the world worth
 stating in an answer. `get_result_evidence` is absent too: it fetches
 metadata about a fact another step already produced, it is not itself a
@@ -64,12 +65,34 @@ given category, say so plainly if the facts don't answer the question)
 and a user message listing only the real facts assembled by
 `_assemble_facts` -- the model sees nothing else. This is the actual
 grounding mechanism: constraining what's *in the prompt* to only real,
-already-computed values, not a post-hoc check on what the model wrote.
-There is no automated verification that the returned text only restates
-the given facts (unlike the plan validator, there is no
-"answer validator" task in the handbook for this stage) -- accepted as
-a real, honestly-documented limitation rather than something silently
-assumed solved.
+already-computed values.
+
+## Checking the answer after it is written
+
+The prompt limits what the model sees, but it cannot stop the model
+from writing a number anyway. `planner/groundedness.py` checks the text
+after generation:
+
+- Every number in the answer must match a number in the facts, their
+  evidence, or the question, at the precision it was written with.
+  "0.0123" must match exactly, "0.01" accepts anything that rounds to
+  it, and "1.2%" is also compared as the fraction 0.012.
+- Dates inside fact strings count, so "August 15, 2024" is supported by
+  a `2024-08-15T10:00:00+00:00` cutoff.
+- Signs are ignored, so a negative SHAP contribution can be written
+  without its minus.
+- Every `(observed)`, `(computed)` or `(predicted)` tag must belong to a
+  category some fact actually has.
+
+The result is returned with the answer as `grounding`
+(`verified`, `checked`, `unsupported`, `unknown_tags`), and the web page
+shows it under the answer. A failed check is shown as a warning rather
+than hidden or silently rewritten.
+
+The check is deliberately narrow. It catches invented or mis-copied
+numbers, which is the failure that matters most here. It does not judge
+whether a correctly copied number is used in the right sentence or
+whether the wording is misleading.
 
 With zero facts (an empty plan, or no step actually produced a
 groundable result), `generate_answer` returns a fixed "cannot answer"

@@ -124,7 +124,36 @@ export type EarthQueryFactResult =
   | WeeklyAggregateResult
   | MapResult
   | DatasetReference
+  | ForecastResultSummary
   | ForecastJobReference;
+
+export interface ForecastSummaryCell {
+  tile_id: string;
+  centroid_lat: number;
+  centroid_lon: number;
+  probability: number;
+  top_drivers: FeatureContribution[];
+}
+
+export interface ForecastResultSummary {
+  forecast_id: string;
+  model_version: string;
+  data_cutoff: string;
+  forecast_window: { start: string; end: string; hours: number };
+  cell_count: number;
+  max_probability: number | null;
+  mean_probability: number | null;
+  top_cells: ForecastSummaryCell[];
+  drivers: FeatureContribution[];
+  explanation_units: string | null;
+}
+
+export interface GroundingCheck {
+  verified: boolean;
+  checked: number;
+  unsupported: string[];
+  unknown_tags: string[];
+}
 
 export interface EarthQueryFact {
   step_id: string;
@@ -143,6 +172,7 @@ export interface EarthQueryPlanStep {
 export interface EarthQueryResult {
   question: string;
   answer: string;
+  grounding?: GroundingCheck | null;
   facts: EarthQueryFact[];
   outputs: Record<string, unknown>;
   plan: { steps: EarthQueryPlanStep[] };
@@ -168,7 +198,19 @@ export interface ForecastGridFeature {
     centroid_lon: number;
     centroid_lat: number;
     probability: number;
+    top_drivers?: FeatureContribution[];
   };
+}
+
+export interface FeatureContribution {
+  feature: string;
+  contribution: number;
+}
+
+export interface ForecastExplanation {
+  method: string;
+  units: string;
+  importance: FeatureContribution[];
 }
 
 export interface ForecastGrid {
@@ -201,6 +243,7 @@ export interface ForecastResult {
   forecast_window: ForecastWindow;
   calibration: CalibrationMetadata;
   evidence: Evidence;
+  explanation?: ForecastExplanation;
 }
 
 export interface ForecastResultResponse {

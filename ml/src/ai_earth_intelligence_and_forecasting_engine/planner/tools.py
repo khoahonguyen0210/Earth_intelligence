@@ -235,6 +235,47 @@ GET_RESULT_EVIDENCE = ToolSchema(
     }),
 )
 
+GET_FORECAST_RESULT = ToolSchema(
+    name="get_forecast_result",
+    description=(
+        "Fetch the numbers of a finished forecast so the answer can cite "
+        "them: the riskiest grid cells with their probabilities, the "
+        "maximum and mean probability over the region, and the features "
+        "that drove the prediction (SHAP contributions in log-odds). Use "
+        "it after run_forecast whenever the question asks how risky a "
+        "place is, where risk is highest, or why."
+    ),
+    input_schema=_strict_object_schema(
+        properties={
+            "result_id": {
+                "type": "string",
+                "description": (
+                    "A forecast_id already returned by run_forecast in this plan."
+                ),
+            },
+        },
+        required=["result_id"],
+    ),
+    returns=(
+        "A forecast summary: forecast_id, model_version, data_cutoff, "
+        "forecast_window, cell_count, max_probability, mean_probability, "
+        "top_cells [{tile_id, centroid_lat, centroid_lon, probability, "
+        "top_drivers}], drivers [{feature, contribution}], explanation_units."
+    ),
+    output_fields=frozenset({
+        "forecast_id",
+        "model_version",
+        "data_cutoff",
+        "forecast_window",
+        "cell_count",
+        "max_probability",
+        "mean_probability",
+        "top_cells",
+        "drivers",
+        "explanation_units",
+    }),
+)
+
 TOOL_SCHEMAS: tuple[ToolSchema, ...] = (
     RESOLVE_REGION,
     GET_DATA,
@@ -242,6 +283,7 @@ TOOL_SCHEMAS: tuple[ToolSchema, ...] = (
     GENERATE_MAP,
     RUN_FORECAST,
     GET_RESULT_EVIDENCE,
+    GET_FORECAST_RESULT,
 )
 
 TOOL_NAMES: frozenset[str] = frozenset(tool.name for tool in TOOL_SCHEMAS)

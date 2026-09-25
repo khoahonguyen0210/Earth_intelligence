@@ -1,4 +1,10 @@
-import type { CalibrationBin, ForecastGridFeature, ForecastResult } from "../api/types";
+import type {
+  CalibrationBin,
+  ForecastExplanation,
+  ForecastGridFeature,
+  ForecastResult,
+} from "../api/types";
+import { effectLabel, featureLabel } from "./featureLabels";
 
 const REFERENCE_BBOX: [number, number, number, number] = [
   -124.5, 32.5, -114.0, 42.0,
@@ -83,8 +89,66 @@ function RiskLegend({ min, max }: { min: number; max: number }) {
   );
 }
 
+function cellTitle(feature: ForecastGridFeature): string {
+  const { tile_id, probability, top_drivers } = feature.properties;
+  const head = `${tile_id}: ${(probability * 100).toFixed(1)}% risk`;
+  if (!top_drivers || top_drivers.length === 0) return head;
+  const drivers = top_drivers
+    .map((driver) => `${featureLabel(driver.feature)} ${effectLabel(driver.contribution)}`)
+    .join("; ");
+  return `${head}. ${drivers}`;
+}
+
+function ForecastDrivers({
+  explanation,
+  riskiest,
+}: {
+  explanation: ForecastExplanation;
+  riskiest: ForecastGridFeature | undefined;
+}) {
+  const strongest = explanation.importance[0]?.contribution ?? 0;
+  const cellDrivers = riskiest?.properties.top_drivers ?? [];
+
+  return (
+    <section aria-label="What drove this forecast" className="forecast-drivers">
+      <h4>What drove this forecast</h4>
+      <p className="dd-hint">
+        Average SHAP contribution of each input across this region, in log-odds. Longer
+        bars moved the model's score more.
+      </p>
+      <ul>
+        {explanation.importance.slice(0, 6).map((entry) => (
+          <li key={entry.feature}>
+            <span>{featureLabel(entry.feature)}</span>
+            <span
+              className="driver-bar"
+              style={{
+                width: `${strongest > 0 ? (entry.contribution / strongest) * 100 : 0}%`,
+              }}
+            />
+            <span>{entry.contribution.toFixed(3)}</span>
+          </li>
+        ))}
+      </ul>
+      {riskiest && cellDrivers.length > 0 && (
+        <p>
+          In the highest-risk cell ({riskiest.properties.tile_id}):{" "}
+          {cellDrivers
+            .map(
+              (driver) =>
+                `${featureLabel(driver.feature)} ${effectLabel(driver.contribution)} (${driver.contribution.toFixed(2)})`,
+            )
+            .join(", ")}
+          .
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function ForecastMap({ result }: ForecastMapProps) {
-  const { grid, model_version, data_cutoff, forecast_window, calibration, evidence } = result;
+  const { grid, model_version, data_cutoff, forecast_window, calibration, evidence, explanation } =
+    result;
   const [refWest, refSouth, refEast, refNorth] = REFERENCE_BBOX;
 
   const plotSize = VIEW_SIZE - PADDING * 2;
@@ -138,6 +202,7 @@ export function ForecastMap({ result }: ForecastMapProps) {
 
         {grid.features.map((feature: ForecastGridFeature) => {
           const { tile_id, min_lon, min_lat, max_lon, max_lat, probability } = feature.properties;
+          const title = cellTitle(feature);
           const [x0, y0] = project(min_lon, max_lat);
           const [x1, y1] = project(max_lon, min_lat);
 
@@ -151,13 +216,17 @@ export function ForecastMap({ result }: ForecastMapProps) {
               height={Math.max(Math.abs(y1 - y0) - 1, 1)}
               fill={colorForProbability(probability, minProbability, maxProbability)}
             >
-              <title>{`${tile_id}: ${(probability * 100).toFixed(1)}% risk`}</title>
+              <title>{title}</title>
             </rect>
           );
         })}
       </svg>
 
       <RiskLegend min={minProbability} max={maxProbability} />
+
+      {explanation && explanation.importance.length > 0 && (
+        <ForecastDrivers explanation={explanation} riskiest={cellsByRisk[0]} />
+      )}
 
       <dl>
         <dt>Data as of</dt>

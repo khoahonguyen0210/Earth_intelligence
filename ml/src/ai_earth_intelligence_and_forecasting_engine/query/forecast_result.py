@@ -16,6 +16,9 @@ from ai_earth_intelligence_and_forecasting_engine.models.calibration import (
     MODEL_VERSION,
     CalibrationBin,
 )
+from ai_earth_intelligence_and_forecasting_engine.models.explain import (
+    FeatureContribution,
+)
 from ai_earth_intelligence_and_forecasting_engine.query.evidence import (
     Evidence,
     build_evidence,
@@ -84,6 +87,14 @@ def validate_forecast_request(request: ForecastRequest) -> list[str]:
 class CellForecast:
     cell: GridCell
     probability: float
+    drivers: tuple[FeatureContribution, ...] = ()
+
+
+@dataclass(frozen=True)
+class Explanation:
+    method: str
+    units: str
+    importance: tuple[FeatureContribution, ...]
 
 
 @dataclass(frozen=True)
@@ -107,6 +118,7 @@ class ForecastResult:
     forecast_window: ForecastWindow
     calibration: CalibrationMetadata
     evidence: Evidence
+    explanation: Explanation | None = None
 
 
 def build_forecast_window(cutoff: datetime) -> ForecastWindow:
@@ -121,6 +133,7 @@ def build_forecast_result(
     cutoff: datetime,
     calibration_table: list[CalibrationBin],
     inputs: dict[str, Any] | None = None,
+    explanation: Explanation | None = None,
 ) -> ForecastResult:
     forecast_window = build_forecast_window(cutoff)
 
@@ -149,12 +162,21 @@ def build_forecast_result(
             method=CALIBRATION_METHOD, table=calibration_table
         ),
         evidence=evidence,
+        explanation=explanation,
     )
+
+
+def contribution_to_dict(entry: FeatureContribution) -> dict[str, Any]:
+    return {"feature": entry.feature, "contribution": round(entry.contribution, 4)}
 
 
 def cell_forecast_to_feature(cell_forecast: CellForecast) -> dict[str, Any]:
     feature = cell_to_feature(cell_forecast.cell)
     feature["properties"]["probability"] = cell_forecast.probability
+    if cell_forecast.drivers:
+        feature["properties"]["top_drivers"] = [
+            contribution_to_dict(driver) for driver in cell_forecast.drivers
+        ]
 
     return feature
 
@@ -167,7 +189,7 @@ def build_forecast_grid(cells: list[CellForecast]) -> dict[str, Any]:
 
 
 def forecast_result_to_dict(result: ForecastResult) -> dict[str, Any]:
-    return {
+    payload = {
         "grid": build_forecast_grid(result.cells),
         "model_version": result.model_version,
         "data_cutoff": result.data_cutoff.isoformat(),
@@ -182,3 +204,13 @@ def forecast_result_to_dict(result: ForecastResult) -> dict[str, Any]:
         },
         "evidence": evidence_to_dict(result.evidence),
     }
+    if result.explanation is not None:
+        payload["explanation"] = {
+            "method": result.explanation.method,
+            "units": result.explanation.units,
+            "importance": [
+                contribution_to_dict(entry) for entry in result.explanation.importance
+            ],
+        }
+
+    return payload

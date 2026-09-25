@@ -6,9 +6,12 @@ import type {
   EarthQueryFactResult,
   EarthQueryResult,
   ForecastJobReference,
+  ForecastResultSummary,
+  GroundingCheck,
   MapResult,
   WeeklyAggregateResult,
 } from "../api/types";
+import { featureLabel } from "./featureLabels";
 import { RegionMap } from "./RegionMap";
 
 interface EarthQueryResultViewProps {
@@ -39,6 +42,10 @@ function isDatasetReference(
   result: EarthQueryFactResult,
 ): result is DatasetReference {
   return typeof (result as DatasetReference).record_count === "number";
+}
+
+function isForecastSummary(result: EarthQueryFactResult): result is ForecastResultSummary {
+  return Array.isArray((result as ForecastResultSummary).top_cells);
 }
 
 function isForecastJobReference(
@@ -113,6 +120,32 @@ function FactBody({ result }: { result: EarthQueryFactResult }) {
     );
   }
 
+  if (isForecastSummary(result)) {
+    return (
+      <div data-testid="result-forecast-summary">
+        <p>
+          Highest risk{" "}
+          <strong>
+            {result.max_probability === null
+              ? "n/a"
+              : `${(result.max_probability * 100).toFixed(1)}%`}
+          </strong>{" "}
+          across {result.cell_count} grid cells.
+        </p>
+        {result.drivers.length > 0 && (
+          <p>
+            Main drivers:{" "}
+            {result.drivers
+              .slice(0, 3)
+              .map((driver) => featureLabel(driver.feature))
+              .join(", ")}
+            .
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (isForecastJobReference(result)) {
     return (
       <p>
@@ -172,11 +205,34 @@ function Fact({ fact }: { fact: EarthQueryFact }) {
   );
 }
 
+function GroundingBadge({ grounding }: { grounding: GroundingCheck }) {
+  if (grounding.verified) {
+    return (
+      <p className="grounding grounding-ok" data-testid="grounding">
+        {grounding.checked > 0
+          ? `All ${grounding.checked} numbers in this answer match the computed results.`
+          : "This answer states no numbers."}
+      </p>
+    );
+  }
+
+  const problems = [
+    ...grounding.unsupported.map((value) => `"${value}" is not in the results`),
+    ...grounding.unknown_tags.map((tag) => `tag "${tag}" matches no result`),
+  ];
+  return (
+    <p className="grounding grounding-warn" role="alert" data-testid="grounding">
+      Check this answer: {problems.join("; ")}.
+    </p>
+  );
+}
+
 export function EarthQueryResultView({ result }: EarthQueryResultViewProps) {
   return (
     <section aria-label="Answer" data-testid="ask-earth-answer">
       <h2>Answer</h2>
       <p>{result.answer}</p>
+      {result.grounding && <GroundingBadge grounding={result.grounding} />}
 
       {result.facts.length > 0 && (
         <div aria-label="Facts behind this answer">

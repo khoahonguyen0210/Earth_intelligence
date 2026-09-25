@@ -4,6 +4,10 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from ai_earth_intelligence_and_forecasting_engine.planner.groundedness import (
+    GroundingCheck,
+    check_grounding,
+)
 from ai_earth_intelligence_and_forecasting_engine.planner.validator import Plan
 
 if TYPE_CHECKING:
@@ -16,6 +20,7 @@ RESULT_CATEGORY_BY_TOOL: dict[str, str] = {
     "calculate_statistics": "computed",
     "generate_map": "computed",
     "run_forecast": "predicted",
+    "get_forecast_result": "predicted",
 }
 
 
@@ -44,6 +49,7 @@ class GroundedAnswer:
     question: str
     facts: tuple[GroundedFact, ...]
     summary: str
+    grounding: GroundingCheck | None = None
 
 
 _NO_FACTS_SUMMARY = "No executed results are available to answer this question."
@@ -131,4 +137,14 @@ def generate_answer(
     if not text:
         raise ValueError("answer generator response contained no text output")
 
-    return GroundedAnswer(question=plan.question, facts=facts, summary=text)
+    grounding = check_grounding(
+        text,
+        [
+            (fact.category, {"result": fact.result, "evidence": fact.evidence})
+            for fact in facts
+        ],
+        plan.question,
+    )
+    return GroundedAnswer(
+        question=plan.question, facts=facts, summary=text, grounding=grounding
+    )

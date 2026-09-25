@@ -18,7 +18,8 @@ public class ForecastMetrics {
     /** The only stage names the Python side reports (query/run_forecast.py); anything else is ignored. */
     // model_fit is reported only by the train-then-predict path (tests);
     // the product loads a trained model instead and reports model_load.
-    static final Set<String> STAGES = Set.of("data_load", "model_fit", "model_load", "model_inference", "total");
+    static final Set<String> STAGES =
+            Set.of("data_load", "model_fit", "model_load", "model_inference", "explanation", "total");
 
     private final MeterRegistry registry;
     private final AtomicInteger busy = new AtomicInteger();

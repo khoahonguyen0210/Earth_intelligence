@@ -44,9 +44,20 @@ def run_ask_earth(
     execution = execute_plan(plan, backend)
     answer = generate_answer(plan, _step_results(plan, execution), client)
 
+    grounding = answer.grounding
     return {
         "question": question,
         "answer": answer.summary,
+        "grounding": (
+            {
+                "verified": grounding.verified,
+                "checked": grounding.checked,
+                "unsupported": list(grounding.unsupported),
+                "unknown_tags": list(grounding.unknown_tags),
+            }
+            if grounding is not None
+            else None
+        ),
         "facts": [
             {
                 "step_id": fact.step_id,

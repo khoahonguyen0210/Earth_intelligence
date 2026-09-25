@@ -163,7 +163,7 @@ def test_compute_forecast_reports_model_stage_timings_when_asked():
         timings_ms,
     )
 
-    assert set(timings_ms) == {"model_fit", "model_inference"}
+    assert set(timings_ms) == {"model_fit", "model_inference", "explanation"}
     assert all(value >= 0 for value in timings_ms.values())
     assert timings_ms["model_inference"] < timings_ms["model_fit"]
 

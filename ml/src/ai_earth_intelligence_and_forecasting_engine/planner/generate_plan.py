@@ -70,6 +70,9 @@ def _build_system_prompt() -> str:
         "calculate_statistics/generate_map already return their own "
         "evidence inline, so a plan answering a count/aggregate/map "
         "question typically needs no cross-step references at all.\n"
+        "- A forecast question needs run_forecast followed by "
+        "get_forecast_result on its forecast_id; run_forecast alone "
+        "returns no probabilities to answer with.\n"
         "- Do not invent tools, input fields, or values outside what is "
         "described above."
     )

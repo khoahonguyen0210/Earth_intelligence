@@ -34,6 +34,67 @@ describe("EarthQueryResultView", () => {
     );
   });
 
+  it("says when every number in the answer matched the computed results", () => {
+    render(
+      <EarthQueryResultView
+        result={baseResult({
+          grounding: { verified: true, checked: 1, unsupported: [], unknown_tags: [] },
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("grounding")).toHaveTextContent(
+      "All 1 numbers in this answer match the computed results.",
+    );
+  });
+
+  it("warns about a number the results do not contain", () => {
+    render(
+      <EarthQueryResultView
+        result={baseResult({
+          grounding: { verified: false, checked: 2, unsupported: ["512"], unknown_tags: [] },
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent('"512" is not in the results');
+  });
+
+  it("renders a forecast summary fact with its peak risk and drivers", () => {
+    render(
+      <EarthQueryResultView
+        result={baseResult({
+          facts: [
+            {
+              step_id: "risk",
+              category: "predicted",
+              result: {
+                forecast_id: "f-1",
+                model_version: "v1",
+                data_cutoff: "2024-08-15T10:00:00+00:00",
+                forecast_window: { start: "a", end: "b", hours: 24 },
+                cell_count: 1854,
+                max_probability: 0.0312,
+                mean_probability: 0.0021,
+                top_cells: [],
+                drivers: [
+                  { feature: "previous_30d_count", contribution: 0.91 },
+                  { feature: "elevation_m", contribution: 0.6 },
+                ],
+                explanation_units: "log_odds",
+              },
+              evidence: null,
+            },
+          ],
+        })}
+      />,
+    );
+
+    const summary = screen.getByTestId("result-forecast-summary");
+    expect(summary).toHaveTextContent("Highest risk 3.1% across 1854 grid cells.");
+    expect(summary).toHaveTextContent("Main drivers: Fires in the past 30 days, Elevation.");
+  });
+
   it("renders a count fact with its region, time and evidence", () => {
     render(
       <EarthQueryResultView

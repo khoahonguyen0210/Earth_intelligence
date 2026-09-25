@@ -1001,6 +1001,54 @@ dl {
   margin-top: 2px;
 }
 
+.forecast-drivers ul {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  display: grid;
+  gap: 6px;
+  max-width: 520px;
+}
+
+.forecast-drivers li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 52px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.forecast-drivers li > span:last-child {
+  font-family: var(--mono);
+  text-align: right;
+}
+
+.driver-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
+}
+
+.grounding {
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  max-width: 60ch;
+}
+
+.grounding-ok {
+  color: var(--text-h);
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+}
+
+.grounding-warn {
+  color: var(--text-h);
+  background: rgba(251, 113, 70, 0.12);
+  border: 1px solid rgba(251, 113, 70, 0.45);
+}
+
 section[aria-label='Forecast map'] svg[role='img'] {
   display: block;
   margin: 12px 0;

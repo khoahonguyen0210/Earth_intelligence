@@ -119,6 +119,47 @@ describe("ForecastMap", () => {
     expect(within(details as HTMLElement).getByText("0.512")).toBeInTheDocument();
   });
 
+  it("explains what drove the forecast when the result carries SHAP values", () => {
+    const riskiest = feature("CA_0421_0584", 421, 584, 0.512);
+    riskiest.properties = {
+      ...riskiest.properties,
+      top_drivers: [
+        { feature: "previous_7d_count", contribution: 2.31 },
+        { feature: "relative_humidity", contribution: -0.4 },
+      ],
+    } as typeof riskiest.properties;
+    render(
+      <ForecastMap
+        result={baseResult({
+          grid: { type: "FeatureCollection", features: [riskiest] },
+          explanation: {
+            method: "xgboost_tree_shap",
+            units: "log_odds",
+            importance: [
+              { feature: "previous_30d_count", contribution: 0.9126 },
+              { feature: "elevation_m", contribution: 0.5963 },
+            ],
+          },
+        })}
+      />,
+    );
+
+    const drivers = screen.getByLabelText("What drove this forecast");
+    expect(drivers).toHaveTextContent("Fires in the past 30 days");
+    expect(drivers).toHaveTextContent("0.913");
+    expect(drivers).toHaveTextContent("Fires in the past 7 days raises risk (2.31)");
+    expect(drivers).toHaveTextContent("Relative humidity lowers risk (-0.40)");
+    expect(screen.getByTestId("forecast-cell-CA_0421_0584").querySelector("title")).toHaveTextContent(
+      "Fires in the past 7 days raises risk",
+    );
+  });
+
+  it("omits the drivers section when the result has no explanation", () => {
+    render(<ForecastMap result={baseResult()} />);
+
+    expect(screen.queryByLabelText("What drove this forecast")).toBeNull();
+  });
+
   it("shows the forecast's own evidence", () => {
     render(<ForecastMap result={baseResult()} />);
 

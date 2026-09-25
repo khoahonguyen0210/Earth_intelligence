@@ -106,7 +106,9 @@ def test_result_category_by_tool_only_covers_fact_producing_tools():
         "calculate_statistics",
         "generate_map",
         "run_forecast",
+        "get_forecast_result",
     }
+    assert RESULT_CATEGORY_BY_TOOL["get_forecast_result"] == "predicted"
     assert RESULT_CATEGORY_BY_TOOL["calculate_statistics"] == "computed"
     assert RESULT_CATEGORY_BY_TOOL["generate_map"] == "computed"
     assert RESULT_CATEGORY_BY_TOOL["run_forecast"] == "predicted"
@@ -178,9 +180,23 @@ def test_generate_answer_produces_a_grounded_answer_with_real_computed_facts():
     assert len(answer.facts) == 1
     assert answer.facts[0].category == "computed"
     assert answer.summary == "0 fires occurred (computed)."
+    assert answer.grounding is not None
+    assert answer.grounding.verified
 
     sent = client.models.last_kwargs
     assert sent["model"] == "gemini-3.1-flash-lite"
+
+
+def test_generate_answer_flags_a_number_the_facts_do_not_contain():
+    step, result = _real_count_fact()
+    plan = Plan(question="how many fires in California last week?", steps=(step,))
+    client = _FakeClient(_FakeResponse(text="512 fires occurred (computed)."))
+
+    answer = generate_answer(plan, {"s1": result}, client)
+
+    assert answer.grounding is not None
+    assert not answer.grounding.verified
+    assert answer.grounding.unsupported == ("512",)
 
 
 def test_generate_answer_raises_on_refusal():

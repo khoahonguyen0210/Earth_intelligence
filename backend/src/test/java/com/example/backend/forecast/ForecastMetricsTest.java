@@ -105,8 +105,8 @@ class ForecastMetricsTest {
         ForecastRunner runner = request -> {
             busyDuringRun[0] = gauge("forecast.worker.busy");
             return ForecastOutcome.success(Map.of("ok", true), Map.of(
-                    "data_load", 120.0, "model_fit", 800.0, "model_inference", 4.5, "total", 930.0,
-                    "not_a_stage", 1.0));
+                    "data_load", 120.0, "model_fit", 800.0, "model_inference", 4.5, "explanation", 6.0,
+                    "total", 936.0, "not_a_stage", 1.0));
         };
 
         new ForecastWorker(queue, store, runner, 3, SecretRedactor.of(), metrics, Spans.noop(), 0, RegionStore.noop()).pollOnce();
@@ -118,6 +118,8 @@ class ForecastMetricsTest {
         var inference = registry.get("forecast.python.stage.duration").tag("stage", "model_inference").timer();
         assertEquals(1, inference.count());
         assertEquals(4.5, inference.totalTime(TimeUnit.MILLISECONDS), 1e-6);
+        var explanation = registry.get("forecast.python.stage.duration").tag("stage", "explanation").timer();
+        assertEquals(6.0, explanation.totalTime(TimeUnit.MILLISECONDS), 1e-6);
         assertNull(registry.find("forecast.python.stage.duration").tag("stage", "not_a_stage").timer(),
                 "unknown stage names must not become new time series");
     }

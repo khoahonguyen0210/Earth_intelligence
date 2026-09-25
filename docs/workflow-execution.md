@@ -94,7 +94,7 @@ Python, no cost):
 ## What this document does not define
 
 There is no real `WorkflowTaskDispatcher` implementation here -- bridging
-each of the planner's six tools to its actual caller
+each of the planner's tools to its actual caller
 (`docs/planner-tool-schemas.md`'s own mapping: resolve_region/get_data/
 calculate_statistics/generate_map/get_result_evidence to the real Python
 functions, run_forecast to the existing `POST /forecasts` pipeline), and

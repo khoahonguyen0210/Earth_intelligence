@@ -20,6 +20,9 @@ from ai_earth_intelligence_and_forecasting_engine.planner.validator import (
     Plan,
     PlanStep,
 )
+from ai_earth_intelligence_and_forecasting_engine.query.forecast_summary import (
+    summarize_forecast_result,
+)
 from ai_earth_intelligence_and_forecasting_engine.query.region import (
     NormalizedRegion,
     normalize_region,
@@ -217,20 +220,30 @@ def dispatch_run_forecast(
     return {"forecast_id": forecast_id, "status": status}
 
 
-def dispatch_get_result_evidence(
-    step_input: dict[str, Any], backend: Backend
-) -> dict[str, Any]:
+def _fetch_forecast_result(forecast_id: str, backend: Backend) -> dict[str, Any]:
     """GET /forecasts/{id}/result is 200 only for a SUCCEEDED forecast; a
     409 (not finished yet) or 422 (FAILED) raises via raise_for_status()
-    instead."""
-    forecast_id = step_input["result_id"]
+    instead. The body is {forecast_id, result}; evidence sits inside
+    result."""
     response = requests.get(
         f"{backend.base_url}/forecasts/{forecast_id}/result", timeout=10
     )
     response.raise_for_status()
-    body = response.json()
+    return response.json()["result"]
 
-    return body["evidence"]
+
+def dispatch_get_result_evidence(
+    step_input: dict[str, Any], backend: Backend
+) -> dict[str, Any]:
+    return _fetch_forecast_result(step_input["result_id"], backend)["evidence"]
+
+
+def dispatch_get_forecast_result(
+    step_input: dict[str, Any], backend: Backend
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    forecast_id = step_input["result_id"]
+    result = _fetch_forecast_result(forecast_id, backend)
+    return summarize_forecast_result(forecast_id, result), result["evidence"]
 
 
 class _ReferencedStepUnavailable(Exception):
@@ -266,10 +279,9 @@ def _resolve_refs(value: Any, outputs: dict[str, dict[str, Any]]) -> Any:
 def _execute_step(
     step: PlanStep, question: str, outputs: dict[str, dict[str, Any]], backend: Backend
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    """Returns (output, evidence). Only calculate_statistics/generate_map
-    have an evidence record of their own (generate_answer only reads
-    .evidence for those, per RESULT_CATEGORY_BY_TOOL); every other
-    tool's evidence is None."""
+    """Returns (output, evidence). Only calculate_statistics, generate_map
+    and get_forecast_result have an evidence record of their own; every
+    other tool's evidence is None."""
     try:
         resolved_input = _resolve_refs(step.input, outputs)
 
@@ -285,6 +297,8 @@ def _execute_step(
             return dispatch_run_forecast(resolved_input, backend), None
         if step.tool == "get_result_evidence":
             return dispatch_get_result_evidence(resolved_input, backend), None
+        if step.tool == "get_forecast_result":
+            return dispatch_get_forecast_result(resolved_input, backend)
     except _ReferencedStepUnavailable as error:
         raise StepFailed(
             step.step_id, f"dependency {error.step_id!r} did not produce an output"

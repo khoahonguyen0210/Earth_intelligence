@@ -5,7 +5,7 @@ brainstorming document. The deterministic plan validator and the
 natural-language planner build against this surface rather than
 redefining it.
 
-## The six tools, and nothing else
+## The seven tools, and nothing else
 
 ```text
 resolve_region
@@ -14,12 +14,12 @@ calculate_statistics
 generate_map
 run_forecast
 get_result_evidence
+get_forecast_result
 ```
 
-Exactly the six the handbook lists, defined in
+All seven are defined in
 `ai_earth_intelligence_and_forecasting_engine.planner.tools`
-(`TOOL_SCHEMAS`). "No arbitrary code execution" (the handbook's other
-requirement for this task) holds by construction: every tool is a named,
+(`TOOL_SCHEMAS`). "No arbitrary code execution" holds by construction: every tool is a named,
 bounded operation with a fixed input shape: none takes a code string, a
 shell command, or an open-ended expression.
 
@@ -33,7 +33,14 @@ calculate_statistics   -> query.run_analysis's non-map operations
 generate_map           -> query.map_result.build_regional_map_result
 run_forecast           -> POST /forecasts
 get_result_evidence    -> query.evidence.Evidence
+get_forecast_result    -> GET /forecasts/{id}/result, via query.forecast_summary
 ```
+
+`get_forecast_result` exists because `run_forecast` returns only a job
+id. Without it the answer generator never sees a probability, so it
+cannot say how risky a place is or why. It returns the five riskiest
+cells, the maximum and mean probability over the region, and the SHAP
+drivers described in `docs/explainability.md`.
 
 `calculate_statistics`'s `operation` enum
 (`count`/`daily_aggregate`/`weekly_aggregate`) is exactly
