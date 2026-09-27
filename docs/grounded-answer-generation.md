@@ -44,10 +44,12 @@ RESULT_CATEGORY_BY_TOOL = {
     "generate_map": "computed",
     "run_forecast": "predicted",
     "get_forecast_result": "predicted",
+    "search_docs": "documented",
 }
 ```
 
-Five of the seven tools appear. `resolve_region` is absent: it
+Six of the eight tools appear. `documented` facts are passages from
+`docs/`; the answer must cite each one it uses by path. `resolve_region` is absent: it
 resolves geometry, it does not produce a fact about the world worth
 stating in an answer. `get_result_evidence` is absent too: it fetches
 metadata about a fact another step already produced, it is not itself a
@@ -81,11 +83,14 @@ after generation:
   a `2024-08-15T10:00:00+00:00` cutoff.
 - Signs are ignored, so a negative SHAP contribution can be written
   without its minus.
-- Every `(observed)`, `(computed)` or `(predicted)` tag must belong to a
-  category some fact actually has.
+- Every `(observed)`, `(computed)`, `(predicted)` or `(documented)` tag
+  must belong to a category some fact actually has.
+- Every cited path, like `[docs/evaluation.md]`, must be one of the
+  passages `search_docs` actually retrieved.
 
 The result is returned with the answer as `grounding`
-(`verified`, `checked`, `unsupported`, `unknown_tags`), and the web page
+(`verified`, `checked`, `unsupported`, `unknown_tags`,
+`unknown_citations`), and the web page
 shows it under the answer. A failed check is shown as a warning rather
 than hidden or silently rewritten.
 

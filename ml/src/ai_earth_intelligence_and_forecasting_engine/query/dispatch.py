@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
@@ -41,6 +41,15 @@ from ai_earth_intelligence_and_forecasting_engine.query.statistics import (
 from ai_earth_intelligence_and_forecasting_engine.query.time_range import (
     normalize_time_range,
 )
+from ai_earth_intelligence_and_forecasting_engine.rag.embeddings import embed_texts
+from ai_earth_intelligence_and_forecasting_engine.rag.index import (
+    DEFAULT_INDEX_DIR,
+    DocsIndex,
+    load_index,
+)
+
+if TYPE_CHECKING:
+    from google import genai
 
 DEFAULT_FIRMS_HISTORY_DIR = Path("data/raw/firms/history")
 DEFAULT_ERA5_HISTORY_DIR = Path("data/raw/era5/history")
@@ -246,6 +255,61 @@ def dispatch_get_forecast_result(
     return summarize_forecast_result(forecast_id, result), result["evidence"]
 
 
+PASSAGE_CHARS = 700
+# Dense retrieval measured best on the labelled question set
+# (docs/rag.md); without a client it falls back to BM25.
+DOCS_SEARCH_MODE = "dense"
+_docs_index: DocsIndex | None = None
+
+
+def _get_docs_index() -> DocsIndex:
+    global _docs_index
+    if _docs_index is None:
+        _docs_index = load_index(DEFAULT_INDEX_DIR)
+    return _docs_index
+
+
+def _no_wait(seconds: float) -> None:
+    raise RuntimeError("embedding quota exhausted")
+
+
+def dispatch_search_docs(
+    step_input: dict[str, Any], client: genai.Client | None
+) -> dict[str, Any]:
+    """Dense search when an embedding is available right now. A request
+    is never held waiting on the embedding quota: if the query cannot be
+    embedded immediately, it is answered with BM25 and says so."""
+    query = step_input["query"]
+    index = _get_docs_index()
+    retrieval = "lexical"
+    query_vector = None
+    if client is not None and index.embeddings is not None:
+        try:
+            query_vector = embed_texts(client, [query], "RETRIEVAL_QUERY", _no_wait)[0]
+            retrieval = DOCS_SEARCH_MODE
+        except Exception:  # noqa: BLE001 -- any embedding failure falls back to BM25
+            retrieval = "lexical (embedding unavailable)"
+    passages = index.search(
+        query,
+        k=5,
+        mode=DOCS_SEARCH_MODE if query_vector is not None else "lexical",
+        query_vector=query_vector,
+    )
+    return {
+        "query": query,
+        "retrieval": retrieval,
+        "passages": [
+            {
+                "source": passage.chunk.source,
+                "heading": passage.chunk.heading,
+                "text": passage.chunk.text[:PASSAGE_CHARS],
+                "score": round(passage.score, 4),
+            }
+            for passage in passages
+        ],
+    }
+
+
 class _ReferencedStepUnavailable(Exception):
     """A "$step_id.field" reference names a step that never produced an
     output -- it failed, or was itself skipped as a dependent of a
@@ -277,7 +341,11 @@ def _resolve_refs(value: Any, outputs: dict[str, dict[str, Any]]) -> Any:
 
 
 def _execute_step(
-    step: PlanStep, question: str, outputs: dict[str, dict[str, Any]], backend: Backend
+    step: PlanStep,
+    question: str,
+    outputs: dict[str, dict[str, Any]],
+    backend: Backend,
+    client: genai.Client | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     """Returns (output, evidence). Only calculate_statistics, generate_map
     and get_forecast_result have an evidence record of their own; every
@@ -299,6 +367,8 @@ def _execute_step(
             return dispatch_get_result_evidence(resolved_input, backend), None
         if step.tool == "get_forecast_result":
             return dispatch_get_forecast_result(resolved_input, backend)
+        if step.tool == "search_docs":
+            return dispatch_search_docs(resolved_input, client), None
     except _ReferencedStepUnavailable as error:
         raise StepFailed(
             step.step_id, f"dependency {error.step_id!r} did not produce an output"
@@ -321,7 +391,9 @@ class PlanExecution:
     evidence: dict[str, dict[str, Any]]
 
 
-def execute_plan(plan: Plan, backend: Backend) -> PlanExecution:
+def execute_plan(
+    plan: Plan, backend: Backend, client: genai.Client | None = None
+) -> PlanExecution:
     """Runs every step of an already-validated Plan (validate_plan_or_raise
     must have passed first) in dependency order. A step whose dependency
     failed is never attempted, and the whole call raises StepFailed
@@ -338,7 +410,9 @@ def execute_plan(plan: Plan, backend: Backend) -> PlanExecution:
             continue
 
         try:
-            output, step_evidence = _execute_step(step, plan.question, outputs, backend)
+            output, step_evidence = _execute_step(
+                step, plan.question, outputs, backend, client
+            )
             outputs[step.step_id] = output
             if step_evidence is not None:
                 evidence[step.step_id] = step_evidence

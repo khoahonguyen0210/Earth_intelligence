@@ -2,6 +2,7 @@ import type {
   CountResult,
   DailyAggregateResult,
   DatasetReference,
+  DocsSearchResult,
   EarthQueryFact,
   EarthQueryFactResult,
   EarthQueryResult,
@@ -42,6 +43,10 @@ function isDatasetReference(
   result: EarthQueryFactResult,
 ): result is DatasetReference {
   return typeof (result as DatasetReference).record_count === "number";
+}
+
+function isDocsSearchResult(result: EarthQueryFactResult): result is DocsSearchResult {
+  return Array.isArray((result as DocsSearchResult).passages);
 }
 
 function isForecastSummary(result: EarthQueryFactResult): result is ForecastResultSummary {
@@ -117,6 +122,28 @@ function FactBody({ result }: { result: EarthQueryFactResult }) {
           </li>
         ))}
       </ul>
+    );
+  }
+
+  if (isDocsSearchResult(result)) {
+    return (
+      <>
+        {result.retrieval?.includes("embedding unavailable") && (
+          <p className="dd-hint">
+            Found by keyword search; embedding search was unavailable.
+          </p>
+        )}
+        <ol className="doc-passages" data-testid="result-doc-passages">
+          {result.passages.map((passage, index) => (
+            <li key={`${passage.source}-${index}`}>
+              <p>
+                <strong>{passage.heading}</strong> <code>{passage.source}</code>
+              </p>
+              <blockquote>{passage.text}</blockquote>
+            </li>
+          ))}
+        </ol>
+      </>
     );
   }
 
@@ -219,6 +246,9 @@ function GroundingBadge({ grounding }: { grounding: GroundingCheck }) {
   const problems = [
     ...grounding.unsupported.map((value) => `"${value}" is not in the results`),
     ...grounding.unknown_tags.map((tag) => `tag "${tag}" matches no result`),
+    ...(grounding.unknown_citations ?? []).map(
+      (path) => `${path} was cited but not retrieved`,
+    ),
   ];
   return (
     <p className="grounding grounding-warn" role="alert" data-testid="grounding">

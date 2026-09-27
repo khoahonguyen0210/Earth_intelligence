@@ -1030,6 +1030,21 @@ dl {
   background: linear-gradient(90deg, var(--cyan), var(--violet));
 }
 
+.doc-passages {
+  padding-left: 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.doc-passages blockquote {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--violet);
+  font-size: 14px;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+
 .grounding {
   font-size: 14px;
   padding: 8px 12px;

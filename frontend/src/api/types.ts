@@ -125,7 +125,21 @@ export type EarthQueryFactResult =
   | MapResult
   | DatasetReference
   | ForecastResultSummary
+  | DocsSearchResult
   | ForecastJobReference;
+
+export interface DocsPassage {
+  source: string;
+  heading: string;
+  text: string;
+  score: number;
+}
+
+export interface DocsSearchResult {
+  query: string;
+  retrieval?: string;
+  passages: DocsPassage[];
+}
 
 export interface ForecastSummaryCell {
   tile_id: string;
@@ -153,11 +167,12 @@ export interface GroundingCheck {
   checked: number;
   unsupported: string[];
   unknown_tags: string[];
+  unknown_citations?: string[];
 }
 
 export interface EarthQueryFact {
   step_id: string;
-  category: "observed" | "computed" | "predicted";
+  category: "observed" | "computed" | "predicted" | "documented";
   result: EarthQueryFactResult;
   evidence: Evidence | null;
 }

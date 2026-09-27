@@ -276,6 +276,33 @@ GET_FORECAST_RESULT = ToolSchema(
     }),
 )
 
+SEARCH_DOCS = ToolSchema(
+    name="search_docs",
+    description=(
+        "Search this system's own documentation for how it works: its "
+        "data sources, model, evaluation results, limitations, API, "
+        "security and deployment. Use it for questions about the system "
+        "itself, never for questions about fires, weather or risk, which "
+        "the data tools answer. Returns the most relevant passages with "
+        "their source file, so the answer can cite them."
+    ),
+    input_schema=_strict_object_schema(
+        properties={
+            "query": {
+                "type": "string",
+                "description": "The question to look up, in plain English.",
+            },
+        },
+        required=["query"],
+    ),
+    returns=(
+        "{query, retrieval, passages: [{source, heading, text, score}]}, "
+        "best match first, at most five passages. retrieval says whether "
+        "embeddings or keyword search found them."
+    ),
+    output_fields=frozenset({"query", "retrieval", "passages"}),
+)
+
 TOOL_SCHEMAS: tuple[ToolSchema, ...] = (
     RESOLVE_REGION,
     GET_DATA,
@@ -284,6 +311,7 @@ TOOL_SCHEMAS: tuple[ToolSchema, ...] = (
     RUN_FORECAST,
     GET_RESULT_EVIDENCE,
     GET_FORECAST_RESULT,
+    SEARCH_DOCS,
 )
 
 TOOL_NAMES: frozenset[str] = frozenset(tool.name for tool in TOOL_SCHEMAS)

@@ -5,7 +5,7 @@ brainstorming document. The deterministic plan validator and the
 natural-language planner build against this surface rather than
 redefining it.
 
-## The seven tools, and nothing else
+## The eight tools, and nothing else
 
 ```text
 resolve_region
@@ -15,9 +15,10 @@ generate_map
 run_forecast
 get_result_evidence
 get_forecast_result
+search_docs
 ```
 
-All seven are defined in
+All eight are defined in
 `ai_earth_intelligence_and_forecasting_engine.planner.tools`
 (`TOOL_SCHEMAS`). "No arbitrary code execution" holds by construction: every tool is a named,
 bounded operation with a fixed input shape: none takes a code string, a
@@ -34,7 +35,12 @@ generate_map           -> query.map_result.build_regional_map_result
 run_forecast           -> POST /forecasts
 get_result_evidence    -> query.evidence.Evidence
 get_forecast_result    -> GET /forecasts/{id}/result, via query.forecast_summary
+search_docs            -> rag.index.DocsIndex.search over docs/
 ```
+
+`search_docs` answers questions about the system itself rather than
+about fires. It returns up to five cited passages, described in
+`docs/rag.md`.
 
 `get_forecast_result` exists because `run_forecast` returns only a job
 id. Without it the answer generator never sees a probability, so it

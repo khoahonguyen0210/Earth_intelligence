@@ -9,10 +9,11 @@
 
 .venv/
 ml/.venv/
-# Experiment outputs stay out of the image; the one trained model the
-# product serves is baked in (backend/Dockerfile, docs/historical-dataset.md).
+# Experiment outputs stay out of the image; the trained model the product
+# serves and the docs search index are baked in (backend/Dockerfile).
 ml/artifacts/*
 !ml/artifacts/production_model_v1
+!ml/artifacts/docs_index_v1
 
 **/node_modules/
 frontend/dist/

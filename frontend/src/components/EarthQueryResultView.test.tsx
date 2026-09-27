@@ -60,6 +60,49 @@ describe("EarthQueryResultView", () => {
     expect(screen.getByRole("alert")).toHaveTextContent('"512" is not in the results');
   });
 
+  it("renders documentation passages with their source and warns about a bad citation", () => {
+    render(
+      <EarthQueryResultView
+        result={baseResult({
+          answer: "There is no login (documented) [docs/cloud-deployment.md].",
+          grounding: {
+            verified: false,
+            checked: 0,
+            unsupported: [],
+            unknown_tags: [],
+            unknown_citations: ["docs/cloud-deployment.md"],
+          },
+          facts: [
+            {
+              step_id: "docs",
+              category: "documented",
+              result: {
+                query: "is there a login",
+                passages: [
+                  {
+                    source: "docs/security-baseline.md",
+                    heading: "Authentication",
+                    text: "The API has no user authentication.",
+                    score: 0.03,
+                  },
+                ],
+              },
+              evidence: null,
+            },
+          ],
+        })}
+      />,
+    );
+
+    const passages = screen.getByTestId("result-doc-passages");
+    expect(passages).toHaveTextContent("Authentication");
+    expect(passages).toHaveTextContent("docs/security-baseline.md");
+    expect(passages).toHaveTextContent("The API has no user authentication.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "docs/cloud-deployment.md was cited but not retrieved",
+    );
+  });
+
   it("renders a forecast summary fact with its peak risk and drivers", () => {
     render(
       <EarthQueryResultView

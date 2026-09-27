@@ -9,7 +9,8 @@ _NUMBER = re.compile(r"(?<![\w.])(\d[\d,]*(?:\.\d+)?)(\s?(?:%|percent\b))?")
 _ISO_DATETIME = re.compile(
     r"\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?"
 )
-_CATEGORY_TAG = re.compile(r"\((observed|computed|predicted)\)")
+_CATEGORY_TAG = re.compile(r"\((observed|computed|predicted|documented)\)")
+_CITATION = re.compile(r"\[(docs/[\w./-]+\.md)\]")
 
 
 @dataclass(frozen=True)
@@ -17,12 +18,26 @@ class GroundingCheck:
     """Whether every number in an answer can be traced to a fact or to the
     question. `checked` counts the numbers found; `unsupported` lists the
     ones that matched nothing; `unknown_tags` lists category tags used
-    that no fact carries."""
+    that no fact carries; `unknown_citations` lists cited doc paths that
+    were not among the retrieved passages."""
 
     verified: bool
     checked: int
     unsupported: tuple[str, ...]
     unknown_tags: tuple[str, ...]
+    unknown_citations: tuple[str, ...] = ()
+
+
+def _retrieved_sources(value: Any, into: set[str]) -> None:
+    if isinstance(value, dict):
+        source = value.get("source")
+        if isinstance(source, str) and source.startswith("docs/"):
+            into.add(source)
+        for nested in value.values():
+            _retrieved_sources(nested, into)
+    elif isinstance(value, (list, tuple)):
+        for nested in value:
+            _retrieved_sources(nested, into)
 
 
 def _date_parts(text: str) -> set[float]:
@@ -102,9 +117,17 @@ def check_grounding(
         {tag for tag in _CATEGORY_TAG.findall(answer) if tag not in categories}
     )
 
+    retrieved: set[str] = set()
+    for _, payload in facts:
+        _retrieved_sources(payload, retrieved)
+    unknown_citations = sorted(
+        {path for path in _CITATION.findall(answer) if path not in retrieved}
+    )
+
     return GroundingCheck(
-        verified=not unsupported and not unknown_tags,
+        verified=not unsupported and not unknown_tags and not unknown_citations,
         checked=checked,
         unsupported=tuple(unsupported),
         unknown_tags=tuple(unknown_tags),
+        unknown_citations=tuple(unknown_citations),
     )

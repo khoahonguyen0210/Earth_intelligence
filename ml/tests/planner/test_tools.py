@@ -45,6 +45,7 @@ def test_tool_schemas_has_exactly_the_approved_tools():
         "run_forecast",
         "get_result_evidence",
         "get_forecast_result",
+        "search_docs",
     }
 
 

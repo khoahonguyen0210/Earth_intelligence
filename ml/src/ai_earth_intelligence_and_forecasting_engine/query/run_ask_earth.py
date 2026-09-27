@@ -41,7 +41,7 @@ def run_ask_earth(
     question = payload["question"]
 
     plan = generate_plan(question, client)
-    execution = execute_plan(plan, backend)
+    execution = execute_plan(plan, backend, client)
     answer = generate_answer(plan, _step_results(plan, execution), client)
 
     grounding = answer.grounding
@@ -54,6 +54,7 @@ def run_ask_earth(
                 "checked": grounding.checked,
                 "unsupported": list(grounding.unsupported),
                 "unknown_tags": list(grounding.unknown_tags),
+                "unknown_citations": list(grounding.unknown_citations),
             }
             if grounding is not None
             else None

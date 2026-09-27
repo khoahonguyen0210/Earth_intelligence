@@ -40,6 +40,7 @@ COPY scripts ./scripts
 # beside it, so a container never trains at request time.
 COPY data/raw ./data/raw
 COPY ml/artifacts/production_model_v1 ./ml/artifacts/production_model_v1
+COPY ml/artifacts/docs_index_v1 ./ml/artifacts/docs_index_v1
 
 COPY --from=build /build/target/*.jar app.jar
 

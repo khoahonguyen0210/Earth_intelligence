@@ -58,8 +58,10 @@ flowchart LR
     V -->|valid| S[Sync analysis]
     V -->|valid| F[Async forecast]
     F --> R[(Redis queue)] --> W[Python workers]
+    V -->|valid| K[Docs retrieval]
     S --> D[(PostGIS + MinIO)]
     W --> D
+    K --> L
     D --> L[LLM writes answer]
     L --> C{Number check}
     C --> A[Answer + evidence]
@@ -73,6 +75,12 @@ flowchart LR
 
 On the 2024 test year, recent fire history decides where fires actually happened, terrain sets the baseline elsewhere, and weather contributes least. Details are in [`docs/explainability.md`](docs/explainability.md).
 
+## Questions about the system itself
+
+Ask Earth can also answer questions about how it works, such as "Does the model beat a simple baseline?" or "Is there a login?". A planner tool retrieves passages from `docs/` using Gemini embeddings, and the answer cites each source by path. The answer check also fails any citation that was not actually retrieved.
+
+On 35 labelled questions worded unlike the docs, embedding search finds a correct doc in the top 5 for 34 of them, against 25 for keyword search. Combining both did worse than embeddings alone, so the tool uses embeddings. Details are in [`docs/rag.md`](docs/rag.md).
+
 
 ## Tech stack
 
@@ -81,7 +89,8 @@ On the 2024 test year, recent fire history decides where fires actually happened
 | Languages | Python, Java, TypeScript, HCL (Terraform), CSS |
 | Backend | Java 21, Spring Boot, JPA, Flyway, Maven |
 | Frontend | React, TypeScript, Vite, Vitest |
-| ML | Python 3.12, XGBoost, scikit-learn, xarray, Gemini |
+| ML | Python 3.12, XGBoost (with its built-in tree SHAP), scikit-learn, NumPy, xarray |
+| LLM and retrieval | Gemini (planning, answers, embeddings), BM25 |
 | Data | PostGIS, Redis, MinIO / S3, NASA FIRMS, ERA5-Land, ESA WorldCover |
 | Infra | Docker Compose, Kubernetes, Helm, KEDA, Terraform, AWS |
 | Observability | Prometheus, OpenTelemetry, Jaeger |

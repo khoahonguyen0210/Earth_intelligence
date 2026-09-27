@@ -27,8 +27,10 @@ from ai_earth_intelligence_and_forecasting_engine.query.dispatch import (
     dispatch_get_result_evidence,
     dispatch_resolve_region,
     dispatch_run_forecast,
+    dispatch_search_docs,
     execute_plan,
 )
+from ai_earth_intelligence_and_forecasting_engine.rag.index import build_index
 
 SAMPLE_FIRMS_CSV = (
     "latitude,longitude,acq_date,acq_time,confidence\n"
@@ -254,6 +256,55 @@ def test_dispatch_get_result_evidence_returns_the_forecasts_own_evidence():
     mock_get.assert_called_once_with(
         "http://backend.test/forecasts/f-1/result", timeout=10
     )
+
+
+def test_dispatch_search_docs_returns_cited_passages(tmp_path, monkeypatch):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "security.md").write_text(
+        "# Security\n\n## Authentication\n\nThe API has no user authentication.\n",
+        encoding="utf-8",
+    )
+    (docs / "scaling.md").write_text(
+        "# Scaling\n\n## Workers\n\nMore workers lowered throughput.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(dispatch, "_docs_index", build_index(docs))
+
+    output = dispatch_search_docs({"query": "user authentication"}, None)
+
+    assert output["query"] == "user authentication"
+    assert output["retrieval"] == "lexical"
+    assert output["passages"][0]["source"].endswith("security.md")
+    assert output["passages"][0]["heading"] == "Authentication"
+    assert set(output["passages"][0]) == {"source", "heading", "text", "score"}
+
+
+def test_dispatch_search_docs_falls_back_to_keywords_when_quota_is_out(
+    tmp_path, monkeypatch
+):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "security.md").write_text(
+        "# Security\n\n## Authentication\n\nThe API has no user authentication.\n",
+        encoding="utf-8",
+    )
+    index = build_index(docs)
+    index.embeddings = np.ones((len(index.chunks), 3), dtype=np.float32)
+    monkeypatch.setattr(dispatch, "_docs_index", index)
+
+    class _QuotaOut:
+        class models:  # noqa: N801
+            @staticmethod
+            def embed_content(**kwargs):
+                error = RuntimeError("429 RESOURCE_EXHAUSTED")
+                error.code = 429  # type: ignore[attr-defined]
+                raise error
+
+    output = dispatch_search_docs({"query": "user authentication"}, _QuotaOut())
+
+    assert output["retrieval"] == "lexical (embedding unavailable)"
+    assert output["passages"][0]["source"].endswith("security.md")
 
 
 def test_dispatch_get_forecast_result_summarizes_the_stored_result():

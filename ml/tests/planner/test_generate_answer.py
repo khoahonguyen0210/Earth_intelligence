@@ -107,8 +107,10 @@ def test_result_category_by_tool_only_covers_fact_producing_tools():
         "generate_map",
         "run_forecast",
         "get_forecast_result",
+        "search_docs",
     }
     assert RESULT_CATEGORY_BY_TOOL["get_forecast_result"] == "predicted"
+    assert RESULT_CATEGORY_BY_TOOL["search_docs"] == "documented"
     assert RESULT_CATEGORY_BY_TOOL["calculate_statistics"] == "computed"
     assert RESULT_CATEGORY_BY_TOOL["generate_map"] == "computed"
     assert RESULT_CATEGORY_BY_TOOL["run_forecast"] == "predicted"

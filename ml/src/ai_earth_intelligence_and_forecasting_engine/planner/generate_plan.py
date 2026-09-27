@@ -73,6 +73,9 @@ def _build_system_prompt() -> str:
         "- A forecast question needs run_forecast followed by "
         "get_forecast_result on its forecast_id; run_forecast alone "
         "returns no probabilities to answer with.\n"
+        "- A question about how this system itself works (its data, "
+        "model, accuracy, limitations, API, security or deployment) "
+        "needs one search_docs step, not the data tools.\n"
         "- Do not invent tools, input fields, or values outside what is "
         "described above."
     )

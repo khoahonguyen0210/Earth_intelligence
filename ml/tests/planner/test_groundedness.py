@@ -82,6 +82,48 @@ def test_a_category_tag_no_fact_carries_is_reported():
     assert check.unknown_tags == ("observed",)
 
 
+DOCS_FACT = (
+    "documented",
+    {
+        "result": {
+            "query": "is there a login",
+            "passages": [
+                {
+                    "source": "docs/security-baseline.md",
+                    "heading": "Authentication",
+                    "text": (
+                        "The API has no user authentication. "
+                        "It allows 20 requests per minute."
+                    ),
+                    "score": 0.03,
+                }
+            ],
+        },
+        "evidence": None,
+    },
+)
+
+
+def test_a_cited_retrieved_doc_with_its_number_is_verified():
+    check = check_grounding(
+        "There is no login, and clients get 20 requests per minute (documented) "
+        "[docs/security-baseline.md].",
+        [DOCS_FACT],
+    )
+
+    assert check.verified
+    assert check.unknown_citations == ()
+
+
+def test_citing_a_doc_that_was_not_retrieved_is_flagged():
+    check = check_grounding(
+        "There is no login (documented) [docs/cloud-deployment.md].", [DOCS_FACT]
+    )
+
+    assert not check.verified
+    assert check.unknown_citations == ("docs/cloud-deployment.md",)
+
+
 def test_an_answer_without_numbers_checks_nothing_and_passes():
     check = check_grounding("The facts do not answer this question.", [COUNT_FACT])
 
