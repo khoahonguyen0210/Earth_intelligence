@@ -34,14 +34,20 @@
 
 </div>
 
+PR-AUC on the held-out 2024 test year, with 95% intervals from a bootstrap over forecast dates.
+
 | Measure | Result |
 |---|---|
-| Model accuracy (PR-AUC) | **0.4513** vs 0.2522 for the climatology baseline |
+| XGBoost | **0.451** (0.374 to 0.521) |
+| Served model, calibrated XGBoost | **0.436** (0.360 to 0.503) |
+| Gain over climatology (0.252) | **+0.199** (0.125 to 0.265) |
+| Gain over "fires in the last 24 hours" (0.384) | **+0.068** (0.031 to 0.101) |
+| Regions never seen in training | **0.346**, down 0.105 |
 | Terrain and land cover | **+0.081** PR-AUC over fire history and weather alone |
 | Worker killed mid-run | **0 tiles lost**, recovered in **1.35 s** |
 | Planner on 14 live questions | **100%** intent, region, and execution |
 
-Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
+The model clearly beats climatology, but a no-model rule that predicts fire where it burned yesterday already gets most of the way. Intervals, the spatial holdout and drift checks are in [`docs/evaluation.md`](docs/evaluation.md). Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
 
 ## How it works
 

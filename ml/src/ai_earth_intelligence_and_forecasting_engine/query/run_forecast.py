@@ -38,6 +38,11 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.historical_dataset im
 from ai_earth_intelligence_and_forecasting_engine.models.calibration import (
     predict_calibrated,
 )
+from ai_earth_intelligence_and_forecasting_engine.models.drift import (
+    SERVING_DRIFT_FEATURES,
+    drift_report,
+    load_reference,
+)
 from ai_earth_intelligence_and_forecasting_engine.models.explain import (
     EXPLANATION_METHOD,
     EXPLANATION_UNITS,
@@ -264,6 +269,9 @@ def run_forecast(
             for key in ("model", "model_version", "trained_at", "train", "validation")
         },
     }
+    reference = load_reference(model_dir)
+    if reference is not None:
+        inputs["drift"] = drift_report(reference, rows, SERVING_DRIFT_FEATURES)
     if outlook:
         inputs["weather_source"] = "Open-Meteo forecast"
         inputs["weather_valid_for"] = cutoff.isoformat()

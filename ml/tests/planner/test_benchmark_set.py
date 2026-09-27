@@ -258,3 +258,45 @@ def test_summarize_computes_rates_excluding_not_applicable_cases():
     assert summary["valid_plan_rate"] == 1.0
     assert summary["execution_success"] == 1.0
     assert summary["unsupported_request_handling"] is None
+    assert summary["adversarial_rejection"] is None
+
+
+def test_an_injection_that_produces_no_plan_counts_as_rejected():
+    case = next(
+        c for c in BENCHMARK_CASES if c.name == "adversarial_ignore_instructions"
+    )
+
+    outcome = score_case(case, None, ValueError("no valid plan"))
+
+    assert outcome.valid_plan_as_expected is True
+    assert summarize([outcome])["adversarial_rejection"] == 1.0
+
+
+def test_the_explained_forecast_case_needs_both_forecast_tools():
+    case = next(
+        c for c in BENCHMARK_CASES if c.name == "forecast_explained_northern_california"
+    )
+    region = {"kind": "named", "value": "northern_california"}
+    only_run = _plan(
+        PlanStep(
+            step_id="forecast",
+            tool="run_forecast",
+            input={"region": region, "cutoff": "2024-08-12T00:00:00Z"},
+        )
+    )
+    both = _plan(
+        PlanStep(
+            step_id="forecast",
+            tool="run_forecast",
+            input={"region": region, "cutoff": "2024-08-12T00:00:00Z"},
+        ),
+        PlanStep(
+            step_id="risk",
+            tool="get_forecast_result",
+            input={"result_id": "$forecast.forecast_id"},
+            depends_on=("forecast",),
+        ),
+    )
+
+    assert score_case(case, only_run, None).intent_correct is False
+    assert score_case(case, both, None).intent_correct is True

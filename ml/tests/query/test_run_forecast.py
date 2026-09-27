@@ -260,8 +260,13 @@ def test_run_forecast_end_to_end_on_real_history_and_the_trained_model():
         "data_load",
         "model_load",
         "model_inference",
+        "explanation",
         "total",
     }
+    assert result["explanation"]["importance"]
+    if (REAL_MODEL_DIR / "feature_reference.json").is_file():
+        assert "previous_30d_count" in inputs["drift"]["psi"]
+        assert "temperature_2m" not in inputs["drift"]["psi"]
 
 
 @pytest.mark.skipif(not REAL_INPUTS_PRESENT, reason="real history/model not built")
