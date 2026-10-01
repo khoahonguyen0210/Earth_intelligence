@@ -50,7 +50,9 @@ def _split_summary(rows: list[DatasetRow]) -> dict[str, Any]:
 
 
 def train_production_model(
-    train_rows: list[DatasetRow], validation_rows: list[DatasetRow]
+    train_rows: list[DatasetRow],
+    validation_rows: list[DatasetRow],
+    model_version: str = MODEL_VERSION,
 ) -> ProductionModel:
     base = fit_xgboost(train_rows, validation_rows)
     calibrated = fit_calibration(base, validation_rows)
@@ -62,7 +64,7 @@ def train_production_model(
         calibrated=calibrated,
         calibration_table=calibration_table,
         metadata={
-            "model_version": MODEL_VERSION,
+            "model_version": model_version,
             "model": "xgboost + isotonic calibration",
             "calibration_method": CALIBRATION_METHOD,
             "best_iteration": base.best_iteration,

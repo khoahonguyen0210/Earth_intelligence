@@ -114,8 +114,10 @@ during the forecast window, i.e. the same target `predict_*`/
 `predict_calibrated` already produce in `ml/src/.../models/`. "Risk" is
 the product-facing name for this same number, not a second field.
 
-`model_version` is the string identifying which frozen model produced the
-forecast (`models.calibration.MODEL_VERSION`, currently `"v1"`).
+`model_version` is the string identifying which model produced the
+forecast, read from the served model's own metadata. It is `"v1"` for
+the original model and a registry version for any model promoted by the
+retraining loop (`docs/retraining.md`).
 
 `data_cutoff` echoes the request's `cutoff`, normalized to an ISO 8601 UTC
 datetime string — the result is self-describing without needing to join

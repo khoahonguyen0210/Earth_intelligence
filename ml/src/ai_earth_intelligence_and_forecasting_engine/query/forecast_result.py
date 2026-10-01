@@ -134,6 +134,7 @@ def build_forecast_result(
     calibration_table: list[CalibrationBin],
     inputs: dict[str, Any] | None = None,
     explanation: Explanation | None = None,
+    model_version: str = MODEL_VERSION,
 ) -> ForecastResult:
     forecast_window = build_forecast_window(cutoff)
 
@@ -145,7 +146,7 @@ def build_forecast_result(
         query_parameters["inputs"] = inputs
 
     evidence = build_evidence(
-        dataset=f"wildfire_forecast:{MODEL_VERSION}",
+        dataset=f"wildfire_forecast:{model_version}",
         region=region,
         time_range=NormalizedTimeRange(
             start=forecast_window.start, end=forecast_window.end
@@ -155,7 +156,7 @@ def build_forecast_result(
 
     return ForecastResult(
         cells=cells,
-        model_version=MODEL_VERSION,
+        model_version=model_version,
         data_cutoff=cutoff,
         forecast_window=forecast_window,
         calibration=CalibrationMetadata(

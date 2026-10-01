@@ -36,6 +36,7 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.historical_dataset im
     ERA5History,
 )
 from ai_earth_intelligence_and_forecasting_engine.models.calibration import (
+    MODEL_VERSION,
     predict_calibrated,
 )
 from ai_earth_intelligence_and_forecasting_engine.models.drift import (
@@ -126,7 +127,13 @@ def predict_forecast(
         importance=mean_absolute_importance(contributions),
     )
     result = build_forecast_result(
-        cells, region, cutoff, model.calibration_table, inputs, explanation
+        cells,
+        region,
+        cutoff,
+        model.calibration_table,
+        inputs,
+        explanation,
+        model.metadata.get("model_version", MODEL_VERSION),
     )
     return forecast_result_to_dict(result)
 

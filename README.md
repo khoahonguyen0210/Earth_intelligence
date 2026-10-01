@@ -75,6 +75,12 @@ flowchart LR
 
 On the 2024 test year, recent fire history decides where fires actually happened, terrain sets the baseline elsewhere, and weather contributes least. Details are in [`docs/explainability.md`](docs/explainability.md).
 
+## Learning from new data
+
+When a new fire season arrives, a candidate model is trained on all earlier seasons and scored, together with the model in service, on the new season that neither has seen. It replaces the current model only if PR-AUC rises by at least 0.01 without worse calibration. Every candidate and decision is logged, and promotions can be rolled back. The 2024 test season can never decide a promotion.
+
+Replaying the loop over 2021 to 2023, the gate blocked a candidate trained on more data that was significantly worse (-0.041 PR-AUC) and one whose gain was within noise. Details are in [`docs/retraining.md`](docs/retraining.md).
+
 ## Questions about the system itself
 
 Ask Earth can also answer questions about how it works, such as "Does the model beat a simple baseline?" or "Is there a login?". A planner tool retrieves passages from `docs/` using Gemini embeddings, and the answer cites each source by path. The answer check also fails any citation that was not actually retrieved.
