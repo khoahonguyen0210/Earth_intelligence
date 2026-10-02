@@ -27,6 +27,9 @@ dev = [
     "types-jsonschema",
     "google-genai"
 ]
+research = [
+    "torch>=2.14.1",
+]
 
 [tool.ruff]
 line-length = 88
@@ -47,6 +50,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "sklearn.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

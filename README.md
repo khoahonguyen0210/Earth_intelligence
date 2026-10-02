@@ -43,11 +43,12 @@ PR-AUC on the held-out 2024 test year, with 95% intervals from a bootstrap over 
 | Gain over climatology (0.252) | **+0.199** (0.125 to 0.265) |
 | Gain over "fires in the last 24 hours" (0.384) | **+0.068** (0.031 to 0.101) |
 | Regions never seen in training | **0.346**, down 0.105 |
+| PyTorch neural network, same features | **0.388**, 0.064 below XGBoost |
 | Terrain and land cover | **+0.081** PR-AUC over fire history and weather alone |
 | Worker killed mid-run | **0 tiles lost**, recovered in **1.35 s** |
 | Planner on 14 live questions | **100%** intent, region, and execution |
 
-The model clearly beats climatology, but a no-model rule that predicts fire where it burned yesterday already gets most of the way. Intervals, the spatial holdout and drift checks are in [`docs/evaluation.md`](docs/evaluation.md). Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
+The model clearly beats climatology, but a no-model rule that predicts fire where it burned yesterday already gets most of the way. A neural network on the same features did worse than XGBoost, so the trees stay in service. Intervals, the spatial holdout and drift checks are in [`docs/evaluation.md`](docs/evaluation.md), and the network comparison in [`docs/neural-baseline.md`](docs/neural-baseline.md). Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
 
 ## How it works
 
@@ -95,7 +96,7 @@ On 35 labelled questions worded unlike the docs, embedding search finds a correc
 | Languages | Python, Java, TypeScript, HCL (Terraform), CSS |
 | Backend | Java 21, Spring Boot, JPA, Flyway, Maven |
 | Frontend | React, TypeScript, Vite, Vitest |
-| ML | Python 3.12, XGBoost (with its built-in tree SHAP), scikit-learn, NumPy, xarray |
+| ML | Python 3.12, XGBoost (with its built-in tree SHAP), scikit-learn, NumPy, xarray, PyTorch (research baseline) |
 | LLM and retrieval | Gemini (planning, answers, embeddings), BM25 |
 | Data | PostGIS, Redis, MinIO / S3, NASA FIRMS, ERA5-Land, ESA WorldCover |
 | Infra | Docker Compose, Kubernetes, Helm, KEDA, Terraform, AWS |
