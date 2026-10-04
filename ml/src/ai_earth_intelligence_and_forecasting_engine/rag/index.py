@@ -104,21 +104,55 @@ def docs_fingerprint(chunks: list[Chunk]) -> str:
     return digest.hexdigest()[:16]
 
 
-def build_index(docs_dir: Path, client: genai.Client | None = None) -> DocsIndex:
+def _text_key(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _reusable_vectors(previous: DocsIndex | None) -> dict[str, np.ndarray]:
+    if previous is None or previous.embeddings is None:
+        return {}
+    if previous.manifest.get("embedding_model") != EMBEDDING_MODEL:
+        return {}
+    return {
+        _text_key(chunk.embedding_text()): vector
+        for chunk, vector in zip(previous.chunks, previous.embeddings, strict=True)
+    }
+
+
+def build_index(
+    docs_dir: Path,
+    client: genai.Client | None = None,
+    previous: DocsIndex | None = None,
+) -> DocsIndex:
+    """Chunks whose text is unchanged since `previous` keep their stored
+    vectors; only new or edited chunks are sent for embedding."""
     chunks = chunk_directory(docs_dir)
-    embeddings = (
-        embed_texts(
-            client, [chunk.embedding_text() for chunk in chunks], "RETRIEVAL_DOCUMENT"
+    embeddings = None
+    reused = 0
+    if client is not None:
+        known = _reusable_vectors(previous)
+        texts = [chunk.embedding_text() for chunk in chunks]
+        missing = [i for i, text in enumerate(texts) if _text_key(text) not in known]
+        fresh = (
+            embed_texts(client, [texts[i] for i in missing], "RETRIEVAL_DOCUMENT")
+            if missing
+            else np.zeros((0, 0), dtype=np.float32)
         )
-        if client is not None
-        else None
-    )
+        fresh_by_index = dict(zip(missing, fresh, strict=True))
+        embeddings = np.stack(
+            [
+                fresh_by_index[i] if i in fresh_by_index else known[_text_key(text)]
+                for i, text in enumerate(texts)
+            ]
+        ).astype(np.float32)
+        reused = len(chunks) - len(missing)
     manifest = {
         "chunks": len(chunks),
         "documents": len({chunk.source for chunk in chunks}),
         "embedding_model": EMBEDDING_MODEL if embeddings is not None else None,
         "dimensions": int(embeddings.shape[1]) if embeddings is not None else None,
         "fingerprint": docs_fingerprint(chunks),
+        "reused_embeddings": reused,
     }
     return DocsIndex(chunks, embeddings, manifest)
 

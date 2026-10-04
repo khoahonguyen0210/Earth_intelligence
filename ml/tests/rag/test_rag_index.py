@@ -143,6 +143,35 @@ def test_index_round_trips_through_disk(docs_dir, tmp_path):
     assert loaded.manifest == index.manifest
 
 
+def test_rebuild_embeds_only_new_or_changed_chunks(docs_dir):
+    first_client = _FakeClient()
+    first = build_index(docs_dir, first_client)
+    (docs_dir / "drift.md").write_text(
+        "# Drift\n\n## Checks\n\nA drift check compares inputs with training.\n",
+        encoding="utf-8",
+    )
+
+    second_client = _FakeClient()
+    second = build_index(docs_dir, second_client, previous=first)
+
+    assert second_client.models.calls == 1
+    assert second.manifest["reused_embeddings"] == len(first.chunks)
+    assert len(second.chunks) == len(first.chunks) + 1
+    for chunk, vector in zip(first.chunks, first.embeddings, strict=True):
+        position = second.chunks.index(chunk)
+        np.testing.assert_allclose(second.embeddings[position], vector)
+
+
+def test_nothing_is_embedded_when_no_chunk_changed(docs_dir):
+    first = build_index(docs_dir, _FakeClient())
+    client = _FakeClient()
+
+    rebuilt = build_index(docs_dir, client, previous=first)
+
+    assert client.models.calls == 0
+    np.testing.assert_allclose(rebuilt.embeddings, first.embeddings)
+
+
 def test_loading_a_missing_index_says_how_to_build_it(tmp_path):
     with pytest.raises(FileNotFoundError, match="build_docs_index"):
         load_index(tmp_path / "nothing")

@@ -100,9 +100,11 @@ python scripts/rag/build_docs_index.py     # needs GEMINI_API_KEY
 python scripts/rag/evaluate_retrieval.py
 ```
 
-Each indexed chunk is one embedding request, so a rebuild costs about
-470 of the free tier's 1,000 daily requests. The index must be rebuilt
-whenever `docs/` changes. Its manifest
-records a fingerprint of the chunk text, so a stale index can be
-spotted by comparing fingerprints. `--lexical-only` builds a BM25-only
-index without calling the API.
+The index must be rebuilt whenever `docs/` changes. A rebuild reuses
+the stored vector of every chunk whose text is unchanged and embeds only
+new or edited chunks. Each embedded chunk is one request against the
+free tier's 1,000 a day, so adding a doc costs a few dozen requests,
+not the roughly 480 of a build from scratch. The manifest records a
+fingerprint of the chunk text, so a stale index can be spotted by
+comparing fingerprints. `--lexical-only` builds a BM25-only index
+without calling the API.
