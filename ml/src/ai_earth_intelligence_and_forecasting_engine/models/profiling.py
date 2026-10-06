@@ -61,11 +61,6 @@ class ComputationProfile:
 
 
 def profile_stage(name: str, fn: Callable[[], T]) -> tuple[T, StageProfile]:
-    """Measures wall time and Python-level peak memory (via tracemalloc)
-    for one pipeline stage. tracemalloc tracks Python object allocations;
-    it under-counts memory a native extension (numpy/xgboost) allocates
-    outside the Python allocator, so peak_memory_mb is a lower bound on
-    true process memory, not an exact RSS figure."""
     tracemalloc.start()
     start = time.perf_counter()
     result = fn()
@@ -86,10 +81,6 @@ def profile_input_files(paths: dict[str, Path]) -> list[InputFileProfile]:
 
 
 def synthetic_timing_rows(n: int, split: str) -> list[DatasetRow]:
-    """Realistically-shaped, deterministic rows used only to measure
-    training/inference wall-time and memory when the real split cannot
-    support a fit. Both classes are present by construction. These rows
-    are never used to compute or report an accuracy metric."""
     rng = np.random.default_rng(20240815)
     cutoff = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
@@ -153,9 +144,6 @@ def profile_model(
     artifacts_root: Path = Path("ml/artifacts"),
     experiment_prefix: str = "computation_profile_v1",
 ) -> ModelProfile:
-    """Training/inference time and memory for one model. Reuses
-    harness.py's fit/predict dispatch and timing capture; falls back to
-    synthetic-shaped data when the real split cannot support a fit."""
     succeeded, error, config_path, peak_memory_mb = _run_and_measure_memory(
         model_name,
         f"{experiment_prefix}_{model_name}",

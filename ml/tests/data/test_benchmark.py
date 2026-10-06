@@ -52,7 +52,7 @@ def test_run_firms_pipeline_benchmark_counts_and_stages(tmp_path):
         + result.normalization_time_s
         + result.validation_time_s
         + result.feature_preparation_time_s
-    ) * 0.99  # allow tiny float/measurement slack
+    ) * 0.99
 
 
 def test_benchmark_result_to_dict_is_json_serializable(tmp_path):

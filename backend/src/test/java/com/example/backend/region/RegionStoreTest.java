@@ -69,7 +69,7 @@ class RegionStoreTest {
 
     @Test
     void malformedEvidenceIsSkippedWithoutThrowing() {
-        regionStore.recordFrom(Map.of("region_kind", "named")); // no region_bbox
+        regionStore.recordFrom(Map.of("region_kind", "named"));
         regionStore.recordFrom("not a map at all");
         regionStore.recordFrom(null);
     }

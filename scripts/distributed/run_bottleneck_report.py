@@ -16,8 +16,6 @@ from ai_earth_intelligence_and_forecasting_engine.distributed.workload import (
     freeze_workload,
 )
 
-# Same real sample-data paths every other scripts/query/*.py real-caller
-# already uses (scripts/query/run_forecast_cli.py).
 RAW_FIRMS_PATH = Path("data/raw/firms/firms_sample.csv")
 RAW_ERA5_PATH = Path("data/raw/era5/era5_sample.nc")
 GEOGRAPHY_BBOX = (-119.8, 37.2, -119.4, 37.6)
@@ -37,8 +35,6 @@ def main() -> None:
         landcover_path=LANDCOVER_PATH,
     )
 
-    # The real one-worker run supplies the real per-tile compute
-    # cost the "cpu" candidate is judged against.
     baseline = run_distributed_inference(workload, num_workers=1, context=context)
 
     report = identify_bottleneck(

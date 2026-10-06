@@ -1,19 +1,3 @@
-"""A stand-in for scripts/query/run_forecast_cli.py whose
-behaviour the reliability harness chooses per request, through the
-request's own region name (a `named` region's value), so one backend
-instance can run every job-level scenario:
-
-    sleep-<n>           sleep n seconds, then succeed
-    slow-once-<nonce>   the first run hangs (to be killed by the backend's
-                        timeout); every later run with the same nonce
-                        succeeds at once
-    hang                never finish on its own
-    anything else       succeed at once
-
-Same protocol as the real CLI: the request JSON on stdin, the result
-JSON on stdout.
-"""
-
 import json
 import os
 import sys

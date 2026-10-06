@@ -27,11 +27,6 @@ class LabelRecord:
 
 
 def is_qualifying_observation(observation: Observation) -> bool:
-    """Whether an observation counts as fire evidence for labeling.
-
-    Confidence is not required to be present; only an explicit "l"
-    disqualifies.
-    """
     if not -90 <= observation.latitude <= 90:
         return False
 
@@ -68,10 +63,6 @@ def construct_labels(
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
     resolution_deg: float = GRID_RESOLUTION_DEG,
 ) -> list[LabelRecord]:
-    """`bbox`/`resolution_deg` must match whatever `cells` was built with
-    (they default to the same values `build_california_grid` defaults to),
-    so that tile IDs computed here for each observation line up with the
-    tile IDs already on `cells`."""
     qualifying = [obs for obs in observations if is_qualifying_observation(obs)]
 
     records: list[LabelRecord] = []
@@ -79,7 +70,6 @@ def construct_labels(
     for cutoff in cutoffs:
         window_end = cutoff + timedelta(hours=FORECAST_WINDOW_HOURS)
 
-        # Half-open on the near side, closed on the far side: (cutoff, window_end].
         window_observations = [
             obs for obs in qualifying if cutoff < obs.observed_at <= window_end
         ]

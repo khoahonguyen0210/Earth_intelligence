@@ -1,12 +1,3 @@
-"""Live demo of the dataset builder against the real sample data.
-
-Real historical data only exists for a single real day (2024-08-15),
-which falls in the locked TEST split. This script also computes rows
-for a train-period and a validation-period cutoff to demonstrate the
-pipeline assembles a dataset spanning all three splits; those rows
-correctly show zero fire activity and no environmental data.
-"""
-
 from datetime import datetime, timezone
 from pathlib import Path
 

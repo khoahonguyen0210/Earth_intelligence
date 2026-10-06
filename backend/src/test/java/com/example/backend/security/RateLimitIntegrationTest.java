@@ -56,12 +56,10 @@ class RateLimitIntegrationTest {
         assertTrue(retryAfter >= 1 && retryAfter <= 60, "Retry-After within the window: " + retryAfter);
         assertTrue(refused.body().contains("rate limit exceeded"), refused.body());
 
-        // A separate budget per route: analyses are unaffected by the forecasts above.
         assertEquals(400, post("/analyses").statusCode());
         assertEquals(400, post("/analyses").statusCode());
         assertEquals(429, post("/analyses").statusCode());
 
-        // Reads and probes are never limited.
         for (int i = 0; i < 10; i++) {
             assertEquals(404, get("/forecasts/does-not-exist").statusCode());
         }

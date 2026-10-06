@@ -21,7 +21,6 @@ public class RegionStore {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    /** A RegionStore with nothing behind it -- recordFrom is a no-op. Test convenience only. */
     public static RegionStore noop() {
         return new RegionStore(null);
     }

@@ -10,8 +10,6 @@ from ai_earth_intelligence_and_forecasting_engine.distributed.workload import (
     freeze_workload,
 )
 
-# Same real sample-data paths every other scripts/query/*.py real-caller
-# already uses (scripts/query/run_forecast_cli.py).
 RAW_FIRMS_PATH = Path("data/raw/firms/firms_sample.csv")
 RAW_ERA5_PATH = Path("data/raw/era5/era5_sample.nc")
 GEOGRAPHY_BBOX = (-119.8, 37.2, -119.4, 37.6)

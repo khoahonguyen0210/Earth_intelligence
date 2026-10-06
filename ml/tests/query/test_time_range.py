@@ -125,7 +125,6 @@ def test_contains_normalizes_non_utc_timestamp():
     spec = TimeRangeSpec(start="2024-08-08", end="2024-08-15")
     result = normalize_time_range(spec)
 
-    # 2024-08-15 20:00 in UTC-5 is 2024-08-16 01:00 UTC -- outside the range.
     non_utc = datetime(
         2024, 8, 15, 20, 0, 0, tzinfo=timezone(timedelta(hours=-5))
     )

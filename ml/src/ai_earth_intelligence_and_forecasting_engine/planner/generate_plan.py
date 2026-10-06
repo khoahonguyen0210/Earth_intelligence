@@ -85,10 +85,6 @@ _SYSTEM_PROMPT = _build_system_prompt()
 
 
 def _to_gemini_schema(schema: Any) -> Any:
-    """Gemini's response_schema is a restricted, OpenAPI-3.0-style
-    dialect that does not support the "additionalProperties" keyword at
-    all. This strips that one keyword before the schema is sent as
-    response_schema, without changing the schema used everywhere else."""
     if isinstance(schema, dict):
         return {
             key: _to_gemini_schema(value)
@@ -101,11 +97,6 @@ def _to_gemini_schema(schema: Any) -> Any:
 
 
 def _gemini_plan_schema() -> dict[str, Any]:
-    """Gemini's schema-constrained decoding takes an object schema with
-    no declared properties literally: it always emits an empty object
-    for it rather than filling it in from prompt context. Substituting
-    the union of every real tool's input_schema fixes this without
-    loosening or duplicating real validation."""
     schema = _to_gemini_schema(PLAN_OUTPUT_SCHEMA)
     schema["properties"]["steps"]["items"]["properties"]["input"] = {
         "anyOf": [_to_gemini_schema(tool.input_schema) for tool in TOOL_SCHEMAS]
@@ -117,10 +108,6 @@ _GEMINI_PLAN_SCHEMA = _gemini_plan_schema()
 
 
 def parse_plan(question: str, payload: dict[str, Any]) -> Plan:
-    """Builds a Plan from an already-parsed JSON payload matching
-    PLAN_OUTPUT_SCHEMA. Public (not just an internal step of
-    generate_plan) so a logged/replayed LLM response can be turned back
-    into a Plan without a fresh API call."""
     steps = tuple(
         PlanStep(
             step_id=raw_step["step_id"],
@@ -135,14 +122,6 @@ def parse_plan(question: str, payload: dict[str, Any]) -> Plan:
 
 
 def generate_plan(question: str, client: genai.Client) -> Plan:
-    """Natural language -> LLM -> structured plan -> validator
-    (validate_plan_or_raise). The LLM cannot bypass the validator: there
-    is no path in this function that returns a Plan which has not
-    already passed validate_plan_or_raise. An invalid plan raises
-    ValueError here.
-
-    An overlong question is refused before the model is ever called.
-    """
     if len(question) > MAX_QUESTION_CHARS:
         raise ValueError(f"question exceeds {MAX_QUESTION_CHARS} characters")
 

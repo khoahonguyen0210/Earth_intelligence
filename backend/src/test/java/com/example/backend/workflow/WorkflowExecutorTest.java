@@ -21,7 +21,6 @@ class WorkflowExecutorTest {
 
     private static final Instant NOW = Instant.parse("2024-08-10T00:00:00Z");
 
-    /** Queues a scripted sequence of outcomes per task_id; records dispatch order. */
     private static class FakeDispatcher implements WorkflowTaskDispatcher {
         final Map<String, Deque<DispatchOutcome>> scripted = new HashMap<>();
         final List<String> dispatchedInOrder = new ArrayList<>();
@@ -52,7 +51,6 @@ class WorkflowExecutorTest {
 
     @Test
     void runsTheHandbooksLinearChainExampleToCompletion() {
-        // get_data -> validate -> build_features -> run_forecast
         Workflow workflow = new Workflow(
                 "wf-1",
                 "forecast-pipeline",
@@ -78,7 +76,6 @@ class WorkflowExecutorTest {
 
     @Test
     void runsTheHandbooksFanOutExampleToCompletion() {
-        // run_forecast -> {get_result_evidence, generate_map}
         Workflow workflow = new Workflow(
                 "wf-2",
                 "forecast-with-evidence-and-map",

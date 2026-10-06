@@ -21,7 +21,6 @@ from ai_earth_intelligence_and_forecasting_engine.models.preprocessing import (
 
 MODEL_VERSION = "v1"
 
-# Regularization strengths tried during validation-only tuning.
 C_CANDIDATES: tuple[float, ...] = (0.01, 0.1, 1.0, 10.0)
 
 
@@ -70,8 +69,6 @@ def fit_logistic_regression(
             best_c = c
 
     if best_score == float("-inf"):
-        # Validation split also has no positives to score against; keep
-        # the smallest candidate as a defined, deterministic fallback.
         best_score = float("nan")
 
     final_model = LogisticRegression(C=best_c, max_iter=1000, class_weight="balanced")

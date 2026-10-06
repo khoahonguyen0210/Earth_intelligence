@@ -81,8 +81,6 @@ public class ForecastController {
 
             try {
                 queue.enqueue(id);
-                // job_id links this request's log line (and its request_id) to
-                // every later ForecastWorker line for the same job.
                 log.atInfo()
                         .addKeyValue("event", "job_enqueued")
                         .addKeyValue(ForecastWorker.MDC_JOB_ID, id)

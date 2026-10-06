@@ -1,7 +1,3 @@
-# Same image as infra/docker/docker-compose.yml's redis service --
-# backs the forecast job queue AND the autoscaling signal (queue
-# depth) for the worker role folded into backend (see backend.yaml's
-# comment).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

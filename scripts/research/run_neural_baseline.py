@@ -1,13 +1,3 @@
-"""Train the PyTorch network on the locked splits and compare it with
-XGBoost on the 2024 test year.
-
-Same features, same train/validation/test split as the benchmark. The
-network early-stops on validation PR-AUC; the test year is only scored.
-Needs the research group: `uv sync --group research`.
-
-    python scripts/research/run_neural_baseline.py
-"""
-
 import csv
 import json
 import time

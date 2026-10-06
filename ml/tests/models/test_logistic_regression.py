@@ -38,9 +38,6 @@ def _row(tile_id: str, target: int, previous_24h_count: int, split: str) -> Data
 
 
 def _separable_split(split: str, offset: int) -> list[DatasetRow]:
-    """previous_24h_count clearly predicts target: high count -> mostly
-    positive, zero count -> mostly negative. Genuinely learnable signal,
-    not degenerate constant data."""
     high_targets = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
     low_targets = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
 
@@ -74,10 +71,6 @@ def test_fit_logistic_regression_selects_a_c_from_the_candidate_grid():
 
 
 def test_model_learns_the_correct_direction_of_the_signal():
-    """The core correctness check for an ML model: it should predict
-    meaningfully higher probability for the group whose historical fire
-    count is high than for the group with none, since that's the actual
-    (synthetic but real) signal in the training data."""
     result = fit_logistic_regression(TRAIN_ROWS, VALIDATION_ROWS)
 
     predictions = predict_logistic_regression(result, TEST_ROWS)
@@ -88,8 +81,6 @@ def test_model_learns_the_correct_direction_of_the_signal():
 
 
 def test_evaluate_logistic_regression_does_not_use_test_targets_to_select_config():
-    """Swapping the test set's row order/content must not change which C
-    was selected -- selection only ever looks at train+validation."""
     result_a, _predictions_a, _metrics_a = evaluate_logistic_regression(
         TRAIN_ROWS, VALIDATION_ROWS, TEST_ROWS
     )
@@ -108,6 +99,4 @@ def test_evaluate_logistic_regression_produces_locked_metrics():
 
     assert metrics.n_samples == len(TEST_ROWS)
     assert 0.0 <= metrics.roc_auc <= 1.0
-    # The signal is strong and clean, so this baseline should discriminate
-    # far better than random guessing on the held-out test rows.
     assert metrics.roc_auc > 0.7

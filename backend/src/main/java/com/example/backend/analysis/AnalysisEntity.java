@@ -36,7 +36,6 @@ public class AnalysisEntity {
     private Instant createdAt;
 
     protected AnalysisEntity() {
-        // JPA
     }
 
     public AnalysisEntity(

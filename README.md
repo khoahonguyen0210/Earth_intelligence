@@ -105,10 +105,23 @@ On 35 labelled questions worded unlike the docs, embedding search finds a correc
 
 ## Quick start
 
-You need Docker with Compose v2, plus a [NASA FIRMS key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) and a [Gemini API key](https://aistudio.google.com/apikey).
+You need Docker with Compose v2, [uv](https://docs.astral.sh/uv/), and three keys: a [NASA FIRMS key](https://firms.modaps.eosdis.nasa.gov/api/map_key/), a [Gemini API key](https://aistudio.google.com/apikey), and a Copernicus CDS key for ERA5-Land weather.
+
+The historical data, the trained model and the docs search index are build outputs, not stored in the repository, and the backend image copies them in. Build them once:
 
 ```bash
-cp .env.example .env          # add FIRMS_MAP_KEY and GEMINI_API_KEY
+cp .env.example .env          # add FIRMS_MAP_KEY, GEMINI_API_KEY, CDSAPI_URL and CDSAPI_KEY
+uv run --project ml python scripts/data/download_firms_history.py
+uv run --project ml python scripts/data/download_era5_history.py
+uv run --project ml python scripts/data/build_statewide_geography.py
+uv run --project ml python scripts/forecast/build_historical_dataset.py
+uv run --project ml python scripts/models/train_production_model.py
+uv run --project ml python scripts/rag/build_docs_index.py
+```
+
+The downloads take a while, because ERA5-Land requests queue on the Copernicus servers. They resume if interrupted. Then start the stack:
+
+```bash
 cd infra/docker
 docker compose up -d --build
 curl http://localhost:8080/readyz
@@ -134,7 +147,7 @@ cd backend && ./mvnw spring-boot:run     # terminal 1
 cd frontend && npm ci && npm run dev     # terminal 2
 ```
 
-The ML code needs Python 3.12 and [uv](https://docs.astral.sh/uv/). ERA5-Land downloads also need a Copernicus `CDSAPI_KEY`.
+The ML code needs Python 3.12 and [uv](https://docs.astral.sh/uv/), and the data and model from the quick start. The PyTorch comparison needs `uv sync --group research` first.
 
 ## Testing
 
@@ -145,7 +158,7 @@ uv run --project ml pytest ml/tests -q
 cd frontend && npm test
 ```
 
-There are over 700 tests, and the backend ones run against real Postgres, Redis, and MinIO. CI runs Python, Java, frontend, and a Trivy dependency and secret scan on every push.
+There are over 800 tests, and the backend ones run against real Postgres, Redis, and MinIO. CI runs Python, Java, frontend, and a Trivy dependency and secret scan on every push.
 
 ## API
 
@@ -167,7 +180,7 @@ Keys go in `.env` (git-ignored). Everything else has a default in `application.p
 
 | Variable | Purpose |
 |---|---|
-| `GEMINI_API_KEY` | Natural-language planner |
+| `GEMINI_API_KEY` | Planner, answers and docs embeddings |
 | `FIRMS_MAP_KEY` | NASA FIRMS fire detections |
 | `CDSAPI_URL`, `CDSAPI_KEY` | ERA5-Land weather |
 | `SPRING_DATASOURCE_URL` | Database, default `localhost:5432/ai_earth` |
@@ -180,8 +193,8 @@ Keys go in `.env` (git-ignored). Everything else has a default in `application.p
 ```text
 backend/    Spring Boot API, JPA, Flyway migrations
 frontend/   React + Vite app
-ml/         Data, features, models, planner, distributed runs
-scripts/    Data download, benchmark, and demo scripts
+ml/         Data, features, models, planner, docs retrieval, retraining, distributed runs
+scripts/    Data download, training, evaluation, retrieval, retraining and demo scripts
 infra/      Docker, Kubernetes, kind, Terraform
 .github/    CI workflow
 docs/       Contracts, architecture, benchmarks, portfolio evidence
@@ -193,8 +206,16 @@ docs/       Contracts, architecture, benchmarks, portfolio evidence
 
 ## Security
 
-The API has no user authentication yet, so keep it off the public internet. Requests are size-limited and rate-limited, secrets are redacted from logs, and the default passwords in the Compose files are for local use only.
+The API has no user authentication yet, so keep it off the public internet. Requests are size-limited and rate-limited, secrets are redacted from logs, and the default passwords in the Compose files are for local use only. The language model can only call eight approved tools, and every plan is validated before any step runs.
+
+## Author
+
+This is a personal project, built end to end by one person. Issues and suggestions are welcome.
+
+| Name | Role | Github |
+|---|---|---|
+| Khoa Ho Nguyen | Author and maintainer | [@khoahonguyen0210](https://github.com/khoahonguyen0210) |
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE). Built by [Khoa Ho Nguyen](https://github.com/khoahonguyen0210).
+MIT. See [`LICENSE`](LICENSE).

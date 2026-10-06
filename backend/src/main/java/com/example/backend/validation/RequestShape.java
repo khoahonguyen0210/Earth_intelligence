@@ -51,7 +51,6 @@ public final class RequestShape {
                 form.apply(text);
                 return true;
             } catch (DateTimeParseException ignored) {
-                // not this form; try the next
             }
         }
         return false;

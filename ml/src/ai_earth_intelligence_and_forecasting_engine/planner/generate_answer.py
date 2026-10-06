@@ -27,10 +27,6 @@ RESULT_CATEGORY_BY_TOOL: dict[str, str] = {
 
 @dataclass(frozen=True)
 class StepResult:
-    """The minimal shape this module needs from one executed plan step:
-    the real value a tool produced, and its evidence if it has any of
-    its own."""
-
     step_id: str
     tool: str
     result: Any
@@ -40,7 +36,7 @@ class StepResult:
 @dataclass(frozen=True)
 class GroundedFact:
     step_id: str
-    category: str  # "observed" | "computed" | "predicted" | "documented"
+    category: str
     result: Any
     evidence: dict[str, Any] | None
 
@@ -117,11 +113,6 @@ def _build_answer_prompt(question: str, facts: tuple[GroundedFact, ...]) -> str:
 def generate_answer(
     plan: Plan, results: dict[str, StepResult], client: genai.Client
 ) -> GroundedAnswer:
-    """Execution results + evidence -> a grounded final answer. Only steps
-    whose tool is in RESULT_CATEGORY_BY_TOOL and which have a real
-    StepResult contribute a fact; everything else is silently excluded.
-    With no facts at all, this returns a fixed "cannot answer" summary
-    without calling the model."""
     facts = _assemble_facts(plan, results)
 
     if not facts:

@@ -1,6 +1,3 @@
-# Same image/credentials as infra/docker/docker-compose.yml's postgres
-# service. storageClassName is left unset so it binds
-# against whatever default StorageClass the local cluster ships with.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

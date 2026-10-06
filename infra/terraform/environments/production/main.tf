@@ -3,9 +3,6 @@ data "aws_caller_identity" "current" {}
 locals {
   name = "${var.project}-${var.environment}"
 
-  # Service account the backend Deployment runs as in the cloud
-  # manifests; its Pod Identity role is scoped to the artifact
-  # bucket only.
   backend_namespace       = "default"
   backend_service_account = "backend"
 }
@@ -82,7 +79,6 @@ module "platform" {
   region       = var.region
   vpc_id       = module.network.vpc_id
 
-  # External Secrets may read exactly these two secrets, nothing else.
   readable_secret_arns = [
     module.database.master_user_secret_arn,
     module.secrets.firms_secret_arn,
@@ -92,6 +88,5 @@ module "platform" {
   backend_service_account = local.backend_service_account
   artifact_bucket_arn     = module.storage.bucket_arn
 
-  # Helm releases need running nodes, not just a control plane.
   depends_on = [module.eks]
 }

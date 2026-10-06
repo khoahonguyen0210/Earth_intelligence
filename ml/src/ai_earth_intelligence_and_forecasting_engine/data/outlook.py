@@ -27,8 +27,6 @@ def sample_points(cells: list[GridCell]) -> list[tuple[float, float]]:
 
 
 def wind_components(speed_ms: float, direction_deg: float) -> tuple[float, float]:
-    """Meteorological direction is where the wind comes from; u/v are where
-    it blows to, as in ERA5."""
     radians = math.radians(direction_deg)
     return -speed_ms * math.sin(radians), -speed_ms * math.cos(radians)
 
@@ -36,8 +34,6 @@ def wind_components(speed_ms: float, direction_deg: float) -> tuple[float, float
 def record_from_hourly(
     hourly: dict, hour: int, latitude: float, longitude: float, valid_time: datetime
 ) -> ERA5Record:
-    """ERA5-Land layout: kelvin, winds as u/v, precipitation accumulated in
-    metres since 00 UTC."""
     speed = hourly["wind_speed_10m"][hour]
     direction = hourly["wind_direction_10m"][hour]
     u_wind, v_wind = wind_components(speed, direction)
@@ -93,8 +89,6 @@ def _fetch_batch(
 def fetch_weather_outlook(
     cells: list[GridCell], cutoff: datetime, valid_time: datetime
 ) -> list[ERA5Record]:
-    """Forecast weather at `cutoff`, one record per cell (the nearest 0.5
-    degree sample point's weather), stamped `valid_time`."""
     points = sample_points(cells)
     day = cutoff.date().isoformat()
     by_point: dict[tuple[float, float], dict] = {}

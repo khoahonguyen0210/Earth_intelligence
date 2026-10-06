@@ -138,8 +138,6 @@ def _resolve_ready_chunk(
     try:
         result = pending_chunk.async_result.get()
     except Exception:
-        # A real exception raised inside the worker (not a crash-via-
-        # timeout) -- still a real, detected failure for this chunk.
         pending_chunk.failure_detected = True
         if pending_chunk.failure_detected_at is None:
             pending_chunk.failure_detected_at = time.perf_counter()
@@ -191,8 +189,6 @@ def _retry_or_give_up(
         )
         return
 
-    # Retry without re-injecting the crash: a real recovered attempt does
-    # real work, it does not crash again on purpose a second time.
     retry_task = dataclasses.replace(pending_chunk.task, inject_crash=False)
     pending[pending_chunk.chunk_index] = _PendingChunk(
         chunk_index=pending_chunk.chunk_index,

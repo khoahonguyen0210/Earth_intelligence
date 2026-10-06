@@ -78,7 +78,6 @@ def test_measure_failure_recovery_times_until_ready():
     )
 
     assert isinstance(result, FailureRecoveryResult)
-    # two failed checks before ready -> two 5s sleeps elapsed
     assert result.recovery_seconds == 10.0
 
 

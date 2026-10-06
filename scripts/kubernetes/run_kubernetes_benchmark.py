@@ -67,14 +67,6 @@ def wait_for_pod_count(count: int, timeout_seconds: float = 120.0) -> None:
 
 
 def measure_resource_usage() -> dict:
-    """Idle usage at the steady-state 1 replica, then real usage while
-    KEDA's own autoscaler reacts to a genuine queue backlog
-    and scales to 2 -- not a synthetic bypass of the autoscaler.
-
-    Capturing usage the moment the second pod is scheduled (not waiting
-    for it to be fully Ready) is what a real "scaling up under load"
-    resource-usage sample actually looks like.
-    """
     wait_for_ready_replicas(1)
     idle = parse_kubectl_top_pods(kubectl("top", "pods", "-l", "app=backend"))
 
@@ -85,10 +77,10 @@ def measure_resource_usage() -> dict:
         response.raise_for_status()
 
     wait_for_pod_count(2, timeout_seconds=60.0)
-    time.sleep(15)  # let metrics-server take at least one sample of the new pod
+    time.sleep(15)
     under_load = parse_kubectl_top_pods(kubectl("top", "pods", "-l", "app=backend"))
 
-    wait_for_ready_replicas(1, timeout_seconds=180.0)  # let it drain and scale back down
+    wait_for_ready_replicas(1, timeout_seconds=180.0)
 
     return {
         "idle_1_replica": [vars(u) for u in idle],

@@ -8,7 +8,7 @@ from ai_earth_intelligence_and_forecasting_engine.query.run_analysis import (
     run_analysis,
 )
 
-ResultShape = str  # "count" | "daily" | "weekly" | "map"
+ResultShape = str
 
 
 @dataclass(frozen=True)

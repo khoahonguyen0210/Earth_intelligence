@@ -157,7 +157,7 @@ export function ForecastMap({ result }: ForecastMapProps) {
 
   function project(lon: number, lat: number): [number, number] {
     const x = PADDING + (lon - refWest) * scaleX;
-    const y = PADDING + (refNorth - lat) * scaleY; // SVG y grows downward
+    const y = PADDING + (refNorth - lat) * scaleY;
     return [x, y];
   }
 

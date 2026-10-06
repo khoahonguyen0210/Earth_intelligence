@@ -53,7 +53,6 @@ MIN_SYNTHETIC_FIT_ROWS = 20
 def fit_baseline_model(
     train_rows: list[DatasetRow], validation_rows: list[DatasetRow]
 ) -> tuple[CalibratedModel, bool]:
-    """Returns whether the fallback was used."""
     try:
         base_result = fit_xgboost(train_rows, validation_rows)
         return fit_calibration(base_result, validation_rows), False
@@ -71,9 +70,6 @@ def fit_baseline_model(
 def chunk_tile_ids(
     tile_ids: tuple[str, ...], num_workers: int
 ) -> list[tuple[str, ...]]:
-    """Splits tile_ids into up to num_workers near-equal, contiguous,
-    non-empty chunks. Returns fewer than num_workers chunks rather than
-    any empty ones if there are fewer tiles than workers."""
     if num_workers < 1:
         raise ValueError(f"num_workers must be >= 1, got {num_workers}")
 
@@ -101,13 +97,6 @@ class WorkerChunkResult:
 
 @dataclass(frozen=True)
 class ChunkTask:
-    """One worker's unit of work; every field here must round-trip
-    through pickle across the process boundary.
-
-    inject_crash is the fault-injection switch: when True, the worker
-    terminates itself immediately instead of doing any real work. Always
-    False for a normal benchmark run."""
-
     tile_ids: tuple[str, ...]
     cutoff: datetime
     observations: list
@@ -119,13 +108,6 @@ class ChunkTask:
 
 
 def process_chunk(task: ChunkTask) -> WorkerChunkResult:
-    """Runs inside one worker process: builds real feature rows for this
-    chunk's tiles and scores them with the model already fitted once in
-    the parent. Must be a module-level name (not a closure) to be
-    picklable at all under Windows' spawn start method.
-
-    When task.inject_crash is set, this worker process terminates itself
-    via os._exit before doing any real work."""
     if task.inject_crash:
         os._exit(1)
 
@@ -190,8 +172,6 @@ def prepare_run_context(
     all_cells: list[GridCell] = build_california_grid()
     cells_by_id = {cell.tile_id: cell for cell in all_cells}
 
-    # Fitting uses a fixed cell set (FIT_CELL_COUNT), independent of
-    # whatever inference workload size a caller later requests.
     fit_cells = all_cells[:FIT_CELL_COUNT]
     train_rows = build_dataset(
         observations, era5_records, geography_cells, fit_cells, [TRAIN_DEMO_CUTOFF]

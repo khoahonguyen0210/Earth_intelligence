@@ -55,8 +55,6 @@ class EarthQueryIntegrationTest {
         var body = objectMapper.readTree(result.body()).path("result");
         assertEquals("There were 3 fires (computed).", body.path("answer").asString());
 
-        // The real point of this test: the subprocess really learned this
-        // app's own randomly bound port, via the real WebServerInitializedEvent.
         assertEquals("http://localhost:" + port, body.path("backend_base_url_seen").asString());
     }
 

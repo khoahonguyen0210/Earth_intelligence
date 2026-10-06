@@ -13,7 +13,6 @@ public record AnalysisOutcome(boolean success, Object result, Object evidence, S
         return new AnalysisOutcome(false, null, null, error, errorCode);
     }
 
-    /** See ForecastOutcome.redacted -- the error is stored and returned, not only logged. */
     public AnalysisOutcome redacted(SecretRedactor redactor) {
         return error == null ? this : new AnalysisOutcome(success, result, evidence, redactor.redact(error), errorCode);
     }

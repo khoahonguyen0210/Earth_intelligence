@@ -1,12 +1,3 @@
-"""Live demo of the climatology baseline against the real dataset built by
-the forecast pipeline.
-
-The train split has zero real observations, so the fitted model learns
-a global/per-tile rate of 0.0. This run exists to prove the
-fit/predict/metrics/artifact-saving code is correct end-to-end, not to
-report a meaningful accuracy result.
-"""
-
 from datetime import datetime, timezone
 from pathlib import Path
 

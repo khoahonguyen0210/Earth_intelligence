@@ -16,8 +16,6 @@ SPATIAL_FOLDS = 5
 
 
 def persistence_scores(rows: list[DatasetRow], window: str = "7d") -> list[float]:
-    """The no-model baseline: a cell's recent fire count is its risk score.
-    Ties are broken by the 30-day count so the ranking is not arbitrary."""
     column = {"24h": "previous_24h_count", "7d": "previous_7d_count"}[window]
     return [
         float(getattr(row, column)) + row.previous_30d_count * 1e-3 for row in rows
@@ -45,10 +43,6 @@ def block_bootstrap(
     n_samples: int = BOOTSTRAP_SAMPLES,
     seed: int = BOOTSTRAP_SEED,
 ) -> tuple[dict[str, Interval], dict[str, Interval]]:
-    """95% percentile intervals for each model's PR-AUC and for its paired
-    difference from `baseline`. Whole forecast cutoffs are resampled,
-    not rows: cells sharing a cutoff share its weather and fire season,
-    so resampling rows would make the intervals far too narrow."""
     rng = np.random.default_rng(seed)
     unique_groups = np.unique(groups)
     index_by_group = {group: np.flatnonzero(groups == group) for group in unique_groups}
@@ -90,9 +84,6 @@ def spatial_fold(
     block_cells: int = SPATIAL_BLOCK_CELLS,
     n_folds: int = SPATIAL_FOLDS,
 ) -> int:
-    """Assigns a cell to a fold by the 1-degree block it sits in (10 x 10
-    cells of 0.1 degrees). No two adjacent blocks, diagonals included,
-    share a fold."""
     lat, lon = tile_indices(tile_id)
     block_lat, block_lon = lat // block_cells, lon // block_cells
     return (block_lat * 2 + block_lon) % n_folds

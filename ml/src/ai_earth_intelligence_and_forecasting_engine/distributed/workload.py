@@ -30,8 +30,6 @@ class DistributedWorkload:
 
 
 def freeze_workload(workload_size: int = WORKLOAD_SIZE) -> DistributedWorkload:
-    """The first `workload_size` tiles from the real, versioned
-    California grid, in the grid's own deterministic lat/lon-index order."""
     cells: list[GridCell] = build_california_grid()
 
     if workload_size > len(cells):

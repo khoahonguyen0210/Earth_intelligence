@@ -80,7 +80,6 @@ def main() -> None:
         print(replica_scaling_trial_to_dict(trial))
         trials.append(trial)
 
-    # Leave the cluster at a normal single-instance baseline afterward.
     scale_backend_and_wait(1)
 
     output_path = Path("data/processed/benchmark/replica_scaling_benchmark.json")

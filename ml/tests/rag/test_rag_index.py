@@ -29,9 +29,6 @@ class _FakeResponse:
 
 
 class _TopicModels:
-    """Embeds a text as a one-hot over TOPICS by which topic word it
-    mentions, so dense search is deterministic and meaningful."""
-
     def __init__(self, fail_first: int = 0):
         self.calls = 0
         self.fail_first = fail_first

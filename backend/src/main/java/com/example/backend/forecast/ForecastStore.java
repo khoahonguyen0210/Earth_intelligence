@@ -50,17 +50,14 @@ public class ForecastStore {
         return repository.findWaitingUnchangedSince(before);
     }
 
-    /** Ends an abandoned RUNNING attempt as RETRYING or FAILED; false if another sweep got there first. */
     public boolean endAbandonedAttempt(String id, Forecast.Status status, String error, Instant before) {
         return repository.endAbandonedAttempt(id, status.name(), error, before, Instant.now()) == 1;
     }
 
-    /** Marks a waiting job as re-enqueued now; false if it changed meanwhile or another sweep got there first. */
     public boolean touchWaiting(String id, Instant before) {
         return repository.touchWaiting(id, before, Instant.now()) == 1;
     }
 
-    /** Backs the "same idempotency key -> one logical job" rule. */
     public Optional<Forecast> findByIdempotencyKey(String idempotencyKey) {
         return spans.child("forecast.store.find_by_idempotency_key", () -> {
             spans.tag("db.system", "postgresql");

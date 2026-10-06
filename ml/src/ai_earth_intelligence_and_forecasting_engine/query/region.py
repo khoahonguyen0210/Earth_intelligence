@@ -10,8 +10,6 @@ from ai_earth_intelligence_and_forecasting_engine.data.grid import (
 )
 from ai_earth_intelligence_and_forecasting_engine.query.schema import RegionSpec
 
-# Approximate, deterministic bounding boxes, not authoritative
-# political boundaries.
 NAMED_REGIONS: dict[str, tuple[float, float, float, float]] = {
     "california": CALIFORNIA_BBOX,
     "northern_california": (-124.5, 38.5, -119.0, 42.0),

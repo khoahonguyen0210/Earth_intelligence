@@ -109,8 +109,6 @@ def test_cells_within_bbox_full_grid_bbox_returns_every_cell():
 def test_cells_within_bbox_excludes_cell_on_the_exclusive_edge():
     cells = build_california_grid(bbox=(-120.0, 37.0, -119.8, 37.2))
 
-    # A bbox exactly one cell wide/tall starting at the grid's origin
-    # contains only that single cell's centroid, per the half-open rule.
     selected = cells_within_bbox(cells, (-120.0, 37.0, -119.9, 37.1))
 
     assert len(selected) == 1

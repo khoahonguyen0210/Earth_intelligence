@@ -19,7 +19,6 @@ public class WorkflowStore {
         this.objectMapper = objectMapper;
     }
 
-    /** Upserts the workflow row and every one of its node rows. */
     public void save(Workflow workflow) {
         workflows.save(
                 new WorkflowEntity(workflow.id(), workflow.name(), workflow.description(), workflow.createdAt()));

@@ -1,12 +1,3 @@
-"""Explain the served model on the held-out test year with SHAP.
-
-Reports the mean absolute SHAP contribution (log-odds) of each feature
-over every 2024 test row and over the rows where a fire really occurred.
-It only reads the trained model; nothing is fit or tuned on the test set.
-
-    python scripts/models/explain_production_model.py
-"""
-
 import json
 from pathlib import Path
 

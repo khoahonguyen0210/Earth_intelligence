@@ -44,7 +44,6 @@ def _numeric_values(rows: list[DatasetRow], column: str) -> np.ndarray:
 
 
 def _numeric_proportions(values: np.ndarray, edges: tuple[float, ...]) -> list[float]:
-    """Bins are (-inf, e1], (e1, e2], ..., (ek, inf), plus one missing bin."""
     present = values[~np.isnan(values)]
     counts = np.bincount(
         np.searchsorted(np.array(edges), present, side="left"),
@@ -66,10 +65,6 @@ def _land_cover_proportions(rows: list[DatasetRow]) -> list[float]:
 
 
 def build_reference(rows: list[DatasetRow], n_bins: int = N_BINS) -> dict[str, Any]:
-    """The training distribution each serving batch is compared against:
-    quantile bin edges and the share of rows in each bin per numeric
-    feature (count features are mostly zero, so their edges collapse to
-    a few distinct values), and class shares for land cover."""
     reference: dict[str, Any] = {}
     for column in NUMERIC_FEATURE_COLUMNS:
         values = _numeric_values(rows, column)
@@ -92,8 +87,6 @@ def build_reference(rows: list[DatasetRow], n_bins: int = N_BINS) -> dict[str, A
 
 
 def psi(expected: list[float], actual: list[float]) -> float:
-    """Population stability index. Under 0.1 is stable, 0.1 to 0.25 a
-    moderate shift, above 0.25 a major one."""
     total = 0.0
     for e, a in zip(expected, actual, strict=True):
         e, a = max(e, _FLOOR), max(a, _FLOOR)
@@ -121,12 +114,6 @@ def drift_report(
     rows: list[DatasetRow],
     columns: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
-    """PSI of `rows` against the training reference, per feature.
-
-    A single forecast holds one day of weather for every cell, and the
-    reference pools a whole training season, so its weather always
-    looks shifted. Serving therefore checks SERVING_DRIFT_FEATURES only;
-    weather drift is checked over a season of rows instead."""
     scores: dict[str, float] = {}
     for column, entry in reference["features"].items():
         if columns is not None and column not in columns:

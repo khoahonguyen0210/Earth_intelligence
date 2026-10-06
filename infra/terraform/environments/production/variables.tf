@@ -1,6 +1,3 @@
-# Defaults are the locked values from docs/cloud-deployment.md.
-# Changing one of them reopens a locked decision; it is not tuning.
-
 variable "region" {
   description = "AWS region for every resource in this environment."
   type        = string
@@ -61,9 +58,6 @@ variable "cache_node_type" {
   default     = "cache.t4g.micro"
 }
 
-# HTTPS (docs/security-baseline.md). No domain is locked, so
-# both default to null and the certificate is created only once a domain
-# is chosen; until then the ALB serves plain HTTP on its AWS DNS name.
 variable "domain_name" {
   description = "Domain the product is served on over HTTPS; null for HTTP on the ALB's own name."
   type        = string

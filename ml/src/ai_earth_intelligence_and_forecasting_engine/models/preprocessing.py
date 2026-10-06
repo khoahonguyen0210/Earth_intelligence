@@ -61,10 +61,6 @@ def fit_preprocessor(
     feature_columns: tuple[str, ...] = NUMERIC_FEATURE_COLUMNS,
     include_land_cover: bool = True,
 ) -> Preprocessor:
-    """`feature_columns`/`include_land_cover` let a caller (e.g. the
-    weather ablation) fit against a deliberate subset of features while
-    keeping every other part of the pipeline identical. Defaults preserve
-    the original full-feature-set behavior exactly."""
     if not train_rows:
         raise ValueError("cannot fit preprocessing on an empty training set")
 

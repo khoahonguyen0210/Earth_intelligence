@@ -87,9 +87,6 @@ jobs:
         run: npm test
 
 
-  # Dependency vulnerabilities (Maven, uv, npm) and committed
-  # secrets, with the same script developers run locally
-  # (docs/security-baseline.md).
   security:
     runs-on: ubuntu-latest
 
@@ -104,8 +101,6 @@ jobs:
           java-version: "21"
           cache: maven
 
-      # Trivy resolves pom.xml's transitive dependencies from the local
-      # Maven repository rather than one request per POM to Maven Central.
       - name: Resolve backend dependencies
         working-directory: backend
         run: ./mvnw -q dependency:resolve

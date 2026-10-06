@@ -212,8 +212,6 @@ INTEGER_COLUMNS = frozenset(
 
 
 def write_dataset_rows(handle: TextIO, rows: Iterable[DatasetRow]) -> None:
-    """Appends rows in save_dataset's CSV format (header not included), so
-    a large dataset can be streamed to disk cutoff by cutoff."""
     for row in rows:
         values = [
             row.tile_id,
@@ -236,9 +234,6 @@ def save_dataset(rows: list[DatasetRow], output_path: Path) -> Path:
 
 
 def load_dataset(path: Path) -> list[DatasetRow]:
-    """The inverse of save_dataset: "None" (a missing feature) reads back
-    as None, counts and land cover as int, everything else as float."""
-
     def parse(column: str, value: str) -> int | float | None:
         if value == "None":
             return None

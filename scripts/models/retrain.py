@@ -1,17 +1,3 @@
-"""Gated retraining: train a candidate on new data, keep it only if it
-beats the model in service.
-
-    python scripts/models/retrain.py --register-current      # once
-    python scripts/models/retrain.py --season 2025 --deploy  # each new season
-    python scripts/models/retrain.py --rollback --deploy
-    python scripts/models/retrain.py --replay                 # backtest on history
-
-`--season Y` needs season Y in the dataset; the locked 2024 test season
-is refused as a gate. `--deploy` swaps the served model directory when a
-candidate is promoted. `--replay` runs the loop over 2021-2023 in a
-separate registry and never touches the served model.
-"""
-
 import argparse
 import json
 import shutil

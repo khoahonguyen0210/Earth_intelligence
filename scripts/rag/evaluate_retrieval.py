@@ -1,12 +1,3 @@
-"""Measure retrieval quality on the labelled question set.
-
-Runs every question through lexical (BM25), dense (Gemini embeddings)
-and hybrid search and reports recall@1/3/5 and MRR for each. All
-questions are embedded in one batched call.
-
-    python scripts/rag/evaluate_retrieval.py
-"""
-
 import json
 from dataclasses import asdict
 from pathlib import Path

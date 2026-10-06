@@ -10,9 +10,6 @@ provider "aws" {
   }
 }
 
-# Talks to the cluster this same configuration creates. Authenticates with
-# a short-lived token from the AWS CLI (the same credentials running
-# terraform), so no kubeconfig file or static cluster credential exists.
 provider "helm" {
   kubernetes = {
     host                   = module.eks.cluster_endpoint

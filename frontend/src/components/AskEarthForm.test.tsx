@@ -53,7 +53,6 @@ describe("AskEarthForm", () => {
     await user.click(screen.getByRole("button", { name: /^ask$/i }));
     unmount();
 
-    // A later mount (e.g. after a page reload) reads the same persisted list.
     render(<AskEarthForm onSubmit={vi.fn()} disabled={false} />);
     await user.type(screen.getByLabelText(/ask earth a question/i), "second question");
     await user.click(screen.getAllByRole("button", { name: /^ask$/i })[0]);

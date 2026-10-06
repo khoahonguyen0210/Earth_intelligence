@@ -58,7 +58,6 @@ class TracingIntegrationTest {
         registry.add("forecast.python.script-path",
                 () -> Path.of("src", "test", "resources", "timed_forecast_stub.py").toAbsolutePath().toString());
         registry.add("forecast.python.working-directory", () -> ".");
-        // Its own queue, so no other test context's worker takes the job.
         registry.add("forecast.queue.key", () -> "tracing-itest-" + UUID.randomUUID());
         registry.add("forecast.queue.poll-timeout-seconds", () -> "1");
         registry.add("management.opentelemetry.tracing.export.schedule-delay", () -> "100ms");
@@ -103,7 +102,6 @@ class TracingIntegrationTest {
         assertEquals(201, created.statusCode(), created.body());
         String jobId = new ObjectMapper().readTree(created.body()).path("forecast_id").asString();
 
-        // Wait for the worker to finish the job and its spans to be exported.
         Instant deadline = Instant.now().plus(WAIT);
         SpanData submit = null;
         List<SpanData> trace = List.of();
@@ -120,33 +118,27 @@ class TracingIntegrationTest {
         assertTrue(trace.stream().anyMatch(span -> span.getName().equals("forecast.job.attempt")),
                 "no finished attempt within " + WAIT + ": " + exporter.getFinishedSpanItems());
 
-        // HTTP: Spring's own server span is the root.
         SpanData server = one(trace, span -> !span.getParentSpanContext().isValid(), "the root span");
         assertEquals("http post /forecasts", server.getName());
         assertEquals(server.getSpanId(), submit.getParentSpanId());
 
-        // job: the pending row and the enqueue, under the submit span.
         SpanData pending = one(trace, span -> "PENDING".equals(attribute(span, "forecast.status")), "PENDING save");
         SpanData enqueue = one(trace, span -> span.getName().equals("forecast.queue.enqueue"), "enqueue");
         assertEquals(submit.getSpanId(), pending.getParentSpanId());
         assertEquals(submit.getSpanId(), enqueue.getParentSpanId());
 
-        // worker: the attempt continued the trace from the traceparent on the row.
         SpanData attempt = one(trace, span -> span.getName().equals("forecast.job.attempt"), "attempt");
         assertEquals(submit.getSpanId(), attempt.getParentSpanId());
         assertEquals(jobId, attribute(attempt, "job.id"));
         assertEquals("succeeded", attribute(attempt, "job.outcome"));
         assertNotEquals(StatusCode.ERROR, attempt.getStatus().getStatusCode());
 
-        // worker -> Python, storage -> result.
         SpanData python = one(trace, span -> span.getName().equals("forecast.python"), "python");
         assertEquals(attempt.getSpanId(), python.getParentSpanId());
         assertEquals(4.25, python.getAttributes().get(AttributeKey.doubleKey("python.model_inference_ms")));
         SpanData result = one(trace, span -> "SUCCEEDED".equals(attribute(span, "forecast.status")), "result save");
         assertEquals(attempt.getSpanId(), result.getParentSpanId());
 
-        // The worker thread's log lines carry the request's trace id: logs
-        // and traces join across the queue, which request_id alone cannot.
         JsonNode succeeded = Arrays.stream(output.getOut().split("\\R"))
                 .filter(line -> line.contains("\"job_succeeded\"") && line.contains(jobId))
                 .map(line -> new ObjectMapper().readTree(line))
@@ -160,7 +152,7 @@ class TracingIntegrationTest {
     void anIdleWorkerExportsNoTraces() throws Exception {
         exporter.reset();
 
-        Thread.sleep(3_000); // three blocking polls of an empty queue
+        Thread.sleep(3_000);
 
         List<String> names = exporter.getFinishedSpanItems().stream().map(SpanData::getName).toList();
         assertTrue(names.isEmpty(), "idle polling must not create traces: " + names);

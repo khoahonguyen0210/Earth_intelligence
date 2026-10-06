@@ -37,13 +37,13 @@ def test_build_calibration_table_hand_verified_single_entry_bins():
     assert by_bin[0].count == 1
 
     assert by_bin[9].predicted_mean == pytest.approx(0.95)
-    assert by_bin[9].observed_frequency == pytest.approx(0.0)  # y_true[4] == 0
+    assert by_bin[9].observed_frequency == pytest.approx(0.0)
     assert by_bin[9].count == 1
 
 
 def test_build_calibration_table_averages_within_a_bin():
     y_true = [0, 1, 1]
-    y_pred = [0.42, 0.44, 0.48]  # all fall in bin 4: [0.4, 0.5)
+    y_pred = [0.42, 0.44, 0.48]
 
     table = build_calibration_table(y_true, y_pred, n_bins=10)
 
@@ -97,9 +97,6 @@ def test_plot_reliability_diagram_produces_a_real_image_file(tmp_path):
 
     assert result.exists()
     assert result.stat().st_size > 0
-
-
-# --- Integration tests against a real (fitted) XGBoost base model ----------
 
 
 def _row(tile_id: str, target: int, previous_24h_count: int, split: str) -> DatasetRow:

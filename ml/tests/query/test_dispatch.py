@@ -1,8 +1,3 @@
-"""dispatch.py wires the planner tools to real,
-already-existing computation. Each dispatch_* test proves the real
-function actually ran (a real count, a real bbox, a real evidence
-record), not that some object was returned."""
-
 import json
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -37,7 +32,7 @@ SAMPLE_FIRMS_CSV = (
     "37.5,-119.5,2024-08-01,1000,n\n"
     "37.6,-119.6,2024-08-01,1400,h\n"
     "37.5,-119.5,2024-08-02,0900,n\n"
-    "0.0,0.0,2024-08-01,1000,n\n"  # outside California, excluded by region filtering
+    "0.0,0.0,2024-08-01,1000,n\n"
 )
 
 NAMED_CALIFORNIA = {"kind": "named", "value": "california"}
@@ -94,8 +89,8 @@ def test_dispatch_resolve_region_returns_the_real_california_bbox():
 
     assert output["source_kind"] == "named"
     assert output["label"] == "california"
-    assert output["bbox"][0] < output["bbox"][2]  # west < east, a real bbox
-    json.dumps(output)  # must be JSON-serializable, like every other tool output
+    assert output["bbox"][0] < output["bbox"][2]
+    json.dumps(output)
 
 
 def test_dispatch_get_data_firms_counts_only_records_inside_the_region(firms_history):
@@ -104,11 +99,11 @@ def test_dispatch_get_data_firms_counts_only_records_inside_the_region(firms_his
     )
 
     assert output["source"] == "NASA_FIRMS"
-    assert output["record_count"] == 3  # the fourth row (0,0) is outside California
+    assert output["record_count"] == 3
     assert output["provenance"]["source"] == "NASA_FIRMS"
     assert (
         output["provenance"]["checksum"] is None
-    )  # no single raw file backs a directory read
+    )
 
 
 def test_dispatch_get_data_era5_land_counts_only_records_inside_the_bbox(era5_history):
@@ -122,7 +117,7 @@ def test_dispatch_get_data_era5_land_counts_only_records_inside_the_bbox(era5_hi
     )
 
     assert output["source"] == "ERA5-Land"
-    assert output["record_count"] == 1  # only the -119.5 point falls in the bbox
+    assert output["record_count"] == 1
     assert output["provenance"]["source"] == "ERA5-Land"
 
 
@@ -492,7 +487,7 @@ def test_execute_plan_defends_against_a_ref_to_a_step_never_run_without_depends_
                 "evidence",
                 "get_result_evidence",
                 {"result_id": "$forecast.forecast_id"},
-                depends_on=(),  # missing on purpose
+                depends_on=(),
             ),
         ),
     )

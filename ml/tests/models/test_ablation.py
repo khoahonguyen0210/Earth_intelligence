@@ -50,12 +50,6 @@ def _row(
 
 
 def _rows_for_split(split: str, offset: int) -> list[DatasetRow]:
-    """Fire-history (previous_24h_count) is deliberately uninformative --
-    it alternates between the two classes the same way for both targets,
-    so it carries no separating signal on its own. temperature_2m is
-    deliberately a clean, perfect separator. This lets a weather-ablation
-    test assert (rather than merely hope) that adding weather measurably
-    improves metrics over fire-history alone."""
     positive_counts = [0, 50, 0, 50, 0, 50]
     negative_counts = [0, 50, 0, 50, 0, 50]
 
@@ -108,10 +102,7 @@ def test_adding_weather_improves_roc_auc_when_fire_history_alone_cannot_separate
 
     assert result.baseline.metrics is not None
     assert result.candidate.metrics is not None
-    # Fire-history alone carries no real signal in this fixture: it should
-    # do no better than chance.
     assert result.baseline.metrics.roc_auc == pytest.approx(0.5, abs=0.05)
-    # temperature_2m perfectly separates the classes.
     assert result.candidate.metrics.roc_auc == pytest.approx(1.0, abs=0.01)
 
     assert result.roc_auc_delta is not None
@@ -159,10 +150,6 @@ def test_save_ablation_result_writes_deltas_to_disk(tmp_path):
 def _geography_row(
     tile_id: str, target: int, split: str, land_cover_class: int | None
 ) -> DatasetRow:
-    """Fire-history and weather are constant across every row here (no
-    signal at all), so the fire-history+weather baseline should do no
-    better than chance. land_cover_class cleanly separates the classes,
-    so the geography candidate should discriminate near-perfectly."""
     return DatasetRow(
         tile_id=tile_id,
         cutoff=CUTOFF,
@@ -224,9 +211,7 @@ def test_adding_geography_improves_roc_auc_when_weather_alone_cannot_separate():
 
     assert result.baseline.metrics is not None
     assert result.candidate.metrics is not None
-    # fire-history+weather carries no signal in this fixture.
     assert result.baseline.metrics.roc_auc == pytest.approx(0.5, abs=0.05)
-    # land_cover_class perfectly separates the classes.
     assert result.candidate.metrics.roc_auc == pytest.approx(1.0, abs=0.01)
 
     assert result.roc_auc_delta is not None

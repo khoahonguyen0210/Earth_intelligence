@@ -30,11 +30,6 @@ class FeatureContribution:
 
 @dataclass(frozen=True)
 class Contributions:
-    """Per-row SHAP contributions of the uncalibrated XGBoost model, in
-    log-odds. The land-cover one-hot columns are summed into one
-    `land_cover` feature. `bias` is the expected log-odds; each row's
-    contributions plus `bias` equal that row's raw margin."""
-
     features: tuple[str, ...]
     values: np.ndarray
     bias: np.ndarray

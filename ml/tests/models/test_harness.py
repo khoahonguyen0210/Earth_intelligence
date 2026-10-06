@@ -104,7 +104,7 @@ def test_run_experiment_on_rows_succeeds_and_writes_all_artifacts(tmp_path, mode
     assert result.paths.readme.exists()
 
     predictions_content = result.paths.predictions.read_text(encoding="utf-8")
-    assert predictions_content.count("\n") == len(TEST_ROWS) + 1  # header + rows
+    assert predictions_content.count("\n") == len(TEST_ROWS) + 1
 
     readme_content = result.paths.readme.read_text(encoding="utf-8")
     assert model_name in readme_content
@@ -143,7 +143,6 @@ def test_run_experiment_on_rows_handles_single_class_training_gracefully(tmp_pat
     assert result.error is not None
     assert "only one class" in result.error
 
-    # Even a failed experiment must still leave a documented artifact trail.
     assert result.paths.config.exists()
     assert result.paths.readme.exists()
     assert not result.paths.metrics.exists()

@@ -8,8 +8,8 @@ from ai_earth_intelligence_and_forecasting_engine.query.schema import TimeRangeS
 
 @dataclass(frozen=True)
 class NormalizedTimeRange:
-    start: datetime  # inclusive
-    end: datetime  # exclusive
+    start: datetime
+    end: datetime
 
 
 def _parse_boundary(value: str, *, is_end: bool) -> datetime:

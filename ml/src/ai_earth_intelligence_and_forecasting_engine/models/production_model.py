@@ -107,8 +107,6 @@ def load_production_model(directory: Path) -> ProductionModel:
             f"(trained, installed): {mismatched}; retrain it"
         )
 
-    # Our own artifact, written by save_production_model above -- never a
-    # file supplied by a request.
     with (directory / MODEL_FILE).open("rb") as handle:
         calibrated, calibration_table = pickle.load(handle)  # noqa: S301
     return ProductionModel(calibrated, calibration_table, metadata)

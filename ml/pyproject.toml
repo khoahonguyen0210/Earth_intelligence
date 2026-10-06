@@ -63,15 +63,5 @@ pythonpath = ["src"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
-# Without this, `uv.lock` marks the root project `source = { virtual =
-# "." }` (dependencies-only, never actually built/installed) whenever no
-# [build-system] is declared -- confirmed live inside a genuinely clean
-# container: `uv sync --frozen` there raised
-# ModuleNotFoundError for this very package, even though it imports fine
-# on a local machine that happens to carry a leftover editable install
-# from some earlier, uv-sync-independent `pip install -e .`. Declaring
-# both the build system above and this flag explicitly makes `uv sync`
-# actually install the local package everywhere, not just wherever that
-# leftover install happens to already exist.
 [tool.uv]
 package = true

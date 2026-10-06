@@ -1,13 +1,3 @@
-"""Download the real ERA5-Land hours the benchmark cutoffs need.
-
-One CDS request per (year, month): every cutoff day in that month at the
-cutoff hour (10:00 UTC), the five locked variables, over California.
-Resumable (existing files are skipped); each file gets a provenance
-record. CDS queues requests server-side, so a run can take a while.
-
-    python scripts/data/download_era5_history.py
-"""
-
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -58,8 +48,6 @@ def main() -> None:
             },
             str(partial_path),
         )
-        # Renamed only after a complete download, so an interrupted
-        # transfer is retried next run instead of being skipped as done.
         partial_path.replace(output_path)
 
         hour_value = int(hour.split(":")[0])

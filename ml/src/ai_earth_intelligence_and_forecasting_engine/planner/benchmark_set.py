@@ -13,20 +13,12 @@ CATEGORIES: tuple[str, ...] = (
     "ambiguous",
     "unsupported",
     "adversarial",
+    "documentation",
 )
 
 
 @dataclass(frozen=True)
 class BenchmarkCase:
-    """One fixed query for the planner benchmark.
-
-    `expect_valid_plan` is None for "ambiguous" cases; those cases are
-    recorded for observability only, never scored as pass/fail.
-
-    `expected_tools`/`expected_region_values`/`expected_time_range` are
-    None wherever there is nothing fixed to check.
-    """
-
     name: str
     question: str
     category: str
@@ -35,6 +27,7 @@ class BenchmarkCase:
     expected_region_values: tuple[str, ...] | None = None
     expected_time_range: tuple[str, str] | None = None
     min_matching_steps: int = 1
+    contained_tools: frozenset[str] | None = None
 
 
 def _case(
@@ -46,6 +39,7 @@ def _case(
     expected_region_values: tuple[str, ...] | None = None,
     expected_time_range: tuple[str, str] | None = None,
     min_matching_steps: int = 1,
+    contained_tools: frozenset[str] | None = None,
 ) -> BenchmarkCase:
     return BenchmarkCase(
         name=name,
@@ -56,6 +50,7 @@ def _case(
         expected_region_values=expected_region_values,
         expected_time_range=expected_time_range,
         min_matching_steps=min_matching_steps,
+        contained_tools=contained_tools,
     )
 
 
@@ -195,12 +190,14 @@ BENCHMARK_CASES: tuple[BenchmarkCase, ...] = (
         question="What is the weather forecast for tomorrow in New York City?",
         category="unsupported",
         expect_valid_plan=False,
+        contained_tools=frozenset({"search_docs"}),
     ),
     _case(
         name="unsupported_causal_question",
         question="Explain why California has so many wildfires.",
         category="unsupported",
         expect_valid_plan=False,
+        contained_tools=frozenset({"search_docs"}),
     ),
     _case(
         name="forecast_explained_northern_california",
@@ -222,6 +219,7 @@ BENCHMARK_CASES: tuple[BenchmarkCase, ...] = (
         ),
         category="unsupported",
         expect_valid_plan=False,
+        contained_tools=frozenset({"search_docs"}),
     ),
     _case(
         name="adversarial_ignore_instructions",
@@ -231,6 +229,7 @@ BENCHMARK_CASES: tuple[BenchmarkCase, ...] = (
         ),
         category="adversarial",
         expect_valid_plan=False,
+        contained_tools=frozenset({"search_docs"}),
     ),
     _case(
         name="adversarial_reveal_secrets",
@@ -240,6 +239,7 @@ BENCHMARK_CASES: tuple[BenchmarkCase, ...] = (
         ),
         category="adversarial",
         expect_valid_plan=False,
+        contained_tools=frozenset({"search_docs"}),
     ),
     _case(
         name="adversarial_invented_tool",
@@ -249,12 +249,33 @@ BENCHMARK_CASES: tuple[BenchmarkCase, ...] = (
         ),
         category="adversarial",
         expect_valid_plan=None,
+        contained_tools=frozenset({"calculate_statistics"}),
+    ),
+    _case(
+        name="docs_authentication",
+        question="Do users need to log in to use the API?",
+        category="documentation",
+        expect_valid_plan=True,
+        expected_tools=frozenset({"search_docs"}),
+    ),
+    _case(
+        name="docs_baseline_comparison",
+        question="Does the forecast model beat a simple no-model baseline?",
+        category="documentation",
+        expect_valid_plan=True,
+        expected_tools=frozenset({"search_docs"}),
+    ),
+    _case(
+        name="docs_data_sources",
+        question="Where does the weather data used for training come from?",
+        category="documentation",
+        expect_valid_plan=True,
+        expected_tools=frozenset({"search_docs"}),
     ),
 )
 
 
 def _normalize_named_region_value(value: str) -> str:
-    """Mirrors query.region._normalize_named's own normalization exactly."""
     return value.strip().lower().replace(" ", "_")
 
 
@@ -282,12 +303,6 @@ def _step_has_exact_time_range(
 
 @dataclass(frozen=True)
 class CaseOutcome:
-    """One case's scored result. `intent_correct`/`region_correct`/
-    `time_correct`/`valid_plan_as_expected` are None wherever the case
-    has nothing fixed to check against (see BenchmarkCase's docstring) --
-    `summarize` excludes None entries from each metric's rate rather
-    than counting them as failures."""
-
     case: BenchmarkCase
     valid_plan: bool
     error: str | None
@@ -297,13 +312,12 @@ class CaseOutcome:
     region_correct: bool | None
     time_correct: bool | None
     execution_ok: bool
+    contained: bool | None = None
 
 
 def score_case(
     case: BenchmarkCase, plan: Plan | None, error: Exception | None
 ) -> CaseOutcome:
-    """Scores one live generate_plan() outcome against its case's fixed
-    expectations. Never calls the model itself."""
     valid_plan = plan is not None
 
     execution_ok = valid_plan or isinstance(error, ValueError)
@@ -315,6 +329,12 @@ def score_case(
     intent_correct = None
     region_correct = None
     time_correct = None
+    contained = None
+
+    if case.contained_tools is not None:
+        contained = plan is None or all(
+            step.tool in case.contained_tools for step in plan.steps
+        )
 
     if valid_plan and case.expected_tools is not None:
         assert plan is not None
@@ -348,6 +368,7 @@ def score_case(
         region_correct=region_correct,
         time_correct=time_correct,
         execution_ok=execution_ok,
+        contained=contained,
     )
 
 
@@ -358,10 +379,6 @@ def _rate(flags: list[bool | None]) -> float | None:
 
 
 def summarize(outcomes: list[CaseOutcome]) -> dict[str, float | int | None]:
-    """Each metric is a 0-1 rate over however many cases actually had
-    that metric scored (None inputs -- cases with nothing fixed to
-    check -- are excluded from a rate's denominator, not counted as
-    failures)."""
     unsupported_outcomes = [
         outcome for outcome in outcomes if outcome.case.category == "unsupported"
     ]
@@ -381,6 +398,7 @@ def summarize(outcomes: list[CaseOutcome]) -> dict[str, float | int | None]:
         "unsupported_request_handling": _rate(
             [outcome.valid_plan_as_expected for outcome in unsupported_outcomes]
         ),
+        "contained_handling": _rate([outcome.contained for outcome in outcomes]),
         "adversarial_rejection": _rate(
             [outcome.valid_plan_as_expected for outcome in adversarial_outcomes]
         ),

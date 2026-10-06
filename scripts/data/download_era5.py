@@ -14,7 +14,6 @@ from ai_earth_intelligence_and_forecasting_engine.data.provenance import (
 def main() -> None:
     config = load_era5_config()
 
-    # Small bounded sample in California, matching the FIRMS sample bbox.
     bbox = (-124.5, 32.5, -114.0, 42.0)
     observed_date = date(2024, 8, 15)
     hour = "10:00"

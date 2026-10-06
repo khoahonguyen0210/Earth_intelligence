@@ -31,15 +31,6 @@ def run_replica_scaling_trial(
     sleep: Callable[[float], None] = time.sleep,
     now: Callable[[], float] = time.monotonic,
 ) -> ReplicaScalingTrialResult:
-    """Submits `job_count` identical jobs back-to-back and polls every job
-    until it reaches a terminal status, timing the whole batch.
-
-    `submit_job`/`poll_job_status`/`sleep`/`now` are injected so this can
-    be unit-tested against fakes.
-
-    A job reaching FAILED still counts as a completed unit of work here,
-    not an error.
-    """
     start = now()
     job_ids = [submit_job() for _ in range(job_count)]
 
@@ -82,10 +73,6 @@ class ReplicaScalingPoint:
 def compute_speedup_efficiency(
     trials: list[ReplicaScalingTrialResult],
 ) -> list[ReplicaScalingPoint]:
-    """The same formulas used for the multi-worker benchmark:
-    speedup(n) = T1 / Tn, efficiency(n) = speedup(n) / n, against the
-    first trial's (replicas=1) wall time as T1. `trials` is expected
-    sorted by replica count ascending, replicas=1 first."""
     baseline_seconds = trials[0].total_wall_seconds
 
     points = []

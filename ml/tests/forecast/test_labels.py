@@ -107,7 +107,7 @@ def test_construct_labels_negative_example_no_observations():
 
 
 def test_construct_labels_excludes_observation_exactly_at_cutoff():
-    observation = _obs("fire-1", CUTOFF)  # exactly at T, must be excluded
+    observation = _obs("fire-1", CUTOFF)
 
     records = _labels([observation], CELLS, [CUTOFF])
 
@@ -115,7 +115,7 @@ def test_construct_labels_excludes_observation_exactly_at_cutoff():
 
 
 def test_construct_labels_includes_observation_exactly_at_window_end():
-    observation = _obs("fire-1", CUTOFF + timedelta(hours=24))  # exactly T+24h
+    observation = _obs("fire-1", CUTOFF + timedelta(hours=24))
 
     records = _labels([observation], CELLS, [CUTOFF])
 
@@ -126,7 +126,7 @@ def test_construct_labels_includes_observation_exactly_at_window_end():
 def test_construct_labels_excludes_observation_just_after_window_end():
     observation = _obs(
         "fire-1", CUTOFF + timedelta(hours=24, seconds=1)
-    )  # one second past T+24h
+    )
 
     records = _labels([observation], CELLS, [CUTOFF])
 

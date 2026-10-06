@@ -26,7 +26,6 @@ function rememberQuery(question: string) {
       JSON.stringify(deduped.slice(0, MAX_RECENT_QUERIES)),
     );
   } catch {
-    // ignored
   }
 }
 

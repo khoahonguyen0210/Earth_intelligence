@@ -1,12 +1,3 @@
-"""Chunk docs/, embed the chunks with Gemini, and save the search index.
-
-Chunks unchanged since the existing index keep their stored vectors, so
-a rebuild only embeds new or edited text. Needs GEMINI_API_KEY. Pass
---lexical-only to build a BM25-only index without calling the API.
-
-    python scripts/rag/build_docs_index.py
-"""
-
 import json
 import sys
 from pathlib import Path

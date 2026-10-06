@@ -1,12 +1,3 @@
-"""Save the training feature distribution next to the served model, and
-measure how far the validation and test years drift from it.
-
-Every forecast then compares its own input rows against this reference
-and reports the population stability index per feature.
-
-    python scripts/models/build_feature_reference.py
-"""
-
 import json
 from collections import defaultdict
 from dataclasses import replace

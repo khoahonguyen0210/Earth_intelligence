@@ -29,12 +29,6 @@ def compute_geography_features(
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
     resolution_deg: float = GRID_RESOLUTION_DEG,
 ) -> list[GeographyFeatures]:
-    """`bbox`/`resolution_deg` must match whatever `cells` was built with,
-    same as the other forecast feature builders.
-
-    Static geography has no cutoff/time dimension -- one record per tile,
-    not per (tile, cutoff).
-    """
     values_by_tile: dict[str, GeographyCell] = {}
 
     for geo_cell in geography_cells:

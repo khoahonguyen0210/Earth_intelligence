@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-/** The worker's job lifecycle events, as real logback events. */
 class ForecastWorkerLoggingTest {
 
     private static final ForecastRequest REQUEST = new ForecastRequest(

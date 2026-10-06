@@ -1,13 +1,6 @@
-# The one private artifact bucket S3ObjectStore writes to -- docs/cloud-
-# deployment.md "Object storage". Terraform creates it, so the backend's
-# startup headBucket succeeds and its createBucket fallback never runs.
-
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket_name
 
-  # Same teardown reasoning as modules/database: `terraform destroy` must
-  # not stall on a non-empty bucket. Consequence: destroy deletes every
-  # stored artifact.
   force_destroy = true
 }
 

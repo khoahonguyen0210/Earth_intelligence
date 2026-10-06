@@ -146,7 +146,6 @@ def parse_era5_records(nc_path: Path) -> list[ERA5Record]:
 
 
 def relative_humidity_percent(temperature_2m: float, dewpoint_2m: float) -> float:
-    """Magnus-formula relative humidity from 2 m temperature/dewpoint in Kelvin."""
     t_celsius = temperature_2m - 273.15
     td_celsius = dewpoint_2m - 273.15
 

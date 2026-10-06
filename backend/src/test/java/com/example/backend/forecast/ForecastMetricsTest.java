@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Every forecast meter, read back from a real Micrometer registry. */
 class ForecastMetricsTest {
 
     private static final ForecastRequest REQUEST = new ForecastRequest(
@@ -132,8 +131,8 @@ class ForecastMetricsTest {
                 request -> ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "timed out"),
                 2, SecretRedactor.of(), metrics, Spans.noop(), 0, RegionStore.noop());
 
-        worker.pollOnce(); // attempt 1: retried
-        worker.pollOnce(); // attempt 2 of 2: terminal
+        worker.pollOnce();
+        worker.pollOnce();
 
         assertEquals(1.0, registry.get("forecast.job.failures")
                 .tags("error_code", "PYTHON_TIMEOUT", "terminal", "false").counter().count());

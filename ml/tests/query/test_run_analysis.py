@@ -11,7 +11,7 @@ SAMPLE_CSV = (
     "37.5,-119.5,2024-08-01,1000,n\n"
     "37.6,-119.6,2024-08-01,1400,h\n"
     "37.5,-119.5,2024-08-02,0900,n\n"
-    "0.0,0.0,2024-08-01,1000,n\n"  # outside California, excluded
+    "0.0,0.0,2024-08-01,1000,n\n"
 )
 
 
@@ -98,8 +98,6 @@ def test_run_analysis_output_is_json_serializable(firms_csv):
 def test_run_analysis_over_history_refuses_a_period_the_history_does_not_cover(
     tmp_path,
 ):
-    # Only Aug 1-5 2024 downloaded: asking about Aug 1-10 must be refused,
-    # never answered as if Aug 6-10 had zero fires.
     (tmp_path / "VIIRS_SNPP_SP_2024-08-01_5d.csv").write_text(
         "latitude,longitude,acq_date,acq_time\n", encoding="utf-8"
     )

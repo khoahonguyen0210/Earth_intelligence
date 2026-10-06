@@ -1,15 +1,3 @@
-"""Confidence intervals, a persistence baseline, and a spatial holdout.
-
-Reads the saved 2024 test predictions of the four benchmarked models,
-adds two no-model persistence baselines, and bootstraps PR-AUC by
-resampling whole forecast cutoffs. Then retrains XGBoost five times,
-each time hiding one fold of 1-degree blocks from training, and scores
-the hidden blocks on the 2024 test year. Nothing is tuned on the test
-set: the model config is the locked one.
-
-    python scripts/models/run_rigorous_evaluation.py
-"""
-
 import csv
 import json
 from pathlib import Path

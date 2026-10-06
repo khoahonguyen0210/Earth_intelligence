@@ -63,23 +63,19 @@ class WorkflowPartialFailureIntegrationTest {
         Map<String, WorkflowNode> reloaded = store.find(id).orElseThrow().nodes().stream()
                 .collect(Collectors.toMap(WorkflowNode::taskId, n -> n));
 
-        // Recovered: the transient failure was retried once and succeeded.
         assertEquals(Status.SUCCEEDED, reloaded.get("build_features").status());
         assertEquals(2, reloaded.get("build_features").attempt());
 
-        // Contained: the permanent failure fails its own node, once, with its reason ...
         assertEquals(Status.FAILED, reloaded.get("run_forecast").status());
         assertEquals(1, reloaded.get("run_forecast").attempt(), "a permanent failure is never retried");
         assertEquals("model rejected the input: no lookback coverage", reloaded.get("run_forecast").error());
 
-        // ... and cancels only what depends on it, without dispatching it.
         for (String dependent : List.of("get_result_evidence", "generate_map")) {
             assertEquals(Status.CANCELLED, reloaded.get(dependent).status(), dependent);
             assertFalse(dispatched.contains(dependent), dependent + " must never run");
             assertNull(reloaded.get(dependent).outputRef(), dependent);
         }
 
-        // Unaffected: the independent branch and the upstream nodes completed.
         for (String done : List.of("get_data", "validate", "calculate_statistics")) {
             assertEquals(Status.SUCCEEDED, reloaded.get(done).status(), done);
         }

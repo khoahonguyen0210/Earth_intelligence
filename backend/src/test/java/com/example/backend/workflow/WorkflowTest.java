@@ -33,7 +33,6 @@ class WorkflowTest {
 
     @Test
     void validFanOutHasNoErrors() {
-        // run_forecast fans out to get_result_evidence and generate_map.
         Workflow workflow = new Workflow(
                 "wf-2",
                 "forecast-with-evidence-and-map",

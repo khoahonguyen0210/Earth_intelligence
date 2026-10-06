@@ -7,10 +7,10 @@ from ai_earth_intelligence_and_forecasting_engine.query.regression_set import (
 
 SAMPLE_CSV = (
     "latitude,longitude,acq_date,acq_time,confidence\n"
-    "37.8,-122.4,2024-08-01,1000,n\n"  # Bay Area
-    "34.0,-118.2,2024-08-01,1400,h\n"  # Southern California
-    "37.5,-119.5,2024-08-08,0900,n\n"  # generic California, different week
-    "0.0,0.0,2024-08-01,1000,n\n"  # outside California, excluded everywhere
+    "37.8,-122.4,2024-08-01,1000,n\n"
+    "34.0,-118.2,2024-08-01,1400,h\n"
+    "37.5,-119.5,2024-08-08,0900,n\n"
+    "0.0,0.0,2024-08-01,1000,n\n"
 )
 
 

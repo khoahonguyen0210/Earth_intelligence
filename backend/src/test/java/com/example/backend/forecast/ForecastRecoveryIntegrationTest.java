@@ -101,13 +101,12 @@ class ForecastRecoveryIntegrationTest {
         String id = row(Forecast.Status.RUNNING, 0);
 
         recovery(queue).recoverAbandonedAttempts();
-        recovery(queue).recoverAbandonedAttempts(); // a second replica's sweep
+        recovery(queue).recoverAbandonedAttempts();
 
         assertEquals(1, reload(id).attempts(), "recovered exactly once, not twice");
         assertEquals(1, countOccurrences(queue, id), "re-enqueued exactly once, not twice");
     }
 
-    /** LPOS finds an id but not how many times it occurs; count via LRANGE for this one assertion. */
     private long countOccurrences(RedisForecastQueue queue, String id) {
         return redis.opsForList().range(queueKey, 0, -1).stream().filter(id::equals).count();
     }

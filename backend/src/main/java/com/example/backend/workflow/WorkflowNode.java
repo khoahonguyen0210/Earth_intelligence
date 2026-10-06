@@ -16,10 +16,6 @@ public record WorkflowNode(
         Instant updatedAt,
         String error) {
 
-    /**
-     * WorkflowStateMachine defines the legal transitions between these;
-     * this only fixes the state space itself.
-     */
     public enum Status {
         PENDING,
         READY,
@@ -39,7 +35,6 @@ public record WorkflowNode(
         dependencies = List.copyOf(dependencies == null ? List.of() : dependencies);
     }
 
-    /** A freshly-created node: PENDING, no attempts yet, no output/error. */
     public static WorkflowNode pending(
             String taskId, String taskType, List<String> dependencies, String inputRef, Instant createdAt) {
         return new WorkflowNode(

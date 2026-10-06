@@ -1,22 +1,3 @@
-"""Consolidated leakage-safety tests.
-
-Checklist of properties and where each is verified:
-
-[x] future timestamps excluded
-    -- test_fire_history_features_never_uses_future_timestamps
-    -- test_environmental_features_never_uses_future_timestamps
-[x] future target excluded
-    -- test_label_target_never_uses_observations_at_or_before_cutoff
-[x] train/validation/test do not overlap
-    -- test_train_validation_test_splits_partition_every_day_exactly_once
-[x] feature windows stop at cutoff
-    -- test_fire_history_windows_never_extend_past_cutoff
-    -- test_environmental_feature_never_uses_record_after_cutoff
-[x] learned preprocessing uses training data only
-    -- ml/tests/models/test_preprocessing.py::
-    test_transform_uses_train_statistics_not_the_input_rows_own_distribution.
-"""
-
 import random
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
@@ -42,13 +23,13 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.spec import (
 
 RNG_SEED = 20240815
 CUTOFF = datetime(2024, 8, 15, 12, 0, tzinfo=timezone.utc)
-TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)  # single cell
+TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
 TILE = CELLS[0].tile_id
 
 
 def _random_observation(rng: random.Random, index: int) -> Observation:
-    offset_hours = rng.uniform(-24 * 40, 24 * 40)  # +/- 40 days around CUTOFF
+    offset_hours = rng.uniform(-24 * 40, 24 * 40)
     return Observation(
         observation_id=f"obs-{index}",
         source="NASA_FIRMS",
@@ -117,10 +98,6 @@ def test_environmental_features_never_uses_future_timestamps():
 
 
 def test_fire_history_windows_never_extend_past_cutoff():
-    """For every window length, manually recompute the count using only
-    observations strictly inside (cutoff - window, cutoff] and check it
-    matches the library's output -- proving the implementation's window
-    boundary is exactly what it claims, not off-by-some-amount."""
     rng = random.Random(RNG_SEED + 2)
     observations = [_random_observation(rng, i) for i in range(300)]
 
@@ -158,9 +135,6 @@ def test_environmental_feature_never_uses_record_after_cutoff():
 
 
 def test_label_target_never_uses_observations_at_or_before_cutoff():
-    """The forward label window is (cutoff, cutoff+24h] -- an observation
-    dated at or before the cutoff must never contribute to the target,
-    no matter how many of them exist."""
     rng = random.Random(RNG_SEED + 4)
     only_past_or_present = [
         replace(
@@ -211,7 +185,7 @@ def test_train_validation_test_splits_partition_every_day_exactly_once():
         assignments[current] = split
         current += timedelta(days=1)
 
-    assert len(assignments) == total_days  # every day assigned, none skipped
+    assert len(assignments) == total_days
 
     train_days = sum(1 for s in assignments.values() if s == "train")
     validation_days = sum(1 for s in assignments.values() if s == "validation")
@@ -229,8 +203,6 @@ def test_dates_outside_the_locked_range_belong_to_no_split():
 
 
 def test_no_single_date_matches_more_than_one_split_boundary_directly():
-    """Directly re-check the three transition dates without relying on
-    split_for_date, as a second independent confirmation."""
     assert TRAIN_SPLIT.end != VALIDATION_SPLIT.start
     assert VALIDATION_SPLIT.end != TEST_SPLIT.start
     assert TRAIN_SPLIT.end < VALIDATION_SPLIT.start

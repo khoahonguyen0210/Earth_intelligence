@@ -28,9 +28,6 @@ LANDCOVER_OVERVIEW_FACTOR = 8
 def one_degree_tiles(
     bbox: tuple[float, float, float, float],
 ) -> list[tuple[float, float, float, float]]:
-    """1-degree boxes covering `bbox`, clipped to it, west-to-east then
-    south-to-north. Clipping keeps every 0.1-degree cell edge aligned with
-    the benchmark grid (CALIFORNIA_BBOX edges are multiples of 0.5)."""
     west, south, east, north = bbox
     tiles = []
     for lat in range(math.floor(south), math.ceil(north)):
@@ -47,14 +44,11 @@ def one_degree_tiles(
 
 
 def _write_window(url: str, bbox, output_path: Path, decimation: int) -> bool:
-    """Writes `bbox` of the COG at `url` to a local GeoTIFF, read at
-    1/`decimation` resolution (GDAL serves it from the matching overview).
-    False if there is no tile at `url`."""
     west, south, east, north = bbox
     try:
         src = rasterio.open(f"/vsicurl/{url}")
     except RasterioIOError:
-        return False  # no tile here (e.g. open ocean)
+        return False
     with src:
         window = from_bounds(west, south, east, north, transform=src.transform)
         height = max(1, round(window.height / decimation))

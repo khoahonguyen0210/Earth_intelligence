@@ -40,13 +40,11 @@ public class RedisForecastQueue implements ForecastQueue {
         return Optional.ofNullable(redisTemplate.opsForList().rightPop(queueKey, pollTimeout));
     }
 
-    /** LPOS, O(queue length) -- run only for jobs waiting longer than the recovery threshold. */
     @Override
     public boolean contains(String forecastId) {
         return redisTemplate.opsForList().indexOf(queueKey, forecastId) != null;
     }
 
-    /** LLEN -- the same number KEDA's redis trigger reads to scale (infra/k8s/autoscaling.yaml). */
     @Override
     public long size() {
         Long length = redisTemplate.opsForList().size(queueKey);

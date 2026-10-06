@@ -25,7 +25,6 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.historical_dataset im
 )
 from ai_earth_intelligence_and_forecasting_engine.forecast.spec import split_for_date
 
-# 2x2 cells, so neighbor counts are exercised too.
 TEST_BBOX = (-120.0, 37.0, -119.8, 37.2)
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
 CUTOFFS = [
@@ -62,8 +61,6 @@ def _era5(valid_time: datetime, lat: float, lon: float, temperature: float):
     )
 
 
-# Fires spread over ~7 weeks: inside and outside every lookback and label
-# window, exactly on window boundaries, and low-confidence (excluded).
 OBSERVATIONS = [
     _obs(
         f"f{i}",
@@ -119,8 +116,6 @@ def test_per_cutoff_build_is_identical_to_one_full_build_dataset_call():
     ]
 
     assert chunked == full
-    # The fixture must actually exercise both classes and the features,
-    # or equality would be trivially true.
     assert {row.target for row in full} == {0, 1}
     assert any(row.previous_30d_count > 0 for row in full)
     assert any(row.neighboring_previous_24h_count > 0 for row in full)

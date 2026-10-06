@@ -93,12 +93,6 @@ def test_run_baseline_benchmark_records_positive_training_and_inference_time(
 
 
 def test_run_baseline_benchmark_reports_failure_honestly(tmp_path):
-    """Single-class training data (matching this project's real current
-    data footprint) makes logistic_regression/xgboost/calibrated_xgboost
-    honestly fail -- but climatology has no such requirement (it just
-    computes an empirical rate, well-defined even for one class), so it
-    genuinely succeeds. This exact split mirrors what actually happens
-    against the project's real sample data."""
     single_class_train = [_row("A", 0, 0, "train"), _row("B", 0, 10, "train")]
 
     rows = run_baseline_benchmark(

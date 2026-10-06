@@ -75,7 +75,6 @@ public class PythonAnalysisRunner implements AnalysisRunner {
                 return message.toString();
             }
         } catch (JacksonException ignored) {
-            // stdout wasn't valid JSON; fall through to the raw message below.
         }
 
         return "Python analysis process failed (exit " + exitCode + "): " + stderr;

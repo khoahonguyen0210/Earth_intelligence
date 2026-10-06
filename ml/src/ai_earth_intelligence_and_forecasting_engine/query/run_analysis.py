@@ -79,16 +79,12 @@ def load_firms_observations(raw_path: Path) -> list[Observation]:
 def load_observations_for(
     raw_firms_path: Path, start: datetime, end: datetime
 ) -> list[Observation]:
-    """`raw_firms_path` is either one FIRMS CSV or the fire-season
-    history directory. For the history, the requested period must be
-    fully covered, and a day of margin either side is loaded; the
-    statistics apply the exact time range themselves."""
     if not raw_firms_path.is_dir():
         return load_firms_observations(raw_firms_path)
 
     last_instant = end - timedelta(
         microseconds=1
-    )  # NormalizedTimeRange.end is exclusive
+    )
     require_firms_coverage(
         raw_firms_path,
         start,
@@ -138,7 +134,7 @@ def run_analysis(payload: dict[str, Any], raw_firms_path: Path) -> dict[str, Any
                 for entry in weekly_aggregate(observations, region, time_range)
             ]
         }
-    else:  # operation == "map"
+    else:
         result = build_regional_map_result(observations, [region], time_range)
 
     evidence = build_evidence_from_query(

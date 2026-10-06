@@ -84,7 +84,7 @@ def test_build_regional_map_result_computes_real_counts():
     observations = [
         _obs("1", *only_in_bay_area),
         _obs("2", *only_in_bay_area),
-        _obs("3", 0.0, 0.0),  # far from both regions, excluded from both
+        _obs("3", 0.0, 0.0),
     ]
 
     result = build_regional_map_result(

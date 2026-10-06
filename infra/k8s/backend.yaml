@@ -1,12 +1,3 @@
-# "backend" and "worker" might sound like separate deployables,
-# but the real bridge to Python (PythonForecastRunner/
-# PythonAnalysisRunner) is a same-machine ProcessBuilder subprocess
-# call, not a network call -- there is no separate networked worker
-# process to give its own Deployment, exactly the same real constraint
-# docs/docker-images.md already found for the Docker images this
-# Deployment's image comes from (backend/Dockerfile). Worker replica
-# scaling therefore scales this Deployment's
-# spec.replicas, not a separate resource.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,24 +11,11 @@ spec:
     metadata:
       labels:
         app: backend
-      # The conventional discovery hints Prometheus-compatible
-      # scrapers (Prometheus' kubernetes_sd relabeling, the CloudWatch
-      # agent's Prometheus mode) use to find /actuator/prometheus --
-      # docs/metrics.md. It later moved to the management port, which
-      # the Service below does not expose (docs/security-baseline.md).
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8081"
     spec:
-      # Kubernetes auto-injects a Docker-links-style env var per Service
-      # in the namespace (e.g. REDIS_PORT=tcp://<cluster-ip>:6379 for the
-      # redis Service) unless this is disabled. application.properties'
-      # own spring.data.redis.port=${REDIS_PORT:6379} placeholder happens
-      # to share that exact generic name, so without this the injected
-      # URL-shaped value wins over the intended plain-int default and
-      # Spring Boot fails to bind it, a real crash-on-boot only found by
-      # deploying to a real cluster -- see docs/local-kubernetes-deployment.md.
       enableServiceLinks: false
       containers:
         - name: backend
@@ -53,14 +31,6 @@ spec:
                 configMapKeyRef:
                   name: ai-earth-config
                   key: SPRING_DATASOURCE_URL
-            # application.properties hardcodes spring.datasource.username/
-            # password as literal defaults (ai_earth/ai_earth_dev), not
-            # ${ENV_VAR:default} placeholders like the other settings
-            # here -- they only happen to match postgres.yaml's own
-            # hardcoded POSTGRES_USER/PASSWORD locally. Pointing both at
-            # the same ConfigMap/Secret keys postgres.yaml's container
-            # itself reads is what keeps them in sync if secret.yaml
-            # ever sets a real, non-default password.
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 configMapKeyRef:
@@ -107,15 +77,6 @@ spec:
               port: management
             initialDelaySeconds: 20
             periodSeconds: 10
-          # Measured too aggressive under real concurrent
-          # scale-up: with 4+ replicas booting at once, JVM start +
-          # Flyway + JPA + Redis/MinIO connect contends for the same
-          # host CPU and regularly took longer than
-          # 30s + 3*15s = 75s, so the liveness probe killed pods that
-          # were still starting, not stuck -- see
-          # docs/worker-replica-scaling.md. failureThreshold raised (K8s
-          # default is 3) rather than just initialDelaySeconds, since
-          # the slowdown is real contention, not a fixed one-time delay.
           livenessProbe:
             httpGet:
               path: /actuator/health

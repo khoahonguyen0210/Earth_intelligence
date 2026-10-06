@@ -1,8 +1,3 @@
-# ElastiCache Redis OSS 7.1, one node, TLS in transit -- docs/cloud-
-# deployment.md "Redis". A replication group rather than a plain cache
-# cluster because in-transit encryption for Redis OSS needs one; with
-# num_cache_clusters = 1 it is still a single node, no replica.
-
 resource "aws_elasticache_subnet_group" "this" {
   name       = var.name
   subnet_ids = var.subnet_ids
@@ -14,8 +9,6 @@ resource "aws_security_group" "this" {
   vpc_id      = var.vpc_id
 }
 
-# count, not for_each: see modules/database -- the node security group ID
-# is unknown at plan time.
 resource "aws_vpc_security_group_ingress_rule" "redis" {
   count = length(var.allowed_security_group_ids)
 
@@ -46,7 +39,5 @@ resource "aws_elasticache_replication_group" "this" {
   subnet_group_name  = aws_elasticache_subnet_group.this.name
   security_group_ids = [aws_security_group.this.id]
 
-  # The queue holds only in-flight job ids (job state lives in Postgres),
-  # so backups would restore stale ids, not useful state.
   snapshot_retention_limit = 0
 }

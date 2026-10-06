@@ -105,8 +105,6 @@ def locate_cell(
     width = round((east - west) / resolution_deg)
     height = round((north - south) / resolution_deg)
 
-    # A small epsilon guards against float division landing just under an
-    # exact integer boundary (e.g. 104.99999999997 instead of 105).
     lon_index = min(
         int(math.floor((longitude - west) / resolution_deg + 1e-9)), width - 1
     )
@@ -150,11 +148,6 @@ def neighbor_tile_ids(
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
     resolution_deg: float = GRID_RESOLUTION_DEG,
 ) -> list[str]:
-    """The up-to-8 Moore-neighborhood tile IDs around (lat_index, lon_index).
-
-    Fewer than 8 at the grid's edge/corners -- out-of-bounds neighbors are
-    not included rather than wrapping or producing invalid indices.
-    """
     west, south, east, north = bbox
     width = round((east - west) / resolution_deg)
     height = round((north - south) / resolution_deg)
@@ -178,8 +171,6 @@ def neighbor_tile_ids(
 def cells_within_bbox(
     cells: list[GridCell], bbox: tuple[float, float, float, float]
 ) -> list[GridCell]:
-    """Selects the cells whose centroid falls within the half-open
-    [west, east) x [south, north) bbox."""
     west, south, east, north = bbox
 
     return [

@@ -70,8 +70,6 @@ public class EarthQueryController {
             long durationMs = durationNanos / 1_000_000;
             EarthQuery query = EarthQuery.from(id, request, Instant.now(), outcome);
 
-            // Tagged by outcome/error code only, never by the question
-            // text itself, which a client controls.
             Timer.builder("earth_query.duration")
                     .description("Wall-clock time of one Ask Earth question, including the Python subprocess")
                     .tag("outcome", outcome.success() ? "succeeded" : "failed")
@@ -104,7 +102,6 @@ public class EarthQueryController {
         });
     }
 
-    /** Each fact carries its own resolved region (query.evidence's shape); a question can touch more than one. */
     private void recordRegions(Object result) {
         if (result instanceof Map<?, ?> resultMap && resultMap.get("facts") instanceof List<?> facts) {
             for (Object fact : facts) {

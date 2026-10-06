@@ -1,11 +1,4 @@
-# EKS 1.36 control plane, one managed node group, and the AWS-managed /
-# community EKS add-ons -- docs/cloud-deployment.md "Kubernetes". Helm-
-# installed controllers live in modules/platform instead.
-
 locals {
-  # The CloudWatch Observability add-on writes container logs into these
-  # four groups. Creating them here first is the only way to give them a
-  # retention period -- groups the add-on creates itself never expire.
   container_insights_log_groups = ["application", "dataplane", "host", "performance"]
 }
 
@@ -28,18 +21,12 @@ module "eks" {
   vpc_id     = var.vpc_id
   subnet_ids = var.private_subnet_ids
 
-  # Public API endpoint so terraform's helm provider and kubectl can reach
-  # the cluster from outside the VPC; nodes use the private endpoint.
   endpoint_public_access  = true
   endpoint_private_access = true
 
-  # Access entries only (no aws-auth ConfigMap), and the identity running
-  # terraform becomes cluster admin -- required for the helm releases
-  # applied by this same run.
   authentication_mode                      = "API"
   enable_cluster_creator_admin_permissions = true
 
-  # Pod Identity is the chosen pod IAM mechanism, so no OIDC provider.
   enable_irsa = false
 
   cloudwatch_log_group_retention_in_days = var.log_retention_days
@@ -53,7 +40,6 @@ module "eks" {
     }
     kube-proxy = {}
     coredns    = {}
-    # Community add-on (AWS validates version compatibility only).
     metrics-server = {}
     amazon-cloudwatch-observability = {
       pod_identity_association = [{
@@ -73,11 +59,6 @@ module "eks" {
   }
 }
 
-# Named from var.name (the cluster name), not module.eks.cluster_name, so
-# these are created while the ~10-minute control plane is still coming up
-# -- long before the add-on starts shipping logs and would otherwise
-# create the groups itself, which would make this create fail on "already
-# exists".
 resource "aws_cloudwatch_log_group" "container_insights" {
   for_each = toset(local.container_insights_log_groups)
 

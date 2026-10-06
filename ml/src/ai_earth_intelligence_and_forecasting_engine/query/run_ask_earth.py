@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 
 
 def _step_results(plan: Plan, execution: PlanExecution) -> dict[str, StepResult]:
-    """Every step that produced an output, as generate_answer's own
-    StepResult shape."""
     return {
         step.step_id: StepResult(
             step_id=step.step_id,

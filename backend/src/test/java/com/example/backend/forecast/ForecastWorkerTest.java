@@ -64,7 +64,6 @@ class ForecastWorkerTest {
         return InMemoryForecasts.store(Spans.noop());
     }
 
-    /** Captures the forecast's status in the store at the moment the runner is invoked. */
     private static class ObservingRunner implements ForecastRunner {
         private final ForecastStore store;
         private final String forecastId;
@@ -197,8 +196,8 @@ class ForecastWorkerTest {
                 queue, store, request -> ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "still unavailable"),
                 2, NO_SECRETS, METRICS, Spans.noop(), 0, RegionStore.noop());
 
-        worker.pollOnce(); // attempt 1/2 -> RETRYING, worker re-enqueues it itself
-        worker.pollOnce(); // attempt 2/2 -> attempts (2) is not < maxAttempts (2) -> FAILED
+        worker.pollOnce();
+        worker.pollOnce();
 
         Forecast finished = store.find("job-1").orElseThrow();
         assertEquals(Forecast.Status.FAILED, finished.status());
@@ -231,7 +230,7 @@ class ForecastWorkerTest {
         store.save(Forecast.pending("job-1", REQUEST, Instant.now()));
         FakeQueue queue = new FakeQueue();
         queue.seed("job-1");
-        queue.seed("job-1"); // e.g. re-enqueued by recovery while a worker already held it
+        queue.seed("job-1");
         AtomicInteger runs = new AtomicInteger();
         ForecastWorker worker = new ForecastWorker(queue, store, request -> {
             runs.incrementAndGet();
@@ -268,8 +267,6 @@ class ForecastWorkerTest {
         store.save(Forecast.pending("job-1", REQUEST, Instant.now()));
         FakeQueue queue = new FakeQueue();
         queue.seed("job-1");
-        // Postgres goes away while the Python attempt runs: the result
-        // write fails.
         ForecastWorker worker = new ForecastWorker(queue, store, request -> {
             doThrow(new DataAccessResourceFailureException("db down")).when(repository).save(any());
             return ForecastOutcome.success(Map.of("ok", true));

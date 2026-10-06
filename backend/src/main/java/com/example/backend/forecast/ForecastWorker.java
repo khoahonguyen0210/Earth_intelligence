@@ -128,8 +128,6 @@ public class ForecastWorker {
         ForecastOutcome outcome;
         metrics.workerBusy(true);
         try {
-            // Redacted once, here, so the stored error, the 422 body, the
-            // log line and the span all carry the same safe text.
             outcome = runner.run(forecast.request()).redacted(redactor);
         } finally {
             metrics.workerBusy(false);

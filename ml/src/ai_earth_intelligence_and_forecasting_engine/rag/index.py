@@ -66,10 +66,6 @@ class DocsIndex:
         mode: str = "hybrid",
         query_vector: np.ndarray | None = None,
     ) -> list[Passage]:
-        """Lexical is BM25. Dense is cosine similarity on Gemini embeddings.
-        Hybrid fuses both rankings with reciprocal rank fusion. Without
-        stored embeddings, or without a client or a precomputed
-        `query_vector`, every mode falls back to lexical."""
         if mode not in SEARCH_MODES:
             raise ValueError(f"mode must be one of {SEARCH_MODES}, got {mode!r}")
         can_embed = query_vector is not None or client is not None
@@ -124,8 +120,6 @@ def build_index(
     client: genai.Client | None = None,
     previous: DocsIndex | None = None,
 ) -> DocsIndex:
-    """Chunks whose text is unchanged since `previous` keep their stored
-    vectors; only new or edited chunks are sent for embedding."""
     chunks = chunk_directory(docs_dir)
     embeddings = None
     reused = 0

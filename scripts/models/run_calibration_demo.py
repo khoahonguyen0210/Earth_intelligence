@@ -1,12 +1,3 @@
-"""Live demo of the calibration step against the real dataset built by
-the forecast pipeline.
-
-Calibration depends on first fitting the XGBoost base model, which
-itself cannot be fit because the real training split has zero positive
-examples. This script expects that exact, honestly-reported
-limitation.
-"""
-
 from datetime import datetime, timezone
 from pathlib import Path
 

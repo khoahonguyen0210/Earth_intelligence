@@ -59,6 +59,6 @@ def test_distributed_workload_is_frozen_and_hashable():
         tile_ids=("CA_0000_0000",),
     )
 
-    hash(workload)  # must not raise
+    hash(workload)
     with pytest.raises(AttributeError):
         workload.workload_size = 5  # type: ignore[misc]

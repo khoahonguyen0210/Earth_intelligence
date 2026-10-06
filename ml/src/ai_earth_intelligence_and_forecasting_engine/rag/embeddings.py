@@ -9,8 +9,6 @@ import numpy as np
 if TYPE_CHECKING:
     from google import genai
 
-# gemini-embedding-2 merges a list of contents into one embedding, so a
-# batch of passages would come back as a single vector.
 EMBEDDING_MODEL = "gemini-embedding-001"
 BATCH_SIZE = 20
 RATE_LIMIT_WAIT_SECONDS = 65.0
@@ -50,10 +48,6 @@ def embed_texts(
     task_type: str,
     sleep: Callable[[float], Any] = time.sleep,
 ) -> np.ndarray:
-    """Unit-length embeddings, one row per text, so a dot product is the
-    cosine similarity. `task_type` is RETRIEVAL_DOCUMENT for indexed
-    passages and RETRIEVAL_QUERY for questions. A rate-limited batch
-    (HTTP 429) waits out the per-minute quota and is retried."""
     rows: list[list[float]] = []
     for start in range(0, len(texts), BATCH_SIZE):
         batch = texts[start : start + BATCH_SIZE]

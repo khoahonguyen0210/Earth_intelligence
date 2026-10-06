@@ -41,11 +41,6 @@ VERSIONS_DIR = "versions"
 
 @dataclass(frozen=True)
 class SeasonWindows:
-    """Expanding window for a run whose newest season is `gate`: fit on
-    every earlier season but the last, calibrate and early-stop on that
-    last one, and judge the candidate on `gate`, which neither the
-    candidate nor the current model has seen."""
-
     fit: tuple[int, ...]
     calibration: int
     gate: int
@@ -95,10 +90,6 @@ class Decision:
 
 
 def decide(candidate: GateScore, current: GateScore | None) -> Decision:
-    """Promote only a clear improvement: PR-AUC up by at least
-    MIN_PR_AUC_GAIN on the gate season, with calibration (Brier score)
-    no more than MAX_BRIER_RATIO times worse. A small or noisy gain keeps
-    the current model, because every swap carries its own risk."""
     if current is None:
         return Decision(True, "no current model")
     gain = candidate.pr_auc - current.pr_auc
@@ -111,9 +102,6 @@ def decide(candidate: GateScore, current: GateScore | None) -> Decision:
 
 
 def deploy(version_dir: Path, served_dir: Path) -> None:
-    """Swaps the served model directory for a registry version. The new
-    files are copied beside it first, so the served path only ever holds
-    a complete model."""
     incoming = served_dir.parent / f".{served_dir.name}.incoming"
     previous = served_dir.parent / f".{served_dir.name}.previous"
     for leftover in (incoming, previous):
@@ -128,9 +116,6 @@ def deploy(version_dir: Path, served_dir: Path) -> None:
 
 
 class ModelRegistry:
-    """Every trained candidate, promoted or not, with an append-only log
-    of runs and promotions. `current` names the version in service."""
-
     def __init__(self, root: Path):
         self.root = root
         self._path = root / REGISTRY_FILE
@@ -162,8 +147,6 @@ class ModelRegistry:
         return directory
 
     def register_existing(self, version: str, model_dir: Path) -> None:
-        """Adopts an already-served model as the current version, so the
-        first real run has something to beat."""
         shutil.copytree(model_dir, self.version_dir(version), dirs_exist_ok=True)
         self.state["current"] = version
         self.state["promotions"].append(
@@ -188,7 +171,6 @@ class ModelRegistry:
         self._save()
 
     def rollback(self, served_dir: Path | None) -> str:
-        """Returns to the version promoted before the current one."""
         promoted = [entry["version"] for entry in self.state["promotions"]]
         earlier = [version for version in promoted[:-1] if version != self.current]
         if not earlier:
@@ -230,10 +212,6 @@ def run_retraining(
     registry: ModelRegistry,
     served_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """One pass of the loop: train a candidate on the expanding window,
-    score it and the current model on the gate season, keep the
-    candidate in the registry either way, and promote it only if
-    `decide` says so. The locked test season can never be the gate."""
     if newest_season == LOCKED_TEST_SEASON:
         raise ValueError(
             f"{LOCKED_TEST_SEASON} is the locked test season and can never "

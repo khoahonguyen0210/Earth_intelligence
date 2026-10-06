@@ -85,9 +85,10 @@ curl http://localhost:8080/forecasts/<forecast_id>/result
 ```
 
 **Requires a real trained production model first** — `ml/artifacts/production_model_v1/`
-is a gitignored local build artifact, not shipped in the repo or the
-packaged Docker image. Build it before expecting `SUCCEEDED` (section
-5 below, first two commands). Without it, `POST /forecasts` reaches a
+is a gitignored local build artifact, not stored in the repo. The backend
+image copies it in at build time, so build it before `docker compose
+build` and before expecting `SUCCEEDED` (section 5 below, first two
+commands). Without it, `POST /forecasts` reaches a
 real, honest `FAILED`/`422` naming the missing model
 (`docs/clean-start-test.md`) rather than a silent or fabricated result.
 

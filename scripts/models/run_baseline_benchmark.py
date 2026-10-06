@@ -1,11 +1,3 @@
-"""The baseline benchmark comparing all four locked models
-(Climatology, Logistic Regression, XGBoost, Calibrated XGBoost) against
-the real dataset built by the forecast pipeline.
-
-Only climatology can currently succeed against real data; the
-training/validation splits have zero real positive examples.
-"""
-
 from datetime import datetime, timezone
 from pathlib import Path
 

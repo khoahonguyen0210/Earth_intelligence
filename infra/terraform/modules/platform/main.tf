@@ -1,11 +1,3 @@
-# In-cluster controllers installed with Helm, and every Pod Identity role
-# except the CloudWatch agent's (modules/eks owns that one, next to its
-# add-on) -- docs/cloud-deployment.md "Kubernetes" and "Secrets".
-#
-# Chart versions are pinned exactly; each one is the latest stable
-# release at the time of writing and, for KEDA, the only minor tested
-# against Kubernetes 1.36.
-
 locals {
   lb_controller_namespace       = "kube-system"
   lb_controller_service_account = "aws-load-balancer-controller"
@@ -13,8 +5,6 @@ locals {
   external_secrets_namespace       = "external-secrets"
   external_secrets_service_account = "external-secrets"
 }
-
-# --- Pod Identity roles -----------------------------------------------------
 
 module "lb_controller_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
@@ -39,7 +29,6 @@ module "external_secrets_pod_identity" {
 
   name = "${var.cluster_name}-external-secrets"
 
-  # Read-only, and only on the listed secrets (no create/delete).
   attach_external_secrets_policy        = true
   external_secrets_secrets_manager_arns = var.readable_secret_arns
   external_secrets_create_permission    = false
@@ -53,10 +42,6 @@ module "external_secrets_pod_identity" {
   }
 }
 
-# Replaces the static MINIO_ROOT_USER/MINIO_ROOT_PASSWORD key pair: the
-# backend's S3 client picks these credentials up through the default
-# credentials chain once S3ClientConfig stops forcing static keys (Task
-# 12.4, docs/cloud-deployment.md gap 1).
 module "backend_pod_identity" {
   source  = "terraform-aws-modules/eks-pod-identity/aws"
   version = "2.9.0"
@@ -86,8 +71,6 @@ module "backend_pod_identity" {
   }
 }
 
-# --- Helm releases ------------------------------------------------------------
-
 resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
   namespace  = local.lb_controller_namespace
@@ -107,10 +90,6 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   depends_on = [module.lb_controller_pod_identity]
 }
-
-# The releases below create Services; the load balancer controller's
-# mutating webhook intercepts Service creation, so they install only after
-# that webhook is up.
 
 resource "helm_release" "keda" {
   name             = "keda"
@@ -143,9 +122,6 @@ resource "helm_release" "external_secrets" {
   ]
 }
 
-# Rolling-restarts the backend when ai-earth-secret changes, which is how
-# the RDS-managed password's 7-day rotation reaches running pods
-# (docs/cloud-deployment.md "DB password rotation").
 resource "helm_release" "reloader" {
   name             = "reloader"
   namespace        = "reloader"

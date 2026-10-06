@@ -54,8 +54,6 @@ class _FakeClient:
 
 
 class _MustNotBeCalledClient:
-    """Fails the test if the model is ever actually invoked."""
-
     class _Models:
         def generate_content(self, **kwargs):
             raise AssertionError("the model must not be called when there are no facts")
@@ -65,10 +63,6 @@ class _MustNotBeCalledClient:
 
 
 def _real_count_fact():
-    """Builds a genuine StepResult/evidence pair using the real
-    underlying functions, not a hand-typed fixture -- proving
-    generate_answer works against the actual shapes those functions
-    produce."""
     region = normalize_region(RegionSpec(kind="named", value="california"))
     time_range = normalize_time_range(
         TimeRangeSpec(start="2024-08-08", end="2024-08-15")

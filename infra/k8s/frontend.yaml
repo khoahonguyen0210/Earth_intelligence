@@ -1,11 +1,3 @@
-# No runtime env: the built bundle calls the browser's own
-# http://localhost:8080 (frontend/Dockerfile, src/api/client.ts)
-# unchanged from the Docker Compose stack. On a local cluster this
-# means `kubectl port-forward svc/backend 8080:8080` is what actually
-# satisfies that hardcoded address for a browser hitting the frontend
-# -- backend.yaml's NodePort 30080 is for direct API access/health
-# checks, not what the compiled frontend calls. See
-# docs/kubernetes-manifests.md.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

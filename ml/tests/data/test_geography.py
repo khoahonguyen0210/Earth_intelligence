@@ -61,7 +61,6 @@ def test_compute_slope_degrees_flat_surface_is_zero():
 
 
 def test_compute_slope_degrees_known_ramp():
-    # 1 m rise per 1 m run along x -> 45 degree slope everywhere.
     elevation = np.array(
         [[0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 2.0, 3.0]]
     )
@@ -88,7 +87,6 @@ def _write_test_raster(path, array, transform, dtype, nodata=None) -> None:
 
 
 def test_build_geography_grid_single_cell(tmp_path):
-    # A 0.1 x 0.1 degree bbox backed by a 4x4 pixel DEM/land-cover patch.
     bbox = (-120.0, 37.0, -119.9, 37.1)
 
     dem_path = tmp_path / "dem.tif"

@@ -1,18 +1,3 @@
-"""Build the real historical benchmark dataset.
-
-Inputs (all real, all downloaded by scripts/data/*_history.py and
-build_statewide_geography.py):
-  data/raw/firms/history/          FIRMS VIIRS SNPP SP, fire seasons 2019-2024
-  data/raw/era5/history/           ERA5-Land at every cutoff hour
-  data/raw/geography/california_geography.csv
-
-Outputs:
-  data/processed/historical_dataset_v1.csv        one row per (cell, cutoff)
-  data/processed/historical_dataset_v1.manifest.json
-
-    python scripts/forecast/build_historical_dataset.py
-"""
-
 import json
 import time
 from dataclasses import fields
@@ -48,9 +33,6 @@ OUTPUT_PATH = Path("data/processed/historical_dataset_v1.csv")
 
 
 class ManifestAccumulator:
-    """Streams the counts build_dataset_manifest needs plus per-split
-    missing-feature counts, without holding every row in memory."""
-
     def __init__(self):
         self.rows = 0
         self.by_split: dict[str, dict[str, int]] = {}

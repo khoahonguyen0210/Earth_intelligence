@@ -38,8 +38,6 @@ def _row(tile_id: str, target: int, previous_24h_count: int, split: str) -> Data
 
 
 def _separable_split(split: str, offset: int) -> list[DatasetRow]:
-    """Same separable signal as the logistic regression fixture:
-    previous_24h_count clearly predicts target."""
     high_targets = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
     low_targets = [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
 

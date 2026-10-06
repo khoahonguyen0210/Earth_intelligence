@@ -15,9 +15,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ForecastMetrics {
 
-    /** The only stage names the Python side reports (query/run_forecast.py); anything else is ignored. */
-    // model_fit is reported only by the train-then-predict path (tests);
-    // the product loads a trained model instead and reports model_load.
     static final Set<String> STAGES =
             Set.of("data_load", "model_fit", "model_load", "model_inference", "explanation", "total");
 
@@ -49,7 +46,6 @@ public class ForecastMetrics {
         busy.set(isBusy ? 1 : 0);
     }
 
-    /** One job attempt's wall-clock time, tagged succeeded / retry_scheduled / failed. */
     void recordAttempt(String outcome, long durationNanos) {
         Timer.builder("forecast.job.duration")
                 .description("Wall-clock time of one forecast job attempt, including the Python subprocess")

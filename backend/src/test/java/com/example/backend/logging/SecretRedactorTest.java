@@ -24,8 +24,6 @@ class SecretRedactorTest {
 
     @Test
     void ignoresBlankAndTooShortValuesSoOrdinaryTextIsNeverMasked() {
-        // An unset secret resolves to "" and a trivially short default must
-        // not turn common substrings into "***".
         SecretRedactor redactor = SecretRedactor.of("", "abc", null);
 
         assertEquals("abc forecast failed", redactor.redact("abc forecast failed"));

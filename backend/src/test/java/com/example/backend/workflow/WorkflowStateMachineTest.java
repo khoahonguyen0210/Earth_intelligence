@@ -16,7 +16,6 @@ class WorkflowStateMachineTest {
 
     private static final Instant NOW = Instant.parse("2024-08-10T00:00:00Z");
 
-    /** The exact transition table WorkflowStateMachine's own docstring declares. */
     private static final Set<List<Status>> LEGAL_EDGES = Set.of(
             List.of(Status.PENDING, Status.READY),
             List.of(Status.PENDING, Status.CANCELLED),
@@ -31,8 +30,6 @@ class WorkflowStateMachineTest {
 
     @Test
     void everyStateStatePairMatchesTheDeclaredTransitionTable() {
-        // Full 7x7 cross-product, not spot checks -- every pair not in
-        // LEGAL_EDGES must be illegal, and every pair in it must be legal.
         for (Status from : Status.values()) {
             for (Status to : Status.values()) {
                 boolean expectedLegal = LEGAL_EDGES.contains(List.of(from, to));

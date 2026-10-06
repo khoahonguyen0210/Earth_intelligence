@@ -155,8 +155,6 @@ def test_relative_humidity_percent_drier_air_is_lower():
 
 
 def _parse_era5_records_row_by_row(nc_path) -> list[ERA5Record]:
-    """The original frame.iterrows() parser, kept as the reference the faster
-    column-wise parse_era5_records must reproduce exactly."""
     dataset = xr.open_dataset(nc_path)
     frame = dataset.to_dataframe().reset_index()
     records = []
@@ -205,7 +203,7 @@ def test_parse_era5_records_matches_the_row_by_row_parser(tmp_path):
             ("d2m", 285.0, 5.0),
         )
     }
-    variables["t2m"][1][0, 1, 2] = np.nan  # a masked ocean cell stays NaN
+    variables["t2m"][1][0, 1, 2] = np.nan
     dataset = xr.Dataset(
         variables,
         coords={

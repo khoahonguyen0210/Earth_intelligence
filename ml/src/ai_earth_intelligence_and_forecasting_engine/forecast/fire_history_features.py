@@ -46,8 +46,6 @@ def compute_fire_history_features(
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
     resolution_deg: float = GRID_RESOLUTION_DEG,
 ) -> list[FireHistoryFeatures]:
-    """`bbox`/`resolution_deg` must match whatever `cells` was built with,
-    same as `construct_labels`."""
     qualifying = [obs for obs in observations if is_qualifying_observation(obs)]
 
     observations_with_tile = [

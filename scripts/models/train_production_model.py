@@ -1,13 +1,3 @@
-"""Train the model the product serves, on the real historical dataset.
-
-Calibrated XGBoost (the top of the locked model ladder): fit on the train
-split with validation early stopping, isotonic calibration on the
-validation split. The test split is not loaded into training at all.
-
-    python scripts/forecast/build_historical_dataset.py   # once
-    python scripts/models/train_production_model.py
-"""
-
 import json
 from pathlib import Path
 

@@ -63,8 +63,6 @@ _INTENT_FOR_OPERATION = {
 
 
 class StepFailed(Exception):
-    """A step could not be executed -- its own error, or a dependency's."""
-
     def __init__(self, step_id: str, message: str):
         super().__init__(f"step {step_id!r}: {message}")
         self.step_id = step_id
@@ -72,12 +70,6 @@ class StepFailed(Exception):
 
 @dataclass(frozen=True)
 class Backend:
-    """Where run_forecast/get_result_evidence reach the real backend.
-
-    poll_interval_seconds/max_wait_seconds bound how long one
-    run_forecast step waits for a terminal status.
-    """
-
     base_url: str
     poll_interval_seconds: float = 1.0
     max_wait_seconds: float = 150.0
@@ -170,8 +162,6 @@ def _run_analysis_step(
 def dispatch_calculate_statistics(
     question: str, step_input: dict[str, Any]
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Returns (result, evidence) separately: result stays exactly the
-    shape output_fields promises ({count}/{daily}/{weekly})."""
     payload = _run_analysis_step(question, step_input, step_input["operation"])
     return payload["result"], payload["evidence"]
 
@@ -230,10 +220,6 @@ def dispatch_run_forecast(
 
 
 def _fetch_forecast_result(forecast_id: str, backend: Backend) -> dict[str, Any]:
-    """GET /forecasts/{id}/result is 200 only for a SUCCEEDED forecast; a
-    409 (not finished yet) or 422 (FAILED) raises via raise_for_status()
-    instead. The body is {forecast_id, result}; evidence sits inside
-    result."""
     response = requests.get(
         f"{backend.base_url}/forecasts/{forecast_id}/result", timeout=10
     )
@@ -256,8 +242,6 @@ def dispatch_get_forecast_result(
 
 
 PASSAGE_CHARS = 700
-# Dense retrieval measured best on the labelled question set
-# (docs/rag.md); without a client it falls back to BM25.
 DOCS_SEARCH_MODE = "dense"
 _docs_index: DocsIndex | None = None
 
@@ -276,9 +260,6 @@ def _no_wait(seconds: float) -> None:
 def dispatch_search_docs(
     step_input: dict[str, Any], client: genai.Client | None
 ) -> dict[str, Any]:
-    """Dense search when an embedding is available right now. A request
-    is never held waiting on the embedding quota: if the query cannot be
-    embedded immediately, it is answered with BM25 and says so."""
     query = step_input["query"]
     index = _get_docs_index()
     retrieval = "lexical"
@@ -311,23 +292,12 @@ def dispatch_search_docs(
 
 
 class _ReferencedStepUnavailable(Exception):
-    """A "$step_id.field" reference names a step that never produced an
-    output -- it failed, or was itself skipped as a dependent of a
-    failure. Distinct from StepFailed so execute_plan can tell "this
-    step's own logic failed" from "a step it reads from didn't run"."""
-
     def __init__(self, step_id: str):
         super().__init__(step_id)
         self.step_id = step_id
 
 
 def _resolve_refs(value: Any, outputs: dict[str, dict[str, Any]]) -> Any:
-    """Substitutes every "$step_id.field" string in `value` (recursively,
-    through dicts/lists) with that step's real, already-produced output
-    value -- the validator already proved every such reference points at
-    a real earlier step and a field it really produces (when that step
-    ran); this is purely substitution, not a second round of
-    validation."""
     if isinstance(value, str) and value.startswith("$"):
         step_id, _, field = value[1:].partition(".")
         if step_id not in outputs:
@@ -347,9 +317,6 @@ def _execute_step(
     backend: Backend,
     client: genai.Client | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    """Returns (output, evidence). Only calculate_statistics, generate_map
-    and get_forecast_result have an evidence record of their own; every
-    other tool's evidence is None."""
     try:
         resolved_input = _resolve_refs(step.input, outputs)
 
@@ -383,10 +350,6 @@ def _execute_step(
 
 @dataclass(frozen=True)
 class PlanExecution:
-    """Every step's real output (field-indexable, exactly output_fields'
-    shape -- what a later step's "$step.field" reference resolves
-    against) and, where a tool has one, its own evidence record."""
-
     outputs: dict[str, dict[str, Any]]
     evidence: dict[str, dict[str, Any]]
 
@@ -394,11 +357,6 @@ class PlanExecution:
 def execute_plan(
     plan: Plan, backend: Backend, client: genai.Client | None = None
 ) -> PlanExecution:
-    """Runs every step of an already-validated Plan (validate_plan_or_raise
-    must have passed first) in dependency order. A step whose dependency
-    failed is never attempted, and the whole call raises StepFailed
-    naming every failure, rather than silently producing a partial
-    answer."""
     outputs: dict[str, dict[str, Any]] = {}
     evidence: dict[str, dict[str, Any]] = {}
     failed: dict[str, str] = {}

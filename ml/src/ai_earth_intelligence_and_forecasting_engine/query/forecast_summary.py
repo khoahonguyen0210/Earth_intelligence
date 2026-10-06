@@ -25,10 +25,6 @@ def _cell_summary(feature: dict[str, Any]) -> dict[str, Any]:
 def summarize_forecast_result(
     forecast_id: str, result: dict[str, Any]
 ) -> dict[str, Any]:
-    """The compact, number-bearing view of one finished forecast that the
-    answer generator is allowed to cite: the riskiest cells, the overall
-    level, and what drove it. Every number here is copied or computed
-    from the stored result, never estimated."""
     features = result["grid"]["features"]
     probabilities = [feature["properties"]["probability"] for feature in features]
     ranked = sorted(

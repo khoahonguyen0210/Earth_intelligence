@@ -1,11 +1,3 @@
-"""Live demo of the logistic regression baseline against the real dataset
-built by the forecast pipeline.
-
-The train split currently has zero real positive examples, so fitting
-raises by design; this script prints that expected error rather than
-treating it as a crash.
-"""
-
 from datetime import datetime, timezone
 from pathlib import Path
 

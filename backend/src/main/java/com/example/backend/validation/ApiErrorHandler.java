@@ -31,7 +31,6 @@ public class ApiErrorHandler {
         return badRequest("request body is not valid JSON of the expected shape");
     }
 
-    // Only connectivity failures land here; a constraint violation or a bug stays a 500.
     @ExceptionHandler({
         DataAccessResourceFailureException.class,
         CannotCreateTransactionException.class,

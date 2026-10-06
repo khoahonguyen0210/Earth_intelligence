@@ -28,7 +28,6 @@ public record ForecastOutcome(
         return new ForecastOutcome(false, null, error, true, errorCode, Map.of());
     }
 
-    // The redacted error text is stored and returned to API clients, not only logged.
     public ForecastOutcome redacted(SecretRedactor redactor) {
         return error == null
                 ? this

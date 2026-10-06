@@ -9,7 +9,7 @@ from ai_earth_intelligence_and_forecasting_engine.data.grid import (
 from ai_earth_intelligence_and_forecasting_engine.data.observation import Observation
 from ai_earth_intelligence_and_forecasting_engine.forecast import build_dataset as bd
 
-TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)  # single cell
+TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
 TILE = CELLS[0].tile_id
 
@@ -199,7 +199,6 @@ def test_save_dataset_manifest_roundtrip(tmp_path):
 
 def test_save_then_load_dataset_round_trips_every_row_exactly(tmp_path):
     rows = _rows()
-    # A row with missing features, so "None" -> None is exercised too.
     rows.append(
         bd.DatasetRow(
             tile_id=TILE,

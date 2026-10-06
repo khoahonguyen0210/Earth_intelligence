@@ -69,7 +69,6 @@ class ForecastTracingTest {
                 new ForecastMetrics(new SimpleMeterRegistry(), queue), spans, 0, RegionStore.noop());
     }
 
-    /** Submits a forecast inside a stand-in for Spring's HTTP server span; returns the job id. */
     private String submitOverHttp() {
         return spans.root("http post /forecasts",
                 () -> controller.createForecast(REQUEST, null).getBody().forecastId());
@@ -100,12 +99,9 @@ class ForecastTracingTest {
         SpanData attempt = tracing.only("forecast.job.attempt");
         SpanData python = tracing.only("forecast.python");
 
-        // Every span of the job, request side and worker side, is one trace.
         assertTrue(tracing.finished().stream().allMatch(span -> span.getTraceId().equals(http.getTraceId())),
                 "one trace: " + tracing.finished());
 
-        // HTTP -> job: the submit span, with the pending row's write under it.
-        // (The enqueue span is RedisForecastQueue's; this fake queue has none.)
         assertEquals(http.getSpanId(), submit.getParentSpanId());
         assertEquals(jobId, attribute(submit, "job.id"));
         SpanData pendingSave = childrenOf(submit).stream()
@@ -113,7 +109,6 @@ class ForecastTracingTest {
                 .findFirst().orElseThrow();
         assertEquals("PENDING", attribute(pendingSave, "forecast.status"));
 
-        // job -> worker: the attempt continues the submit span, across the queue.
         assertEquals(submit.getSpanId(), attempt.getParentSpanId());
         assertEquals(jobId, attribute(attempt, "job.id"));
         assertEquals(1, longAttribute(attempt, "job.attempt"));
@@ -127,7 +122,6 @@ class ForecastTracingTest {
                 .toList();
         assertEquals(List.of("SUCCEEDED"), savedStatuses);
 
-        // The row carries the submit span's traceparent -- the link across the queue.
         assertTrue(store.find(jobId).orElseThrow().traceParent()
                 .startsWith("00-" + submit.getTraceId() + "-" + submit.getSpanId() + "-"));
     }
@@ -140,8 +134,8 @@ class ForecastTracingTest {
                 ? ForecastOutcome.transientFailure(ErrorCode.PYTHON_TIMEOUT, "timed out")
                 : ForecastOutcome.success(Map.of("ok", true)));
 
-        worker.pollOnce(); // attempt 1 -> RETRYING, re-enqueued
-        worker.pollOnce(); // attempt 2 -> SUCCEEDED
+        worker.pollOnce();
+        worker.pollOnce();
 
         SpanData submit = tracing.only("forecast.job.submit");
         List<SpanData> attempts = tracing.named("forecast.job.attempt");
@@ -178,9 +172,8 @@ class ForecastTracingTest {
 
     @Test
     void aJobStoredWithoutATraceParentStartsItsOwnTrace() {
-        // A row written before tracing existed, or while nothing was traced.
         store.save(Forecast.pending("legacy-job", REQUEST, Instant.now()));
-        tracing.finished(); // (untraced: no span was in scope for that save)
+        tracing.finished();
         queue.enqueue("legacy-job");
 
         worker(request -> ForecastOutcome.success(Map.of("ok", true))).pollOnce();
@@ -196,9 +189,9 @@ class ForecastTracingTest {
             throw new AssertionError("runner must not run");
         });
 
-        worker.pollOnce(); // empty queue
+        worker.pollOnce();
         queue.enqueue("does-not-exist");
-        worker.pollOnce(); // unknown id -> job_skipped
+        worker.pollOnce();
 
         assertTrue(tracing.finished().isEmpty(), "no traces for polling or skipping: " + tracing.finished());
     }

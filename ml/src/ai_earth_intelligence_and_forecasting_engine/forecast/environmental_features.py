@@ -38,14 +38,6 @@ def compute_environmental_features(
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
     resolution_deg: float = GRID_RESOLUTION_DEG,
 ) -> list[EnvironmentalFeatures]:
-    """`bbox`/`resolution_deg` must match whatever `cells` was built with,
-    same as `construct_labels` and `compute_fire_history_features`.
-
-    For each (tile, cutoff), uses the most recent ERA5-Land record in that
-    tile with `valid_time <= cutoff` -- "only cutoff-compatible
-    observations may be used" -- never a record whose valid_time is after
-    the cutoff.
-    """
     records_by_tile: dict[str, list[ERA5Record]] = {}
 
     for record in era5_records:

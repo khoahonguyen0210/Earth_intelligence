@@ -20,8 +20,6 @@ def tokenize(text: str) -> list[str]:
 
 
 class BM25:
-    """Okapi BM25 over a fixed list of documents."""
-
     def __init__(self, documents: list[str]):
         self._terms = [Counter(tokenize(document)) for document in documents]
         self._lengths = np.array([sum(terms.values()) for terms in self._terms], float)

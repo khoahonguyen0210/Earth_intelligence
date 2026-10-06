@@ -80,11 +80,6 @@ def test_missing_value_is_imputed_with_train_median():
 
 
 def test_transform_uses_train_statistics_not_the_input_rows_own_distribution():
-    """Verifies 'learned preprocessing uses training data only': if
-    transform() incorrectly recomputed statistics from whatever rows it
-    was given (instead of always using the train-fit preprocessor), a
-    single wildly-different-valued row would self-normalize to 0. It
-    must not."""
     train_rows = [
         _row("A", 0, previous_24h_count=0),
         _row("B", 0, previous_24h_count=0),
@@ -131,12 +126,6 @@ def test_extract_targets():
 
 
 def test_all_missing_training_column_does_not_shrink_output_width():
-    """A numeric feature that is entirely None across the whole training
-    split (e.g. an environmental variable with no real data ingested for
-    that period) must still produce a column, not be silently dropped --
-    otherwise train/validation/test matrices could end up different
-    widths or misaligned."""
-    # every optional field is None
     train_rows = [_row("A", 0), _row("B", 1), _row("C", 0)]
     preprocessor = fit_preprocessor(train_rows)
 
@@ -155,8 +144,6 @@ def test_feature_names_length_matches_transform_width():
 
 
 def test_fit_preprocessor_with_restricted_feature_subset():
-    """A weather ablation needs to fit against a deliberate subset of
-    features while keeping the rest of the pipeline identical."""
     subset = ("previous_24h_count", "previous_72h_count")
     rows = [
         _row("A", 0, previous_24h_count=10),

@@ -27,7 +27,6 @@ public interface ForecastJpaRepository extends JpaRepository<ForecastEntity, Str
             + "and f.updatedAt < :before order by f.updatedAt")
     List<String> findWaitingUnchangedSince(@Param("before") Instant before);
 
-    /** Ends an abandoned attempt -- only if it is still RUNNING and still unchanged, so one sweep wins. */
     @Modifying
     @Transactional
     @Query("update ForecastEntity f set f.status = :status, f.attempts = f.attempts + 1, f.error = :error, "
@@ -39,7 +38,6 @@ public interface ForecastJpaRepository extends JpaRepository<ForecastEntity, Str
             @Param("before") Instant before,
             @Param("now") Instant now);
 
-    /** Marks a waiting job as just re-enqueued -- only if still waiting and unchanged, so one sweep wins. */
     @Modifying
     @Transactional
     @Query("update ForecastEntity f set f.updatedAt = :now where f.id = :id "

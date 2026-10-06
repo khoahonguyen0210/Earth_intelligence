@@ -35,8 +35,6 @@ def _clean_heading(text: str) -> str:
 
 
 def _sanitize(paragraph: str) -> str:
-    """Drops sentences about the private build plan, so retrieved
-    passages only describe the system itself."""
     if paragraph.lstrip().startswith(("```", "|", "    ", "[")):
         return _HANDBOOK_WORD.sub(r"\1", _HANDBOOK_POSSESSIVE.sub("the ", paragraph))
     sentences = _SENTENCE_END.split(" ".join(paragraph.split()))
@@ -114,8 +112,6 @@ def chunk_markdown(source: str, markdown: str) -> list[Chunk]:
 
 
 def chunk_directory(docs_dir: Path) -> list[Chunk]:
-    """rag.md is left out: it quotes the retrieval evaluation questions,
-    which would let the index answer its own test set."""
     chunks: list[Chunk] = []
     for path in sorted(docs_dir.glob("*.md")):
         if path.name in EXCLUDED_DOCS:

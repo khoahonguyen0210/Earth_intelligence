@@ -65,7 +65,6 @@ describe("ForecastPanel", () => {
   it("shows the real initial status right after creating the job, and disables the form", async () => {
     const user = userEvent.setup();
     mockCreateForecast.mockResolvedValue({ forecast_id: "f-1", status: "PENDING" });
-    // Stable (no transition) so the assertion below cannot race a poll.
     mockGetForecastStatus.mockResolvedValue({ forecast_id: "f-1", status: "PENDING" });
 
     render(<ForecastPanel pollIntervalMs={10} />);

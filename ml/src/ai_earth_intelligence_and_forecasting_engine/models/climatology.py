@@ -15,14 +15,6 @@ MODEL_VERSION = "v1"
 
 @dataclass(frozen=True)
 class ClimatologyModel:
-    """Per-tile historical fire-occurrence rate, fit on training data only.
-
-    Transparent by construction: the "prediction" for a tile is exactly
-    its observed positive rate during training, with no other features
-    involved. Falls back to the training set's overall rate for any tile
-    never seen in training.
-    """
-
     tile_rates: dict[str, float]
     global_rate: float
 

@@ -24,7 +24,6 @@ public class SecretRedactor {
         this(Arrays.asList(firmsMapKey, datasourcePassword, objectStoreSecretKey));
     }
 
-    /** For callers built outside Spring (unit tests): redacts exactly `secrets`. */
     public static SecretRedactor of(String... secrets) {
         return new SecretRedactor(Arrays.asList(secrets));
     }

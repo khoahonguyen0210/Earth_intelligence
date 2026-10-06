@@ -8,7 +8,6 @@ public interface ForecastQueue {
 
     Optional<String> dequeue();
 
-    /** Ids currently waiting (not yet dequeued) -- the queue-depth metric. */
     long size();
 
     boolean contains(String forecastId);

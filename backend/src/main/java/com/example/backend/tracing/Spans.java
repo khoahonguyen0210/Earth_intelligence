@@ -21,7 +21,6 @@ public class Spans {
         this.propagator = propagator;
     }
 
-    /** Traces nothing -- for code constructed outside Spring that does not care. */
     public static Spans noop() {
         return new Spans(Tracer.NOOP, Propagator.NOOP);
     }
@@ -42,7 +41,6 @@ public class Spans {
         return inScope(tracer.nextSpan().name(name).start(), work);
     }
 
-    /** A new trace when `traceParent` is null or unreadable, e.g. a row written before tracing existed. */
     public void continued(String traceParent, String name, Runnable work) {
         Span span = traceParent == null
                 ? tracer.nextSpan().name(name).start()
@@ -50,7 +48,6 @@ public class Spans {
         inScope(span, asSupplier(work));
     }
 
-    /** The current span's W3C traceparent, or null when nothing is being traced. */
     public String currentTraceParent() {
         Span current = tracer.currentSpan();
         if (current == null) {
@@ -61,7 +58,6 @@ public class Spans {
         return carrier.get(TRACEPARENT);
     }
 
-    /** Tags the current span, keeping numbers and booleans typed; a no-op when nothing is being traced. */
     public void tag(String key, Object value) {
         Span current = tracer.currentSpan();
         if (current == null || value == null) {
@@ -76,7 +72,6 @@ public class Spans {
         }
     }
 
-    // The message must already be redacted -- a trace backend is as readable as the logs are.
     public void fail(String message) {
         Span current = tracer.currentSpan();
         if (current != null) {

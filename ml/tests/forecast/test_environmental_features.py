@@ -14,7 +14,7 @@ from ai_earth_intelligence_and_forecasting_engine.forecast import (
 )
 
 CUTOFF = datetime(2024, 8, 15, 12, 0, tzinfo=timezone.utc)
-TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)  # single cell
+TEST_BBOX = (-120.0, 37.0, -119.9, 37.1)
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
 TILE = CELLS[0].tile_id
 

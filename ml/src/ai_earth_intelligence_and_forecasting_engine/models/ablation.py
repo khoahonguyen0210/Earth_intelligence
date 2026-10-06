@@ -125,10 +125,6 @@ def run_weather_ablation(
     validation_rows: list[DatasetRow],
     test_rows: list[DatasetRow],
 ) -> AblationResult:
-    """Fire-history-only vs fire-history+weather, with the test period
-    and the XGBoost model protocol (BASE_CONFIG, same early-stopping
-    rule) held fixed -- the only difference between the two runs is
-    which feature columns are fed into the model."""
     baseline = _run_variant(
         "fire_history_only",
         FIRE_HISTORY_FEATURE_COLUMNS,
@@ -159,10 +155,6 @@ def run_geography_ablation(
     validation_rows: list[DatasetRow],
     test_rows: list[DatasetRow],
 ) -> AblationResult:
-    """Fire-history+weather vs fire-history+weather+geography (the
-    complete locked feature set -- NUMERIC_FEATURE_COLUMNS plus the ESA
-    WorldCover land-cover one-hot), with the same XGBoost protocol and
-    test period held fixed as run_weather_ablation."""
     baseline = _run_variant(
         "fire_history_plus_weather",
         FIRE_HISTORY_PLUS_WEATHER_FEATURE_COLUMNS,

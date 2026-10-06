@@ -49,7 +49,6 @@ public class JobEntity {
     private String error;
 
     protected JobEntity() {
-        // JPA
     }
 
     public JobEntity(

@@ -1,13 +1,3 @@
-"""Download the real FIRMS VIIRS SNPP SP history the benchmark cutoffs need.
-
-Resumable: a span whose file already exists is skipped, so an interrupted
-run continues where it stopped. Each file gets a provenance record
-(source, product, period, sha256) next to it, the same way the sample
-data does.
-
-    python scripts/data/download_firms_history.py
-"""
-
 import time
 from datetime import datetime, time as dtime, timedelta, timezone
 from pathlib import Path

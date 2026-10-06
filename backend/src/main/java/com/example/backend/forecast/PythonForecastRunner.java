@@ -51,8 +51,6 @@ public class PythonForecastRunner implements ForecastRunner {
             ForecastOutcome outcome = runProcess(request);
             outcome.timingsMs().forEach((stage, millis) -> spans.tag("python." + stage + "_ms", millis));
             if (!outcome.success()) {
-                // Only the code: the error text is the raw Python/stderr
-                // text, which the worker redacts before it goes anywhere.
                 spans.tag("error.code", outcome.errorCode());
                 spans.fail(outcome.errorCode().name());
             }
@@ -130,7 +128,6 @@ public class PythonForecastRunner implements ForecastRunner {
                 return message.toString();
             }
         } catch (JacksonException ignored) {
-            // stdout wasn't valid JSON; fall through to the raw message below.
         }
 
         return "Python forecast process failed (exit " + exitCode + "): " + stderr;

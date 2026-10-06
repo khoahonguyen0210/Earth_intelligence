@@ -12,8 +12,6 @@ from ai_earth_intelligence_and_forecasting_engine.api.benchmark import (
 BACKEND_BASE_URL = os.environ.get("FORECAST_API_BASE_URL", "http://localhost:8080")
 REQUEST_COUNT = 50
 
-# A real region/cutoff the backend actually resolves, not a throwaway
-# value, so this measures the real validate-and-enqueue path.
 FORECAST_REQUEST = {
     "region": {"kind": "named", "value": "california"},
     "cutoff": "2024-08-15T10:00:00Z",

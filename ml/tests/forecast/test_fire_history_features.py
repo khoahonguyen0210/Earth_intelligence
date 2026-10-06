@@ -9,10 +9,9 @@ from ai_earth_intelligence_and_forecasting_engine.forecast import (
 )
 
 CUTOFF = datetime(2024, 8, 15, 12, 0, tzinfo=timezone.utc)
-# 3x3 cells at 0.1 deg, so the center cell has all 8 neighbors present.
 TEST_BBOX = (-120.0, 37.0, -119.7, 37.3)
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
-CENTER_TILE = "CA_0001_0001"  # the middle cell of the 3x3 block
+CENTER_TILE = "CA_0001_0001"
 
 
 def _obs(

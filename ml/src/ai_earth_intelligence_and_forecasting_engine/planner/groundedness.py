@@ -15,12 +15,6 @@ _CITATION = re.compile(r"\[(docs/[\w./-]+\.md)\]")
 
 @dataclass(frozen=True)
 class GroundingCheck:
-    """Whether every number in an answer can be traced to a fact or to the
-    question. `checked` counts the numbers found; `unsupported` lists the
-    ones that matched nothing; `unknown_tags` lists category tags used
-    that no fact carries; `unknown_citations` lists cited doc paths that
-    were not among the retrieved passages."""
-
     verified: bool
     checked: int
     unsupported: tuple[str, ...]
@@ -87,11 +81,6 @@ def check_grounding(
     facts: list[tuple[str, Any]],
     question: str = "",
 ) -> GroundingCheck:
-    """`facts` is (category, payload) pairs. A stated number is supported
-    when some fact or question number rounds to it at the precision it
-    was written with; a percentage is also compared as a fraction, since
-    probabilities are stored as fractions. Signs are ignored, so a
-    negative SHAP contribution may be written with or without its minus."""
     allowed: set[float] = set()
     for _, payload in facts:
         _collect(payload, allowed)

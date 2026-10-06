@@ -5,7 +5,7 @@ from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")  # headless: never try to open a display window
+matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
 from sklearn.calibration import CalibratedClassifierCV  # noqa: E402
@@ -48,9 +48,6 @@ class CalibrationBin:
 def fit_calibration(
     base_result: XGBoostResult, validation_rows: list[DatasetRow]
 ) -> CalibratedModel:
-    """Calibrates an already-fit model's probabilities using validation
-    data only -- the base model (fit on train, tuned via validation early
-    stopping) is frozen and never refit here."""
     y_validation = extract_targets(validation_rows)
     validation_classes = sorted(set(y_validation.tolist()))
 

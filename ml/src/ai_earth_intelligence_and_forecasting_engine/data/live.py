@@ -43,9 +43,6 @@ def ensure_live_firms(
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
     today: date | None = None,
 ) -> None:
-    """Downloads the near-real-time FIRMS spans covering the cutoff's
-    lookback into `live_dir`. A span ending before today is final and is
-    reused; one reaching today is fetched again."""
     config = config or load_firms_config()
     config = FIRMSConfig(map_key=config.map_key, product=LIVE_FIRMS_PRODUCT)
     today = today or datetime.now(timezone.utc).date()
@@ -73,8 +70,6 @@ def ensure_live_era5(
     config: ERA5Config | None = None,
     bbox: tuple[float, float, float, float] = CALIFORNIA_BBOX,
 ) -> list[ERA5Record]:
-    """The newest ERA5-Land hour available for the cutoff. ERA5-Land
-    publishes a few days late, so the most recent days are tried first."""
     last_error: Exception | None = None
 
     for lag in ERA5_LAG_DAYS:

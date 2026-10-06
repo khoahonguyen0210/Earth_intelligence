@@ -1,10 +1,3 @@
-"""Live demo of the XGBoost baseline against the real dataset built by
-the forecast pipeline.
-
-The train/validation splits currently have zero real positive
-examples, so this is expected to hit that same limitation.
-"""
-
 from datetime import datetime, timezone
 from pathlib import Path
 

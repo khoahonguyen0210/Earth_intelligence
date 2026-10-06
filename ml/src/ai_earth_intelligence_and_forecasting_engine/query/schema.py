@@ -16,31 +16,12 @@ class QueryIntent(str, Enum):
 
 @dataclass(frozen=True)
 class RegionSpec:
-    """Raw, unresolved region input.
-
-    `kind` is one of "bbox", "coordinates", or "named". The shape of
-    `value` depends on `kind`:
-      - "bbox": (west, south, east, north)
-      - "coordinates": (latitude, longitude)
-      - "named": the region name, e.g. "California"
-
-    normalize_region resolves this into deterministic geometry; this
-    type only carries what the query stated, unresolved.
-    """
-
     kind: str
     value: Any
 
 
 @dataclass(frozen=True)
 class TimeRangeSpec:
-    """Raw, unresolved time range input.
-
-    `start`/`end` are ISO 8601 date or datetime strings as stated in the
-    query. normalize_time_range implements the exact inclusive/exclusive
-    boundary semantics; this type only carries what the query stated.
-    """
-
     start: str
     end: str
 

@@ -44,7 +44,6 @@ public class ForecastEntity {
     private Instant updatedAt;
 
     protected ForecastEntity() {
-        // JPA
     }
 
     public ForecastEntity(

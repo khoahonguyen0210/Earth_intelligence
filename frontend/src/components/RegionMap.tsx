@@ -40,7 +40,7 @@ export function RegionMap({ bbox, label }: RegionMapProps) {
 
   function project(lon: number, lat: number): [number, number] {
     const x = PADDING_LEFT + (lon - frameWest) * scaleX;
-    const y = PADDING_TOP + (frameNorth - lat) * scaleY; // SVG y grows downward
+    const y = PADDING_TOP + (frameNorth - lat) * scaleY;
     return [x, y];
   }
 
@@ -69,8 +69,6 @@ export function RegionMap({ bbox, label }: RegionMapProps) {
         stroke="#94a3b8"
       />
 
-      {/* Lat/lon graticule so the reference frame reads as a map, not a
-          flat color block, even when the queried region fills it entirely. */}
       {lonGridlines.map((lon) => {
         const [gx0, gy0] = project(lon, refNorth);
         const [, gy1] = project(lon, refSouth);
@@ -113,9 +111,6 @@ export function RegionMap({ bbox, label }: RegionMapProps) {
         strokeWidth={2}
       />
 
-      {/* Redraw the California outline on top, stroke-only, so it stays
-          visible even when the queried region covers the whole extent
-          (otherwise the blue fill above hides it completely). */}
       <rect
         x={Math.min(refX0, refX1)}
         y={Math.min(refY0, refY1)}
@@ -126,7 +121,6 @@ export function RegionMap({ bbox, label }: RegionMapProps) {
         strokeWidth={1.5}
       />
 
-      {/* Longitude axis labels along the bottom. */}
       {lonGridlines.map((lon) => {
         const [gx] = project(lon, refSouth);
         return (
@@ -142,7 +136,6 @@ export function RegionMap({ bbox, label }: RegionMapProps) {
           </text>
         );
       })}
-      {/* Latitude axis labels along the left. */}
       {latGridlines.map((lat) => {
         const [, gy] = project(refWest, lat);
         return (

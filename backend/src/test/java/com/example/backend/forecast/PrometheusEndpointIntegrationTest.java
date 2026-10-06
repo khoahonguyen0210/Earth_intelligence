@@ -31,8 +31,6 @@ class PrometheusEndpointIntegrationTest {
 
     @Test
     void servesHttpQueueAndWorkerMetricsInPrometheusFormat() throws Exception {
-        // One real request to the public port first, so http_server_requests
-        // has a series (management-port requests are not API traffic).
         assertEquals(200, get(port, "/readyz").statusCode());
 
         HttpResponse<String> scrape = get(managementPort, "/actuator/prometheus");

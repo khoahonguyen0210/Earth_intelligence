@@ -4,8 +4,6 @@ interface Result {
   source: string;
 }
 
-// Copied verbatim from docs/headline-results.md: real, measured,
-// reproducible numbers, never invented for this page.
 const RESULTS: Result[] = [
   {
     headline: "PR-AUC of 0.4513",
@@ -39,7 +37,7 @@ export function ResultsPage() {
     <>
       <header className="hero hero-compact">
         <span className="kicker">Results</span>
-        <h1>Measured, not claimed</h1>
+        <h1>What is measured</h1>
       </header>
 
       <main className="page page-prose">

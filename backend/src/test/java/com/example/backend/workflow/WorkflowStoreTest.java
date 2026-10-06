@@ -87,8 +87,6 @@ class WorkflowStoreTest {
     @Test
     void aWorkflowSavedMidRunCanBeReloadedAndResumedToCompletionAfterASimulatedRestart() {
         String id = freshId();
-        // get_data already finished before "the crash"; validate was
-        // still in flight; build_features/run_forecast never started.
         Workflow midRun = new Workflow(
                 id,
                 "resumable-pipeline",
@@ -101,8 +99,6 @@ class WorkflowStoreTest {
                         node("run_forecast", Status.PENDING, "build_features")));
         store.save(midRun);
 
-        // "The controller restarts": a brand-new store lookup and a
-        // brand-new executor, sharing no in-memory state with the above.
         Workflow recovered = store.find(id).orElseThrow();
         WorkflowExecutor freshExecutorAfterRestart =
                 new WorkflowExecutor(node -> WorkflowTaskDispatcher.DispatchOutcome.success(node.taskId() + "-out"),

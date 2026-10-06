@@ -90,9 +90,9 @@ def test_an_unsupported_operation_is_rejected():
 @pytest.mark.parametrize(
     "region",
     [
-        {"kind": "bbox", "value": [10.0, 10.0, 5.0, 5.0]},  # inverted/degenerate
-        {"kind": "named", "value": "atlantis"},  # not a supported name
-        {"kind": "coordinates", "value": [0.0, 0.0]},  # outside the California grid
+        {"kind": "bbox", "value": [10.0, 10.0, 5.0, 5.0]},
+        {"kind": "named", "value": "atlantis"},
+        {"kind": "coordinates", "value": [0.0, 0.0]},
     ],
 )
 def test_a_semantically_invalid_region_is_rejected(region):
@@ -207,7 +207,6 @@ def test_a_step_ref_not_declared_in_depends_on_is_rejected():
             step_id="evidence",
             tool="get_result_evidence",
             input={"result_id": "$forecast.forecast_id"},
-            # depends_on left empty -- the reference above is undeclared.
         ),
     )
 
@@ -261,7 +260,7 @@ def test_validate_plan_or_raise_does_nothing_for_a_valid_plan():
         PlanStep(step_id="s1", tool="resolve_region", input={"region": VALID_REGION})
     )
 
-    validate_plan_or_raise(plan)  # must not raise
+    validate_plan_or_raise(plan)
 
 
 def test_validate_plan_or_raise_raises_for_an_invalid_plan():
@@ -269,9 +268,6 @@ def test_validate_plan_or_raise_raises_for_an_invalid_plan():
 
     with pytest.raises(ValueError, match="unknown tool"):
         validate_plan_or_raise(plan)
-
-
-# LLM tool restrictions -- bounds a model-written plan cannot exceed.
 
 
 def _resolve_step(step_id: str) -> PlanStep:

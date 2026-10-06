@@ -70,7 +70,7 @@ public class ForecastRecovery {
 
         if (!store.endAbandonedAttempt(forecast.id(),
                 retry ? Forecast.Status.RETRYING : Forecast.Status.FAILED, error, before)) {
-            return; // another replica's sweep, or a late worker write, got there first
+            return;
         }
         metrics.recordFailure(ErrorCode.WORKER_LOST, !retry);
         MDC.put(ForecastWorker.MDC_JOB_ID, forecast.id());
@@ -85,7 +85,7 @@ public class ForecastRecovery {
             MDC.remove(ForecastWorker.MDC_JOB_ID);
         }
         if (retry) {
-            queue.enqueue(forecast.id()); // if Redis is down, requeueOrphans picks it up later
+            queue.enqueue(forecast.id());
         }
     }
 
@@ -93,7 +93,7 @@ public class ForecastRecovery {
         Instant before = Instant.now().minus(orphanedAfter);
         for (String id : store.waitingUnchangedSince(before)) {
             if (queue.contains(id) || !store.touchWaiting(id, before)) {
-                continue; // queued behind a backlog, or another sweep/worker got there first
+                continue;
             }
             queue.enqueue(id);
             MDC.put(ForecastWorker.MDC_JOB_ID, id);

@@ -28,8 +28,6 @@ class RequestValidationIntegrationTest {
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
-        // Accepted jobs go to their own queue and fail fast in a stub,
-        // rather than running the real pipeline.
         registry.add("forecast.queue.key", () -> "validation-itest-" + UUID.randomUUID());
         registry.add("forecast.python.script-path",
                 () -> Path.of("src", "test", "resources", "failing_forecast_stub.py").toAbsolutePath().toString());
@@ -116,8 +114,6 @@ class RequestValidationIntegrationTest {
         assertEquals(413, oversized.statusCode());
         assertTrue(error(oversized).contains("exceeds"), oversized.body());
 
-        // java.net.http always sends a length; HttpURLConnection in
-        // streaming mode sends the body chunked, with none.
         HttpURLConnection chunked = (HttpURLConnection) URI.create("http://localhost:" + port + "/forecasts")
                 .toURL().openConnection();
         chunked.setRequestMethod("POST");

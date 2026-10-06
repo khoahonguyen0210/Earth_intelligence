@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from ai_earth_intelligence_and_forecasting_engine.planner.generate_plan import (
 from ai_earth_intelligence_and_forecasting_engine.planner.validator import Plan
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 load_dotenv()
 
@@ -51,13 +53,33 @@ def _outcome_to_dict(outcome: CaseOutcome) -> dict[str, object]:
         "region_correct": outcome.region_correct,
         "time_correct": outcome.time_correct,
         "execution_ok": outcome.execution_ok,
+        "contained": outcome.contained,
         "error": outcome.error,
         "plan": _plan_to_dict(outcome.plan),
     }
 
 
+def plan_with_retry(question: str, client: genai.Client, attempts: int = 5) -> Plan:
+    for attempt in range(attempts):
+        try:
+            return generate_plan(question, client)
+        except ValueError:
+            raise
+        except Exception:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(5 * (attempt + 1))
+    raise AssertionError("unreachable")
+
+
 def main() -> None:
-    client = genai.Client()
+    client = genai.Client(
+        http_options=types.HttpOptions(
+            retry_options=types.HttpRetryOptions(
+                attempts=6, initial_delay=3.0, http_status_codes=[429, 500, 503]
+            )
+        )
+    )
     outcomes: list[CaseOutcome] = []
 
     for case in BENCHMARK_CASES:
@@ -65,7 +87,7 @@ def main() -> None:
         error: Exception | None = None
 
         try:
-            plan = generate_plan(case.question, client)
+            plan = plan_with_retry(case.question, client)
         except ValueError as exc:
             error = exc
 

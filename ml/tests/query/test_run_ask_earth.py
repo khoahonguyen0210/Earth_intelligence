@@ -1,9 +1,3 @@
-"""run_ask_earth end to end -- a real question, a real
-(faked-at-the-API-boundary) planner call, real dispatch against a real
-FIRMS fixture, and a real (faked) answer call. Only the two Gemini
-calls are faked; everything else -- the validator, the dispatcher, the
-analysis pipeline -- is the real code."""
-
 import json
 
 import pytest
@@ -96,21 +90,18 @@ def test_run_ask_earth_a_count_question_end_to_end(firms_history):
     assert fact["result"] == {"count": 2}
     assert fact["evidence"]["dataset"] == "NASA_FIRMS:VIIRS_SNPP_SP"
     assert response["plan"]["steps"][0]["tool"] == "calculate_statistics"
-    json.dumps(response)  # the whole thing must be JSON-serializable end to end
+    json.dumps(response)
 
-    # Both real LLM calls happened, in order: plan, then answer.
     assert len(client.models.calls) == 2
     assert (
         "response_schema" in client.models.calls[0]["config"]
-    )  # generate_plan's structured output
+    )
     assert (
         "response_schema" not in client.models.calls[1]["config"]
-    )  # generate_answer is free text
+    )
 
 
 def test_run_ask_earth_raises_when_the_plan_fails_validation(firms_history):
-    # An unknown tool: generate_plan's own validate_plan_or_raise call
-    # rejects this before run_ask_earth's dispatch is ever reached.
     plan_payload = [
         {"step_id": "s1", "tool": "delete_everything", "input": {}, "depends_on": []}
     ]
@@ -120,12 +111,10 @@ def test_run_ask_earth_raises_when_the_plan_fails_validation(firms_history):
     with pytest.raises(ValueError, match="unknown tool"):
         run_ask_earth({"question": "anything"}, client, backend)
 
-    assert len(client.models.calls) == 1  # never reached the answer call
+    assert len(client.models.calls) == 1
 
 
 def test_run_ask_earth_raises_when_a_step_fails(firms_history):
-    # A named region the deterministic validator itself rejects (checked
-    # against the real normalize_region).
     plan_payload = [
         {
             "step_id": "count",

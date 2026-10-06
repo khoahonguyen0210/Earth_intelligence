@@ -51,7 +51,6 @@ describe("RegionMap", () => {
   it("renders axis tick labels for scale reference", () => {
     render(<RegionMap bbox={[-124.5, 32.5, -114.0, 42.0]} label="california" />);
 
-    // A longitude gridline at -120 should have a corresponding tick label.
     expect(screen.getByText("-120")).toBeInTheDocument();
   });
 

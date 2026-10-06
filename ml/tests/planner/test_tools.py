@@ -21,9 +21,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.schema import (
 
 
 def _assert_strict_safe(schema: dict) -> None:
-    """Recursively verifies the Claude strict-tool-use invariant: every
-    object node has additionalProperties: False and lists every one of
-    its properties as required (strict mode has no optional property)."""
     if schema.get("type") != "object":
         return
 
@@ -93,6 +90,4 @@ def test_calculate_statistics_operations_match_run_analysis_dispatch():
     operation_schema = CALCULATE_STATISTICS.input_schema["properties"]["operation"]
     tool_operations = set(operation_schema["enum"])
 
-    # "map" is generate_map's tool, not calculate_statistics's, so it is
-    # the one supported operation deliberately excluded here.
     assert tool_operations == SUPPORTED_OPERATIONS - {"map"}

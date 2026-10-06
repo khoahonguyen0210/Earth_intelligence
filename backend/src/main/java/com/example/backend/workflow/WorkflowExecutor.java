@@ -31,7 +31,6 @@ public class WorkflowExecutor {
         this.spans = spans;
     }
 
-    /** Untraced -- for callers that do not run inside Spring. */
     public WorkflowExecutor(WorkflowTaskDispatcher dispatcher, Clock clock, int maxAttempts) {
         this(dispatcher, clock, maxAttempts, Spans.noop());
     }
@@ -107,11 +106,9 @@ public class WorkflowExecutor {
     private WorkflowNode advance(WorkflowNode node, Map<String, WorkflowNode> nodesByTaskId) {
         return switch (node.status()) {
             case PENDING -> advancePending(node, nodesByTaskId);
-            // Both READY and RETRYING have a legal edge straight to
-            // RUNNING -- runNode makes that one transition itself.
             case READY, RETRYING -> runNode(node);
             case RUNNING -> runNode(WorkflowStateMachine.transition(node, Status.RETRYING, clock.instant()));
-            default -> node; // terminal states never change
+            default -> node;
         };
     }
 
@@ -131,7 +128,7 @@ public class WorkflowExecutor {
             return WorkflowStateMachine.transition(node, Status.READY, clock.instant());
         }
 
-        return node; // still waiting on at least one in-flight dependency
+        return node;
     }
 
     private WorkflowNode runNode(WorkflowNode readyOrRetrying) {
@@ -179,7 +176,6 @@ public class WorkflowExecutor {
                 .log(error == null ? "workflow node succeeded" : "workflow node failed: {}", error);
     }
 
-    /** Validates the transition before recording an outcome that carries more than just status. */
     private WorkflowNode applyOutcome(WorkflowNode node, Status status, String outputRef, String error) {
         Instant now = clock.instant();
 

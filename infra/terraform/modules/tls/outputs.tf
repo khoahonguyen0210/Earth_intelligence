@@ -1,7 +1,5 @@
 output "certificate_arn" {
   description = "For the Ingress annotation alb.ingress.kubernetes.io/certificate-arn."
-  # The validated ARN when Terraform validated it, so anything depending
-  # on this output waits for issuance.
   value = var.route53_zone_id == null ? aws_acm_certificate.this.arn : aws_acm_certificate_validation.this[0].certificate_arn
 }
 

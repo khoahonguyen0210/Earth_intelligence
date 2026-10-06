@@ -28,8 +28,6 @@ CUTOFF_STRIDE_DAYS = 7
 HISTORY_START_YEAR = 2019
 HISTORY_END_YEAR = 2024
 
-# FIRMS' area API rejects day_range outside 1..5 (observed directly:
-# "Invalid day range. Expects [1..5].").
 FIRMS_MAX_DAY_RANGE = 5
 
 LOOKBACK_HOURS = max(FIRE_HISTORY_WINDOWS_HOURS.values())
@@ -50,7 +48,6 @@ def historical_cutoffs(
 
 
 def observation_window(cutoff: datetime) -> tuple[datetime, datetime]:
-    """Returned half-open as (start, end]."""
     return (
         cutoff - timedelta(hours=LOOKBACK_HOURS),
         cutoff + timedelta(hours=FORECAST_WINDOW_HOURS),
@@ -83,7 +80,6 @@ class FIRMSSpan:
 
 
 def firms_spans(days: Iterable[date]) -> list[FIRMSSpan]:
-    """Consecutive days grouped into requests of at most FIRMS_MAX_DAY_RANGE."""
     spans: list[FIRMSSpan] = []
     run: list[date] = []
 
@@ -119,10 +115,6 @@ def fetch_firms_span(
     output_path: Path,
     max_retries: int = 4,
 ) -> Path:
-    """One FIRMS area request for `span`, written verbatim to `output_path`.
-
-    Validated before writing: the response must parse as FIRMS CSV and
-    every row's acq_date must fall inside the span."""
     url = build_span_url(config, bbox, span)
     last_error: Exception | None = None
 
@@ -138,7 +130,6 @@ def fetch_firms_span(
             requests.Timeout,
             requests.HTTPError,
         ) as error:
-            # The map key is part of the URL; never let it reach an error message.
             last_error = RuntimeError(str(error).replace(config.map_key, "***"))
             time.sleep(2**attempt)
     else:
@@ -162,8 +153,6 @@ def load_firms_history(
     end: datetime,
     product: str = "VIIRS_SNPP_SP",
 ) -> list[Observation]:
-    """Every observation with start < observed_at <= end, from the span
-    files under `history_dir` that overlap that window."""
     ingested_at = datetime.now(timezone.utc)
     observations: list[Observation] = []
 
@@ -195,7 +184,6 @@ def parse_span_file_name(name: str) -> FIRMSSpan:
 
 
 def firms_covered_days(history_dir: Path) -> set[date]:
-    """Every UTC day some downloaded span file covers."""
     days: set[date] = set()
     for path in history_dir.glob("VIIRS_SNPP_SP_*_*d.csv"):
         span = parse_span_file_name(path.name)
@@ -206,9 +194,6 @@ def firms_covered_days(history_dir: Path) -> set[date]:
 def require_firms_coverage(
     history_dir: Path, start: datetime, end: datetime, purpose: str
 ) -> None:
-    """Raise unless real FIRMS history covers every UTC day in [start, end].
-
-    The history holds fire seasons only (May 2 - Oct 27, 2019-2024)."""
     covered = firms_covered_days(history_dir)
     if not covered:
         raise ValueError(f"no FIRMS history found in {history_dir}")
@@ -224,14 +209,9 @@ def require_firms_coverage(
         )
 
 
-# --- ERA5-Land ---------------------------------------------------------------
-
-
 def required_era5_requests(
     cutoffs: Iterable[datetime],
 ) -> list[tuple[int, int, list[int], str]]:
-    """One CDS request per (year, month): the cutoff days in that month at
-    the cutoff hour."""
     by_month: dict[tuple[int, int], set[int]] = {}
     hours: set[int] = set()
     for cutoff in cutoffs:

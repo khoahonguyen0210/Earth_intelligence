@@ -48,7 +48,6 @@ public record Workflow(String id, String name, String description, Instant creat
         return errors;
     }
 
-    /** Kahn's algorithm: a DAG has a full topological order; a graph with a cycle does not. */
     private boolean hasCycle() {
         Map<String, Integer> remainingDependencies = new HashMap<>();
         Map<String, List<String>> dependents = new HashMap<>();

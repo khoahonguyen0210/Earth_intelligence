@@ -32,7 +32,6 @@ public class EarthQueryEntity {
     private Instant createdAt;
 
     protected EarthQueryEntity() {
-        // JPA
     }
 
     public EarthQueryEntity(String id, String request, String status, String result, String error, Instant createdAt) {

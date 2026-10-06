@@ -5,11 +5,6 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class RetrievalCase:
-    """A question about the system and the docs that answer it. A
-    retrieval counts as a hit when any of `relevant` is among the
-    retrieved sources. Questions are worded unlike the docs on purpose,
-    so word overlap alone does not solve them."""
-
     question: str
     relevant: frozenset[str]
 

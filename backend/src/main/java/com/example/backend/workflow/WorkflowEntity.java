@@ -22,7 +22,6 @@ public class WorkflowEntity {
     private Instant createdAt;
 
     protected WorkflowEntity() {
-        // JPA
     }
 
     public WorkflowEntity(String id, String name, String description, Instant createdAt) {

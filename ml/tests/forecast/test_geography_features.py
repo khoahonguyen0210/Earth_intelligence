@@ -6,7 +6,7 @@ from ai_earth_intelligence_and_forecasting_engine.forecast import (
     geography_features as gf,
 )
 
-TEST_BBOX = (-120.0, 37.0, -119.8, 37.2)  # 2x2 cells
+TEST_BBOX = (-120.0, 37.0, -119.8, 37.2)
 CELLS = build_california_grid(bbox=TEST_BBOX, resolution_deg=0.1)
 
 
@@ -74,7 +74,6 @@ def test_geography_cell_outside_any_tile_is_ignored():
 
 
 def test_multiple_geography_cells_map_to_different_tiles():
-    # Four cells at TEST_BBOX = (-120.0, 37.0, -119.8, 37.2), 0.1deg -> 2x2.
     cell_sw = _geo_cell(latitude=37.05, longitude=-119.95, elevation_m=100.0)
     cell_ne = _geo_cell(latitude=37.15, longitude=-119.85, elevation_m=2000.0)
 

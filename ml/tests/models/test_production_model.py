@@ -1,11 +1,3 @@
-"""The production model's save/load/metadata contract.
-
-These tests cover its save/load roundtrip, its metadata contents, and
-its version-mismatch guard directly, plus one property nothing else
-checks: retraining on identical inputs with the module's own fixed
-random_state produces identical predictions.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -79,9 +71,6 @@ VALIDATION_ROWS = _separable_split("validation", 2, LATER_CUTOFF)
 TEST_ROWS = _separable_split("test", 3, LATER_CUTOFF)
 
 
-# --- metadata contents -------------------------------------------------
-
-
 def test_train_production_model_metadata_has_every_reproducibility_field():
     model = train_production_model(TRAIN_ROWS, VALIDATION_ROWS)
 
@@ -89,7 +78,6 @@ def test_train_production_model_metadata_has_every_reproducibility_field():
     assert model.metadata["calibration_method"]
     assert isinstance(model.metadata["best_iteration"], int)
     assert model.metadata["trained_at"]
-    # Never a placeholder -- the fixed seed this model's config actually used.
     assert model.metadata["config"]["random_state"] == BASE_CONFIG["random_state"]
     assert model.metadata["libraries"].keys() == set(PINNED_LIBRARIES)
     for name in PINNED_LIBRARIES:
@@ -113,9 +101,6 @@ def test_train_production_model_split_summaries_match_the_real_rows():
     assert validation_summary["rows"] == len(VALIDATION_ROWS)
     assert validation_summary["cutoffs"] == 1
     assert validation_summary["first_cutoff"] == LATER_CUTOFF.isoformat()
-
-
-# --- save/load roundtrip ------------------------------------------------
 
 
 def test_save_and_load_production_model_roundtrips_predictions(tmp_path):
@@ -150,9 +135,6 @@ def test_load_production_model_refuses_a_library_version_mismatch(tmp_path):
 
     with pytest.raises(RuntimeError, match="different library versions"):
         load_production_model(tmp_path)
-
-
-# --- reproducibility: the fixed seed actually reproduces ---------------
 
 
 def test_retraining_on_identical_inputs_with_the_fixed_seed_reproduces_predictions():

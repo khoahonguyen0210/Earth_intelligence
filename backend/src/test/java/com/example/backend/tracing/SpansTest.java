@@ -68,7 +68,6 @@ class SpansTest {
             return null;
         });
 
-        // Later, with nothing in scope -- as on the worker thread.
         spans.continued(traceParent.get(), "forecast.job.attempt", () -> spans.child("forecast.python", () -> {
         }));
 

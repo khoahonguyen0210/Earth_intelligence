@@ -24,7 +24,7 @@ def main() -> None:
                     attempts=5, initial_delay=2.0, http_status_codes=[429, 500, 503]
                 )
             )
-        )  # resolves GEMINI_API_KEY from .env or the real environment
+        )
         backend = Backend(base_url=BACKEND_BASE_URL)
         response = run_ask_earth(payload, client, backend)
     except Exception as error:

@@ -39,7 +39,6 @@ def compute_metrics(
         pr_auc = float(average_precision_score(y_true, y_pred_proba))
         roc_auc = float(roc_auc_score(y_true, y_pred_proba))
     else:
-        # PR-AUC/ROC-AUC are undefined when only one class is present.
         pr_auc = float("nan")
         roc_auc = float("nan")
 

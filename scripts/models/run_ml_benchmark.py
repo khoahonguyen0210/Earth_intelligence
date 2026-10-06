@@ -1,15 +1,3 @@
-"""The final ML benchmark, against the real historical
-dataset (data/processed/historical_dataset_v1.csv), not the tiny
-sample data scripts/models/run_baseline_benchmark.py used.
-
-Runs the same benchmark-v1-frozen comparison
-(models/benchmark.py::run_baseline_benchmark) against it, producing
-PR-AUC/ROC-AUC/Brier/log-loss/inference-time across all four locked
-models.
-
-    python scripts/models/run_ml_benchmark.py
-"""
-
 from pathlib import Path
 
 from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import (

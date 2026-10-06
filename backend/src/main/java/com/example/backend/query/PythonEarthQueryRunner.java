@@ -109,7 +109,6 @@ public class PythonEarthQueryRunner implements EarthQueryRunner {
                 return message.toString();
             }
         } catch (JacksonException ignored) {
-            // stdout wasn't valid JSON; fall through to the raw message below.
         }
 
         return "Ask Earth query process failed (exit " + exitCode + "): " + stderr;

@@ -107,8 +107,6 @@ def load_sample_rows(
     validation_cutoff: datetime,
     test_cutoff: datetime,
 ) -> list[DatasetRow]:
-    """Loads the real sample data and builds dataset rows for the given
-    cutoffs."""
     firms_config = load_firms_config()
     firms_records = parse_firms_records(
         DEFAULT_RAW_FIRMS_PATH.read_text(encoding="utf-8")
@@ -227,11 +225,6 @@ def run_experiment_on_rows(
     test_rows: list[DatasetRow],
     artifacts_root: Path = Path("ml/artifacts"),
 ) -> ExperimentResult:
-    """The core, testable evaluation pipeline: data selection is the
-    caller's job (either load_sample_rows for real data, or a synthetic
-    fixture in tests); this function does
-    split -> training -> prediction -> metrics -> plots -> artifacts.
-    """
     if model_name not in SUPPORTED_MODELS:
         raise ValueError(
             f"Unsupported model: {model_name!r}. Supported: {SUPPORTED_MODELS}"
@@ -290,7 +283,7 @@ def run_experiment_on_rows(
 
             config["best_iteration"] = xgb_result.best_iteration
             config["base_config"] = xgb_result.config
-        else:  # calibrated_xgboost
+        else:
             training_start = time.perf_counter()
             base_result = fit_xgboost(train_rows, validation_rows)
             cal_model = fit_calibration(base_result, validation_rows)
@@ -360,8 +353,6 @@ def run_experiment(
     test_cutoff: datetime,
     artifacts_root: Path = Path("ml/artifacts"),
 ) -> ExperimentResult:
-    """The full, real, one-command pipeline: loads real sample data, then
-    runs run_experiment_on_rows."""
     rows = load_sample_rows(train_cutoff, validation_cutoff, test_cutoff)
     train_rows = [row for row in rows if row.split == "train"]
     validation_rows = [row for row in rows if row.split == "validation"]

@@ -29,10 +29,9 @@ class ObjectKeysTest {
 
     @Test
     void theStoreRefusesAnUnsafeKeyBeforeAnyS3Call() {
-        // A client that would fail if it were ever called.
         S3Client neverCalled = org.mockito.Mockito.mock(S3Client.class, invocation -> {
             if (invocation.getMethod().getName().equals("headBucket")) {
-                return null; // constructor's bucket check
+                return null;
             }
             throw new AssertionError("S3 was called with an unsafe key");
         });

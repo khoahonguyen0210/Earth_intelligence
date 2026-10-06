@@ -1,21 +1,3 @@
-"""Controlled failures against the real backend.
-
-Runs the handbook's failure scenarios against the packaged backend jar,
-the real compose Postgres and Redis containers and real processes, and
-records for each one how the failure was detected, how the system
-recovered, the job's final result, and the recovery time.
-
-Run from the repository root, with `docker compose up -d` done in
-infra/docker/ and the jar built (`./mvnw package -DskipTests` in
-backend/):
-
-    .venv/Scripts/python scripts/reliability/run_reliability_tests.py [label]
-
-Writes ml/artifacts/reliability_tests/<label>.json and prints a summary.
-Scenarios stop and start the ai-earth-redis and ai-earth-postgres
-containers; each one leaves them running again.
-"""
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -63,9 +45,6 @@ class ScenarioResult:
     observations: dict[str, Any] = field(default_factory=dict)
 
 
-# --- infrastructure -------------------------------------------------------
-
-
 def docker(*args: str) -> None:
     subprocess.run(["docker", *args], check=True, capture_output=True)
 
@@ -91,8 +70,6 @@ def http(method: str, path: str, body: Any = None, headers: dict[str, str] | Non
 
 
 class Backend:
-    """One backend jar process, started with scenario-specific settings."""
-
     def __init__(self, name: str, env: dict[str, str]):
         self.name = name
         self.env = env
@@ -100,7 +77,6 @@ class Backend:
 
     def start(self) -> float:
         LOG_DIR.mkdir(parents=True, exist_ok=True)
-        # Stays open for the life of the process, which writes to it.
         log = open(LOG_DIR / f"{self.name}-{int(time.time())}.log", "wb")  # noqa: SIM115
         env = {**os.environ, **self.env}
         started = time.monotonic()
@@ -118,15 +94,11 @@ class Backend:
         raise RuntimeError(f"backend {self.name} did not start within 240 s")
 
     def warm_up(self) -> None:
-        """One job end to end, so scenarios measure a serving system, not
-        a cold JVM's first requests (JPA, Hikari, class loading)."""
         _, body = submit("warmup")
         if isinstance(body, dict) and "forecast_id" in body:
             wait_for(body["forecast_id"], TERMINAL, 60)
 
     def crash(self) -> None:
-        """A hard kill of the whole process tree (the JVM and its Python
-        child), as when a pod or node dies: no shutdown hooks run."""
         assert self.process is not None
         if os.name == "nt":
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(self.process.pid)], capture_output=True, check=False)
@@ -158,9 +130,6 @@ def base_env(queue_key: str) -> dict[str, str]:
         "RATE_LIMIT_ANALYSES_PER_MINUTE": "1000",
         "RATE_LIMIT_KEY_PREFIX": f"ratelimit-reliability-{uuid.uuid4()}:",
     }
-
-
-# --- forecast helpers -----------------------------------------------------
 
 
 def forecast_body(behaviour: str) -> dict[str, Any]:
@@ -203,9 +172,6 @@ def db_scalar(sql: str) -> str:
 
 def readyz() -> int:
     return http("GET", "/readyz", timeout=10)[0]
-
-
-# --- scenarios ------------------------------------------------------------
 
 
 def duplicate_request(backend: Backend) -> ScenarioResult:
@@ -335,7 +301,7 @@ def database_unavailable(backend: Backend) -> ScenarioResult:
         code, refused = submit("sleep-1")
         result.observations["submit_while_down"] = {"status": code, "body": refused}
         result.observations["readyz_while_down"] = readyz()
-        time.sleep(25)  # the running job's Python finishes while the database is down
+        time.sleep(25)
     finally:
         docker("start", "ai-earth-postgres")
     restored = time.monotonic()
@@ -398,7 +364,7 @@ def malformed_earth_data() -> ScenarioResult:
             ok_status = ok_summary.get("status") if isinstance(ok_summary, dict) else None
         result.final_status = analysis_status
         result.final_error = analysis_error
-        result.recovery_seconds = 0.0  # synchronous; there is no async recovery to time
+        result.recovery_seconds = 0.0
         result.observations = {
             "malformed_request": {"submit_status": code, "analysis_status": analysis_status, "error": analysis_error},
             "well_formed_request_after": {"submit_status": code2, "analysis_status": ok_status},
@@ -416,9 +382,6 @@ def malformed_earth_data() -> ScenarioResult:
         backend.stop()
         shutil.rmtree(fixture, ignore_errors=True)
     return result
-
-
-# --- driver ---------------------------------------------------------------
 
 
 def main() -> None:

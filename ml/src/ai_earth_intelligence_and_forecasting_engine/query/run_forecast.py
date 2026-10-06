@@ -74,8 +74,6 @@ from ai_earth_intelligence_and_forecasting_engine.query.schema import RegionSpec
 TRAIN_DEMO_CUTOFF = datetime(2020, 8, 15, 10, 0, tzinfo=timezone.utc)
 VALIDATION_DEMO_CUTOFF = datetime(2023, 8, 15, 10, 0, tzinfo=timezone.utc)
 
-# The stalest ERA5-Land hour a forecast may use; older means there is no
-# real weather to use.
 MAX_ERA5_AGE = timedelta(days=7)
 
 
@@ -97,9 +95,6 @@ def predict_forecast(
     timings_ms: dict[str, float] | None = None,
     inputs: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Scores inference_rows with an already-trained model. `timings_ms`
-    (if given) receives `model_inference`: scoring time only, not
-    feature-building or model fitting."""
     inference_start = time.perf_counter()
     probabilities = predict_calibrated(model.calibrated, inference_rows)
     if timings_ms is not None:
@@ -147,11 +142,6 @@ def compute_forecast(
     cutoff: datetime,
     timings_ms: dict[str, float] | None = None,
 ) -> dict[str, Any]:
-    """Train-then-predict in one call: the locked calibrated-XGBoost
-    pipeline fit from train_rows/validation_rows exactly as the
-    production model is (models/production_model.py), then scored on
-    inference_rows. `timings_ms` receives `model_fit` and
-    `model_inference`."""
     fit_start = time.perf_counter()
     model = train_production_model(train_rows, validation_rows)
     if timings_ms is not None:
@@ -163,8 +153,6 @@ def compute_forecast(
 
 
 def require_lookback_coverage(history_dir: Path, cutoff: datetime) -> None:
-    """A forecast needs real fire history for its whole 30-day lookback;
-    outside it every fire-history feature would silently read 0."""
     require_firms_coverage(
         history_dir,
         cutoff - timedelta(hours=LOOKBACK_HOURS),
@@ -181,13 +169,6 @@ def run_forecast(
     model_dir: Path,
     live_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Validates the request, builds the inference cutoff's feature rows
-    from the real history (FIRMS strictly before the cutoff -- nothing
-    after it is even loaded), and scores them with the trained
-    production model.
-
-    Returns {"result": ..., "timings_ms": {...}}. `timings_ms` sits
-    beside the result, not inside it."""
     total_start = time.perf_counter()
     request = parse_forecast_payload(payload)
     errors = validate_forecast_request(request)

@@ -9,7 +9,7 @@ FORECAST_WINDOW_HOURS = 24
 @dataclass(frozen=True)
 class SplitRange:
     start: date
-    end: date  # inclusive
+    end: date
 
 
 TRAIN_SPLIT = SplitRange(date(2019, 1, 1), date(2022, 12, 31))

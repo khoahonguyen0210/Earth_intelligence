@@ -42,14 +42,6 @@ TIME_RANGE_SPEC_SCHEMA: dict[str, Any] = {
 
 @dataclass(frozen=True)
 class ToolSchema:
-    """One entry in the planner's fixed tool surface.
-
-    `returns`/`output_fields` document the result shape for the
-    validator and whoever wires up real dispatch; neither is part of
-    the Claude tool wire format. `output_fields` is the top-level key
-    set of a successful result.
-    """
-
     name: str
     description: str
     input_schema: dict[str, Any]
@@ -60,9 +52,6 @@ class ToolSchema:
 def _strict_object_schema(
     properties: dict[str, Any], required: list[str]
 ) -> dict[str, Any]:
-    """A JSON Schema object safe for Claude's `strict: true` tool mode:
-    additionalProperties is False and every property is required (strict
-    mode has no notion of an optional property)."""
     return {
         "type": "object",
         "properties": properties,
@@ -326,10 +315,6 @@ def get_tool_schema(name: str) -> ToolSchema:
 
 
 def to_claude_tool_definition(tool: ToolSchema) -> dict[str, Any]:
-    """The exact shape client.messages.create(tools=[...]) expects:
-    name/description/input_schema/strict only -- `returns` is internal
-    documentation, not part of the real Claude tool-definition wire
-    format."""
     return {
         "name": tool.name,
         "description": tool.description,

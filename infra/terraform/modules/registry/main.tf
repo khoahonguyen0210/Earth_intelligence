@@ -1,18 +1,10 @@
-# ECR repositories for the two images this project builds (backend/Dockerfile,
-# frontend/Dockerfile) -- docs/cloud-deployment.md "Kubernetes".
-
 resource "aws_ecr_repository" "this" {
   for_each = toset(var.repository_names)
 
   name = each.key
 
-  # A tag, once pushed, always means the same image (Trivy AWS-0031), so
-  # a deployed tag can never be silently replaced. Each push therefore
-  # tags uniquely (the git commit SHA), never a reused "latest".
   image_tag_mutability = "IMMUTABLE"
 
-  # Same teardown reasoning as modules/database: destroy must not fail on
-  # a repository that still holds images.
   force_delete = true
 
   image_scanning_configuration {
@@ -20,7 +12,6 @@ resource "aws_ecr_repository" "this" {
   }
 }
 
-# Every push adds an image; keep only the most recent ones.
 resource "aws_ecr_lifecycle_policy" "this" {
   for_each = aws_ecr_repository.this
 

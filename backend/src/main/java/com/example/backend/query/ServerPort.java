@@ -25,7 +25,6 @@ public class ServerPort implements ApplicationListener<WebServerInitializedEvent
         return port;
     }
 
-    /** Package-visible: lets a unit test set a port without a real WebServerInitializedEvent. */
     void setForTest(int port) {
         this.port = port;
     }

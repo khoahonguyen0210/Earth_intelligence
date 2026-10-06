@@ -22,8 +22,6 @@ from ai_earth_intelligence_and_forecasting_engine.models.preprocessing import (
 
 MODEL_VERSION = "v1"
 
-# n_estimators is only an upper cap -- the actual number of trees used
-# is chosen via early stopping against the validation set.
 BASE_CONFIG: dict[str, Any] = {
     "n_estimators": 500,
     "max_depth": 4,
@@ -52,10 +50,6 @@ def fit_xgboost(
     feature_columns: tuple[str, ...] = NUMERIC_FEATURE_COLUMNS,
     include_land_cover: bool = True,
 ) -> XGBoostResult:
-    """`feature_columns`/`include_land_cover` let a caller (e.g. the
-    weather ablation, the geography ablation) fit against a deliberate
-    feature subset while keeping the model config/protocol identical --
-    defaults preserve the original full-feature-set behavior exactly."""
     y_train = extract_targets(train_rows)
     train_classes = sorted(set(y_train.tolist()))
 

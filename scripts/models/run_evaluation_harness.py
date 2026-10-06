@@ -1,18 +1,3 @@
-"""The evaluation harness: one command runs data selection -> split
--> preprocessing -> training -> prediction -> metrics -> plots -> artifact
-metadata for any model in the ladder, saved under ml/artifacts/<experiment_id>/.
-
-Usage:
-    python scripts/models/run_evaluation_harness.py --model climatology --experiment-id climatology_v1
-    python scripts/models/run_evaluation_harness.py --model calibrated_xgboost --experiment-id calibrated_xgboost_v1
-
-Only "climatology" can currently succeed against real data; the real
-training/validation splits have zero positive examples, so
-logistic_regression, xgboost, and calibrated_xgboost will honestly
-report that limitation and still produce a config.json + README.md,
-rather than crash.
-"""
-
 import argparse
 from datetime import datetime, timezone
 
@@ -21,8 +6,6 @@ from ai_earth_intelligence_and_forecasting_engine.models.harness import (
     run_experiment,
 )
 
-# Same fixed cutoffs used by the other baseline demo scripts, spanning
-# all three locked splits.
 TRAIN_CUTOFF = datetime(2020, 8, 15, 10, 0, tzinfo=timezone.utc)
 VALIDATION_CUTOFF = datetime(2023, 8, 15, 10, 0, tzinfo=timezone.utc)
 TEST_CUTOFF = datetime(2024, 8, 15, 10, 0, tzinfo=timezone.utc)

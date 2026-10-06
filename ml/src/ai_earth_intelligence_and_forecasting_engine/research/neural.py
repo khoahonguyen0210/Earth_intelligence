@@ -1,10 +1,3 @@
-"""A small PyTorch network on the same features as the served model.
-
-A research comparison only: it reuses the locked feature set and
-preprocessing, and never replaces calibrated XGBoost in service.
-Requires the `research` dependency group (`uv sync --group research`).
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -67,9 +60,6 @@ def fit_neural(
     validation_rows: list[DatasetRow],
     max_epochs: int = MAX_EPOCHS,
 ) -> NeuralResult:
-    """Trains with the positive class up-weighted by the train split's
-    negative/positive ratio, since fires are under 1% of rows, and keeps
-    the epoch with the best validation PR-AUC (early stopping)."""
     torch.manual_seed(SEED)
     generator = torch.Generator().manual_seed(SEED)
 
@@ -130,7 +120,5 @@ def fit_neural(
 
 
 def predict_neural(result: NeuralResult, rows: list[DatasetRow]) -> list[float]:
-    """Scores for ranking (PR-AUC). With the up-weighted loss they are not
-    calibrated probabilities."""
     x = torch.tensor(transform(result.preprocessor, rows), dtype=torch.float32)
     return _scores(result.network, x).tolist()

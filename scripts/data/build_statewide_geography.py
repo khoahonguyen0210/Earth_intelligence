@@ -1,18 +1,8 @@
-"""Build elevation/slope/land-cover features for every California grid cell.
-
-Reads Copernicus GLO-30 (30 m) and ESA WorldCover v200 (1/8 overview)
-COGs tile by tile from their public AWS buckets and writes one CSV row
-per 0.1-degree cell, plus provenance.
-
-    python scripts/data/build_statewide_geography.py
-"""
-
 import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Avoid a directory listing per remote COG open (GDAL's /vsicurl default).
 os.environ.setdefault("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
 os.environ.setdefault("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", ".tif")
 

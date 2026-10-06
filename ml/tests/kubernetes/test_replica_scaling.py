@@ -57,7 +57,6 @@ def test_run_replica_scaling_trial_polls_until_terminal_status():
     )
 
     assert result.status_counts == {"FAILED": 1}
-    # two RUNNING polls before the terminal one -> two 2s sleeps elapsed
     assert result.total_wall_seconds == 4.0
     assert result.per_job_seconds == (4.0,)
 
@@ -144,10 +143,8 @@ def test_compute_speedup_efficiency_no_benefit_from_more_replicas():
 
     assert points[0].speedup == 1.0
     assert points[1].speedup > 1.0
-    # 4 and 8 replicas measured slower than the 1-replica baseline here
     assert points[2].speedup < points[1].speedup
     assert points[3].speedup < 1.0
-    # efficiency strictly falls as replicas grow past the best point
     assert points[3].efficiency < points[2].efficiency < points[1].efficiency
 
 
