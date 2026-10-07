@@ -34,21 +34,24 @@
 
 </div>
 
-PR-AUC on the held-out 2024 test year, with 95% intervals from a bootstrap over forecast dates.
+PR-AUC with 95% intervals from a bootstrap over forecast dates, on the held-out 2024 test year and on the 2025 season, which the served model never saw.
 
-| Measure | Result |
+| Measure | 2024 test year | 2025 season |
+|---|---|---|
+| Served model (calibrated XGBoost) | **0.436** (0.360 to 0.503) | **0.464** (0.386 to 0.539) |
+| Gain over climatology | +0.184 (0.113 to 0.248) | +0.143 (0.073 to 0.222) |
+| Gain over "fires in the last 24 hours" | +0.052 (0.017 to 0.086) | **+0.069** (0.037 to 0.104) |
+
+| Other measures | Result |
 |---|---|
-| XGBoost | **0.451** (0.374 to 0.521) |
-| Served model, calibrated XGBoost | **0.436** (0.360 to 0.503) |
-| Gain over climatology (0.252) | **+0.199** (0.125 to 0.265) |
-| Gain over "fires in the last 24 hours" (0.384) | **+0.068** (0.031 to 0.101) |
-| Regions never seen in training | **0.346**, down 0.105 |
-| PyTorch neural network, same features | **0.388**, 0.064 below XGBoost |
+| Regions never seen in training (2024) | **0.346**, down 0.105 |
+| PyTorch neural network, same features (2024) | **0.388**, 0.064 below XGBoost |
+| Retraining on the 2025 season | candidate **0.399** against **0.464**, so the current model stays |
 | Terrain and land cover | **+0.081** PR-AUC over fire history and weather alone |
 | Worker killed mid-run | **0 tiles lost**, recovered in **1.35 s** |
-| Planner on 14 live questions | **100%** intent, region, and execution |
+| Planner on 22 live questions | **100%** intent and region correct, **6 of 6** out-of-scope and attack questions contained |
 
-The model clearly beats climatology, but a no-model rule that predicts fire where it burned yesterday already gets most of the way. A neural network on the same features did worse than XGBoost, so the trees stay in service. Intervals, the spatial holdout and drift checks are in [`docs/evaluation.md`](docs/evaluation.md), and the network comparison in [`docs/neural-baseline.md`](docs/neural-baseline.md). Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
+The model clearly beats climatology, but a no-model rule that predicts fire where it burned yesterday already gets most of the way, and the lead over that rule is the same on both seasons. A neural network on the same features did worse than XGBoost, and a model retrained on more data did worse than the one in service, so the gate kept it. Intervals, the spatial holdout and drift checks are in [`docs/evaluation.md`](docs/evaluation.md), the network comparison in [`docs/neural-baseline.md`](docs/neural-baseline.md), and the retraining runs in [`docs/retraining.md`](docs/retraining.md). Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
 
 ## How it works
 
@@ -86,7 +89,7 @@ Replaying the loop over 2021 to 2023, the gate blocked a candidate trained on mo
 
 Ask Earth can also answer questions about how it works, such as "Does the model beat a simple baseline?" or "Is there a login?". A planner tool retrieves passages from `docs/` using Gemini embeddings, and the answer cites each source by path. The answer check also fails any citation that was not actually retrieved.
 
-On 35 labelled questions worded unlike the docs, embedding search finds a correct doc in the top 5 for 34 of them, against 25 for keyword search. Combining both did worse than embeddings alone, so the tool uses embeddings. Details are in [`docs/rag.md`](docs/rag.md).
+On 35 labelled questions worded unlike the docs, embedding search finds a correct doc in the top 5 for 34 of them, against 24 for keyword search. Combining both did worse than embeddings alone, so the tool uses embeddings. Details are in [`docs/rag.md`](docs/rag.md).
 
 
 ## Tech stack

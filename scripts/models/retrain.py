@@ -12,11 +12,19 @@ from ai_earth_intelligence_and_forecasting_engine.models.retraining import (
 )
 
 DATASET_PATH = Path("data/processed/historical_dataset_v1.csv")
+SEASON_DATASETS = "historical_dataset_20*.csv"
 SERVED_DIR = Path("ml/artifacts/production_model_v1")
 REGISTRY_DIR = Path("ml/artifacts/model_registry")
 REPLAY_REGISTRY_DIR = Path("ml/artifacts/model_registry_replay")
 REPLAY_SEASONS = (2021, 2022, 2023)
 REPLAY_REPORT = Path("data/processed/evaluation/retraining_replay_v1.json")
+
+
+def load_all_rows():
+    rows = load_dataset(DATASET_PATH)
+    for path in sorted(DATASET_PATH.parent.glob(SEASON_DATASETS)):
+        rows.extend(load_dataset(path))
+    return rows
 
 
 def main() -> None:
@@ -40,7 +48,7 @@ def main() -> None:
         print(f"rolled back to {ModelRegistry(REGISTRY_DIR).rollback(served)}")
         return
 
-    rows = load_dataset(DATASET_PATH)
+    rows = load_all_rows()
 
     if args.replay:
         if REPLAY_REGISTRY_DIR.exists():

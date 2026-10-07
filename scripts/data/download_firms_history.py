@@ -1,3 +1,4 @@
+import argparse
 import time
 from datetime import datetime, time as dtime, timedelta, timezone
 from pathlib import Path
@@ -18,10 +19,16 @@ CALIFORNIA_BBOX = (-124.5, 32.5, -114.0, 42.0)
 HISTORY_DIR = Path("data/raw/firms/history")
 PAUSE_SECONDS = 1.0
 
+def season_cutoffs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", type=int)
+    year = parser.parse_args().year
+    return historical_cutoffs() if year is None else historical_cutoffs(year, year)
+
 
 def main() -> None:
     config = load_firms_config()
-    spans = firms_spans(required_firms_days(historical_cutoffs()))
+    spans = firms_spans(required_firms_days(season_cutoffs()))
     print(f"{len(spans)} FIRMS spans ({config.product}, bbox {CALIFORNIA_BBOX})")
 
     for number, span in enumerate(spans, start=1):

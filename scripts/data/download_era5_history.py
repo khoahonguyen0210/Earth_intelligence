@@ -1,3 +1,4 @@
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,11 +21,17 @@ from ai_earth_intelligence_and_forecasting_engine.data.provenance import (
 CALIFORNIA_BBOX = (-124.5, 32.5, -114.0, 42.0)
 HISTORY_DIR = Path("data/raw/era5/history")
 
+def season_cutoffs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", type=int)
+    year = parser.parse_args().year
+    return historical_cutoffs() if year is None else historical_cutoffs(year, year)
+
 
 def main() -> None:
     config = load_era5_config()
     client = cdsapi.Client(url=config.url, key=config.key, quiet=True)
-    requests = required_era5_requests(historical_cutoffs())
+    requests = required_era5_requests(season_cutoffs())
     print(f"{len(requests)} ERA5-Land requests ({config.dataset})")
 
     for number, (year, month, days, hour) in enumerate(requests, start=1):

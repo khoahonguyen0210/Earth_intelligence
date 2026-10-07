@@ -48,16 +48,16 @@ for example "Do users need to log in?" rather than "authentication".
 
 | Mode | Recall@1 | Recall@3 | Recall@5 | MRR |
 |---|---|---|---|---|
-| BM25 (keywords) | 0.371 | 0.571 | 0.714 | 0.487 |
-| Dense (Gemini embeddings) | **0.857** | **0.943** | **0.971** | **0.907** |
-| Hybrid (reciprocal rank fusion) | 0.629 | 0.857 | 0.914 | 0.741 |
+| BM25 (keywords) | 0.371 | 0.543 | 0.686 | 0.474 |
+| Dense (Gemini embeddings) | **0.829** | **0.943** | **0.971** | **0.893** |
+| Hybrid (reciprocal rank fusion) | 0.600 | 0.857 | 0.914 | 0.727 |
 
 What this shows:
 
 - Dense retrieval is clearly best. It misses only one question in the
   top 5 ("Where are large output files kept?", which needs the object
   storage doc).
-- Keyword search fails on paraphrases. It misses 10 of 35 in the top 5.
+- Keyword search fails on paraphrases. It misses 11 of 35 in the top 5.
 - Hybrid is worse than dense alone. Equal-weight fusion lets BM25's
   wrong matches displace correct dense results.
 

@@ -100,11 +100,44 @@ count and pattern, so scores from different gate seasons should not be
 compared with each other, only candidate against current on the same
 season.
 
+## A real run on new data: 2025
+
+The loop was then run for real on the 2025 fire season, downloaded and
+built with the same scripts and a `--year` option:
+
+```bash
+uv run --project ml python scripts/data/download_firms_history.py --year 2025
+uv run --project ml python scripts/data/download_era5_history.py --year 2025
+uv run --project ml python scripts/forecast/build_historical_dataset.py --year 2025
+uv run --project ml python scripts/models/retrain.py --register-current
+uv run --project ml python scripts/models/retrain.py --season 2025
+```
+
+`retrain.py` reads `historical_dataset_v1.csv` plus every
+`historical_dataset_20*.csv` beside it, so a later season only needs
+its own two downloads and one build. The 2025 data is 219,450 rows with
+614 fires, and its share of missing weather and terrain values matches
+the earlier years.
+
+The candidate was fit on 2019 to 2023 and calibrated on 2024. The
+current model (`v1`) was fit on 2019 to 2022 and calibrated on 2023.
+Both were scored on 2025:
+
+| Model | PR-AUC | Brier score |
+|---|---|---|
+| Candidate (more data) | 0.399 | 0.00195 |
+| Current model (`v1`) | 0.464 | 0.00191 |
+| Candidate minus current | -0.065 (95% interval -0.089 to -0.040) | |
+
+The candidate was significantly worse, so the gate kept `v1`. This is
+the second time more training data did not help, after the replay
+above. Why the candidate is worse was not investigated. The candidate
+is kept in the registry with the run's full record.
+
 ## Limits
 
-- The runs are started by hand. A schedule is easy to add, but building
-  a new season's dataset needs the FIRMS and ERA5 download keys, which
-  CI does not hold.
+- The runs are started by hand. A schedule would need the FIRMS and ERA5
+  download keys, which CI does not hold.
 - A promoted candidate keeps the training it had at gate time. It is
   not refit to include the gate season.
 - Promotion is decided on PR-AUC and Brier score on one season. Spatial

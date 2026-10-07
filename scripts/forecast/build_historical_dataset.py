@@ -1,3 +1,4 @@
+import argparse
 import json
 import time
 from dataclasses import fields
@@ -29,7 +30,7 @@ from ai_earth_intelligence_and_forecasting_engine.forecast.historical_dataset im
 FIRMS_DIR = Path("data/raw/firms/history")
 ERA5_DIR = Path("data/raw/era5/history")
 GEOGRAPHY_PATH = Path("data/raw/geography/california_geography.csv")
-OUTPUT_PATH = Path("data/processed/historical_dataset_v1.csv")
+DEFAULT_OUTPUT_PATH = Path("data/processed/historical_dataset_v1.csv")
 
 
 class ManifestAccumulator:
@@ -64,8 +65,16 @@ class ManifestAccumulator:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--year", type=int)
+    year = parser.parse_args().year
     started = time.perf_counter()
-    cutoffs = historical_cutoffs()
+    cutoffs = historical_cutoffs() if year is None else historical_cutoffs(year, year)
+    output_path = (
+        DEFAULT_OUTPUT_PATH
+        if year is None
+        else Path(f"data/processed/historical_dataset_{year}.csv")
+    )
     cells = build_california_grid()
     geography = load_geography_records(GEOGRAPHY_PATH)
 
@@ -77,9 +86,9 @@ def main() -> None:
 
     era5 = ERA5History(ERA5_DIR)
     manifest = ManifestAccumulator()
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with OUTPUT_PATH.open("w", encoding="utf-8") as handle:
+    with output_path.open("w", encoding="utf-8") as handle:
         handle.write(DATASET_HEADER + "\n")
         for number, rows in enumerate(
             iter_historical_rows(observations, era5.for_cutoff, geography, cells, cutoffs),
@@ -102,7 +111,10 @@ def main() -> None:
                 split: s["positive_rate"] for split, s in manifest.summary().items()
             },
             "splits": manifest.summary(),
-            "cutoff_rule": "10:00 UTC every 7 days from June 1 through October, 2019-2024",
+            "cutoff_rule": (
+                "10:00 UTC every 7 days from June 1 through October, "
+                f"{cutoffs[0].year}-{cutoffs[-1].year}"
+            ),
             "cutoffs": len(cutoffs),
             "cells": len(cells),
             "firms_observations_loaded": len(observations),
@@ -111,7 +123,7 @@ def main() -> None:
             "row_fields": [field.name for field in fields(type(rows[0]))],
         }
     )
-    OUTPUT_PATH.with_suffix(".manifest.json").write_text(
+    output_path.with_suffix(".manifest.json").write_text(
         json.dumps(base, indent=2), encoding="utf-8"
     )
     print(json.dumps(base["splits"], indent=2))
