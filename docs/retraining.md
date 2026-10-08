@@ -134,10 +134,46 @@ the second time more training data did not help, after the replay
 above. Why the candidate is worse was not investigated. The candidate
 is kept in the registry with the run's full record.
 
+## Running it automatically
+
+`scripts/models/auto_retrain.py` does the whole sequence in one command:
+
+1. A fire season counts as complete on 1 February of the next year, once
+   the FIRMS standard-processing data has caught up
+   (`models/auto_retrain.py`, `latest_complete_season`).
+2. Every complete season after 2024 that no earlier run used as its
+   gate is pending, oldest first.
+3. For each pending season it downloads the FIRMS and ERA5-Land data,
+   builds the season's dataset if missing, and runs the gated round
+   with deployment on.
+4. Every run is appended to `auto_retrain_log.jsonl` in the registry.
+
+The command is idempotent. A season already in the registry is skipped,
+downloads skip files that exist, and a failed download stops the run
+before any training, so it is safe to schedule often. With no pending
+season it prints `up to date, nothing to do`.
+
+```bash
+# Linux or macOS, every Sunday at 03:00
+0 3 * * 0  cd /path/to/repo && uv run --project ml python scripts/models/auto_retrain.py
+
+# Windows, every Sunday at 03:00
+schtasks /create /tn ai-earth-retrain /sc weekly /d SUN /st 03:00 /tr "cmd /c cd /d C:\path\to\repo && uv run --project ml python scripts/models/auto_retrain.py"
+```
+
+The whole sequence was run end to end for 2025 in a scratch registry.
+It found 2025 pending, skipped the files already downloaded, trained a
+candidate, and reached the same decision as the manual run above, with
+the same scores (PR-AUC gain -0.0651).
+
+A promoted model replaces the served directory immediately. The running
+stack picks it up when the backend image is rebuilt.
+
 ## Limits
 
-- The runs are started by hand. A schedule would need the FIRMS and ERA5
-  download keys, which CI does not hold.
+- The automatic run needs the FIRMS and ERA5 download keys in `.env` and
+  the historical data on the machine that runs it, so it is built to run
+  on that machine rather than in CI.
 - A promoted candidate keeps the training it had at gate time. It is
   not refit to include the gate season.
 - Promotion is decided on PR-AUC and Brier score on one season. Spatial

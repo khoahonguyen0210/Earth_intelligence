@@ -51,7 +51,7 @@ PR-AUC with 95% intervals from a bootstrap over forecast dates, on the held-out 
 | Worker killed mid-run | **0 tiles lost**, recovered in **1.35 s** |
 | Planner on 22 live questions | **100%** intent and region correct, **6 of 6** out-of-scope and attack questions contained |
 
-The model clearly beats climatology, but a no-model rule that predicts fire where it burned yesterday already gets most of the way, and the lead over that rule is the same on both seasons. A neural network on the same features did worse than XGBoost, and a model retrained on more data did worse than the one in service, so the gate kept it. Intervals, the spatial holdout and drift checks are in [`docs/evaluation.md`](docs/evaluation.md), the network comparison in [`docs/neural-baseline.md`](docs/neural-baseline.md), and the retraining runs in [`docs/retraining.md`](docs/retraining.md). Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
+Intervals, the spatial holdout, drift checks and the 2025 season are in [`docs/evaluation.md`](docs/evaluation.md), the network comparison in [`docs/neural-baseline.md`](docs/neural-baseline.md), and the retraining runs in [`docs/retraining.md`](docs/retraining.md). Mixed and negative findings are in [`docs/headline-results.md`](docs/headline-results.md).
 
 ## How it works
 
@@ -81,9 +81,13 @@ On the 2024 test year, recent fire history decides where fires actually happened
 
 ## Learning from new data
 
-When a new fire season arrives, a candidate model is trained on all earlier seasons and scored, together with the model in service, on the new season that neither has seen. It replaces the current model only if PR-AUC rises by at least 0.01 without worse calibration. Every candidate and decision is logged, and promotions can be rolled back. The 2024 test season can never decide a promotion.
+When a fire season is complete, one command downloads its data, trains a candidate on all earlier seasons, and scores it, together with the model in service, on the new season that neither has seen. The candidate replaces the current model only if PR-AUC rises by at least 0.01 without worse calibration. Every candidate and decision is logged, and promotions can be rolled back. The 2024 test season can never decide a promotion.
 
-Replaying the loop over 2021 to 2023, the gate blocked a candidate trained on more data that was significantly worse (-0.041 PR-AUC) and one whose gain was within noise. Details are in [`docs/retraining.md`](docs/retraining.md).
+```bash
+uv run --project ml python scripts/models/auto_retrain.py
+```
+
+Seasons already processed are skipped, so the command is safe to run on a schedule, and the model then stays current with no manual steps. On the 2025 season the candidate scored 0.399 against 0.464 for the model in service, so the gate kept the current model. Details are in [`docs/retraining.md`](docs/retraining.md).
 
 ## Questions about the system itself
 
