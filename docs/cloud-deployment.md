@@ -28,7 +28,7 @@ is only called from offline scripts (`data/benchmark.py`,
 West Coast region, with more availability zones and every service below
 at general availability.
 
-## The six handbook items, mapped to one AWS service each
+## The six items, mapped to one AWS service each
 
 ```text
 AWS networking                 VPC, 2 AZs, public + private subnets,
@@ -42,9 +42,9 @@ Secrets Manager                AWS Secrets Manager -> External Secrets
 logging/metrics integration    CloudWatch (Container Insights + Logs)
 ```
 
-Plus one item the handbook's list leaves out but the locked stack does
+Plus one item the list leaves out but the locked stack does
 not: Redis. It becomes **Amazon ElastiCache (Redis OSS 7.1)**, not the
-`infra/k8s/redis.yaml` pod -- the handbook's "do not build custom
+`infra/k8s/redis.yaml` pod -- the rule "do not build custom
 equivalents of managed services" applies to it exactly as it does to
 Postgres. Same reasoning retires `infra/k8s/postgres.yaml` (-> RDS) and
 `infra/k8s/minio.yaml` (-> S3) in the cloud; all three stay as-is for
@@ -286,7 +286,7 @@ RDS, ElastiCache,   native CloudWatch metrics, no extra agent
 ALB, NAT
 ```
 
-This is the handbook's "integration" -- plumbing AWS's own
+This is the "integration" -- plumbing AWS's own
 logs/metrics sink into the cluster. The application-level structured
 logging, Prometheus-compatible metrics and OpenTelemetry tracing locked
 elsewhere in the stack already ship through

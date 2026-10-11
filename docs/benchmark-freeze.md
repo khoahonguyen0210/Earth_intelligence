@@ -9,7 +9,7 @@ marking the exact version that produces the headline numbers below
 run again, must produce the same measurement. Nothing below is frozen
 because it is finished being *developed* -- it is frozen because from
 this point on, changing it invalidates any number already measured
-against it, per the handbook's own rule: don't change benchmark code
+against it, per the project's own rule: don't change benchmark code
 after freezing without versioning a new benchmark.
 
 **Tag:** `benchmark-v1`, on this doc's own commit (the tag is created immediately after this

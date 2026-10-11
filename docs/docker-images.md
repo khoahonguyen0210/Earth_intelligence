@@ -11,9 +11,9 @@ backend/Dockerfile   -- Spring Boot (JRE 21) + Python (uv-managed) + ml/
 frontend/Dockerfile  -- React/Vite static build, served by nginx
 ```
 
-The handbook lists three: backend, python-worker, frontend. There is no
+The plan lists three: backend, python-worker, frontend. There is no
 separate python-worker image here, and this is a deliberate reading of
-the handbook's own "use only the services the application actually needs,"
+the project's own "use only the services the application actually needs,"
 not a shortcut: earlier work already locked how Java reaches Python --
 `PythonForecastRunner`/`PythonAnalysisRunner` construct a `ProcessBuilder`
 and run `python scripts/query/run_forecast_cli.py` as a same-machine

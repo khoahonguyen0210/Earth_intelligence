@@ -2,7 +2,7 @@
 
 This document records the experiment documentation. It is not
 a brainstorming document. Every final experiment below follows the
-handbook's own fixed card: purpose, dataset/version, feature version,
+fixed card: purpose, dataset/version, feature version,
 split, configuration, command, metrics, result, limitations. Every
 number is copied from its own locked source document
 (`docs/*-benchmark.md`); nothing here is re-derived.
@@ -209,7 +209,7 @@ against the live LLM API: intent, region, and time correctness, valid-
 plan rate, and execution success.
 
 **Dataset/version.** 14 fixed natural-language questions, 2 per
-handbook category (`planner/benchmark_set.py::BENCHMARK_CASES`) — not
+category (`planner/benchmark_set.py::BENCHMARK_CASES`) — not
 an ML dataset; the fixed evaluation set for this experiment.
 
 **Feature version.** N/A.

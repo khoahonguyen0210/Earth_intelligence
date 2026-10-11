@@ -1,7 +1,7 @@
 # Final Exit Checklist — LOCKED
 
-This document verifies the Execution Handbook's own Final Exit
-Checklist, the last section of the handbook. It is
+This document verifies the Final Exit
+Checklist. It is
 not a brainstorming document. Every checked item below cites the real
 doc, test, or artifact that proves it; the one unchecked item is stated
 as plainly as everything else, not omitted.
@@ -166,7 +166,7 @@ as plainly as everything else, not omitted.
 One item -- a real cloud benchmark run against live AWS infrastructure
 -- was never done, by the project owner's own deliberate,
 cost-avoidance choice, not an oversight. Every other item has a real,
-citable artifact behind it. Per the handbook's own permanent rule, the
+citable artifact behind it. Per the project's permanent rule, the
 project is finished when the repository contains CODE + WORKING
 PRODUCT + TESTS + SCIENTIFIC EXPERIMENTS + BENCHMARKS + MEASURED
 RESULTS + REPRODUCIBILITY + DOCUMENTATION -- all eight are present; the

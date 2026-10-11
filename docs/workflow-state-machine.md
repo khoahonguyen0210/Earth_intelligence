@@ -47,7 +47,7 @@ production-shaped code.
 
 ## Why cancellation is legal from every non-terminal state
 
-The handbook's own reliability language -- the retry/timeout/
+The reliability language -- the retry/timeout/
 idempotency work's "worker timeout -> recover/retry", and the
 fault-injection tests' expectation that a controlled kill still reaches
 "a correct terminal state" -- assumes

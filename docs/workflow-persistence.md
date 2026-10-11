@@ -43,7 +43,7 @@ package needs to know these are Postgres rows.
 
 ## What this task proves
 
-The handbook's own acceptance test for this task: "Restart a worker/
+The acceptance test for this task: "Restart a worker/
 controller during a controlled run and verify active state can be
 recovered." `WorkflowStoreTest` (a real `@SpringBootTest` against local
 Postgres -- `docker compose up -d` in `infra/docker/` first, same

@@ -1,8 +1,8 @@
 # Forecasting Demo — LOCKED
 
 This document records the forecasting demo. It is
-not a brainstorming document. It runs the full chain the handbook asks
-for -- forecast request -> AI plan -> validation -> workflow -> data ->
+not a brainstorming document. It runs the full chain --
+forecast request -> AI plan -> validation -> workflow -> data ->
 model -> risk map -> calibration -> evidence -- for real, against the
 packaged Docker container, using the same documented historical cutoff
 (`2024-08-10T10:00:00Z`, an on-grid weekly cutoff) as

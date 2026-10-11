@@ -6,7 +6,7 @@ values for the main benchmark; a change here invalidates every experiment
 built on top of it.
 
 This is a restatement, not a redefinition, of the scientific problem locked
-in `project-context/PROJECT_BIBLE.md` §3–§4.
+for this project.
 
 ## Study region
 
@@ -74,8 +74,7 @@ Validation data may be used for tuning; test data may not.
 
 The exact feature list (fire-history windows, weather variables, static
 geography), the model ladder, and the evaluation metrics are already
-locked in `project-context/PROJECT_BIBLE.md` §4–§6 and implemented
-elsewhere. This document exists so the label
+locked and implemented elsewhere. This document exists so the label
 construction and leakage tests have one unambiguous specification to
 build against and be tested against, not to duplicate the full research
 dossier.

@@ -109,7 +109,7 @@ Earth Data Sources          NASA FIRMS, ERA5-Land, Copernicus DEM
 ## What this document does not define
 
 A second, real diagram already exists at a different level of detail
-in `project-context/PROJECT_BIBLE.md` §10 (the locked architecture this
+in the project's architecture notes (the locked architecture this
 project committed to before implementation) and in `README.md`'s own
 Architecture section (a shorter version for a first-time reader). This
 document is the one explicitly asked for here -- the request path,

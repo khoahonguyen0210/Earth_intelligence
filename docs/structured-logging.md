@@ -32,7 +32,7 @@ A real line, copied from the test run's console output:
  "http_status":201,"duration_ms":2,"ecs":{"version":"8.11"}}
 ```
 
-## The handbook's nine fields, and where each comes from
+## The nine fields, and where each comes from
 
 ```text
 field        source                                           on which lines

@@ -1,7 +1,7 @@
 # Final Clean-Clone Test — LOCKED
 
 This document records the final clean-clone test,
-the handbook's own final implementation gate. It is not a
+the project's final implementation gate. It is not a
 brainstorming document.
 
 The full chain, run for real from a genuinely fresh clone: clone ->
@@ -91,7 +91,7 @@ was pre-existing infrastructure, not something this session created.
 
 ## What "done" means here
 
-Every one of the handbook's eight steps ran for real, against a
+Every one of the eight steps ran for real, against a
 directory this project had never touched before, and found two real
 documentation bugs in the process -- exactly what a final gate is for.
 Both are fixed. The clone itself (`C:/aiearth-cct`) was deleted after

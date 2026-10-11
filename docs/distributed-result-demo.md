@@ -2,7 +2,7 @@
 
 This document records the distributed result demo. It is not
 a brainstorming document. It presents the actual 1/2/4/8-worker
-benchmark table the handbook asks for -- already measured twice,
+benchmark table the task requires -- already measured twice,
 independently, in this project (once for the final distributed
 benchmark and once for the clean-clone reproduction), not re-run a
 third time to restate the same real numbers.

@@ -13,8 +13,8 @@ presupposes those results already exist. Actually executing a validated
 `$step_id.field` references to real values -- is the job of a later
 workflow engine, a separate set of tasks (DAG schema, state machine,
 execution, persistence). Building even a minimal version of that here
-would be implementing future task content, which the handbook's own
-task-implementation prompt (`docs/PROMPT_SYSTEM.md` §4) rules out.
+would be implementing future task content, which is out of scope for
+this stage.
 
 So `generate_answer` takes execution results as an input:
 

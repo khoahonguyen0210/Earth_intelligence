@@ -3,7 +3,7 @@
 This document freezes the tracing design. It is not a brainstorming
 document.
 
-The handbook's chain:
+The required chain:
 
 ```text
 HTTP → job → workflow → worker → storage → result
@@ -105,7 +105,7 @@ workflow.execute                       WorkflowExecutor          current span, e
 object_store.put|get|exists|delete     S3ObjectStore             current span only
 ```
 
-How the handbook's six hops map:
+How the six hops map:
 
 ```text
 HTTP      http post /forecasts (Spring's server observation)
@@ -270,4 +270,4 @@ before this task). The existing tests changed only to pass the new
   `forecast.queue.enqueue` are the storage spans. Statement-level JDBC
   spans would need a third-party datasource proxy.
 - **Analysis requests** get Spring's HTTP server span only. The
-  synchronous analysis path is not part of the handbook's chain.
+  synchronous analysis path is not part of the chain.

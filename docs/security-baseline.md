@@ -3,7 +3,7 @@
 This document freezes the security baseline. It is not a brainstorming
 document.
 
-## The handbook's eight items
+## The eight items
 
 ```text
 item                         what the product does                                      where
@@ -236,7 +236,7 @@ Added by this task, all enforced in the validator rather than asked for
 in the prompt:
 
 ```text
-at most 8 steps       real plans are small (handbook example DAG: 6 nodes; no benchmark
+at most 8 steps       real plans are small (example DAG: 6 nodes; no benchmark
                       case needs more than 2 matching steps); stops a runaway plan whose
                       every step could start real work
 step_id               a letter + up to 31 letters/digits/underscores, via fullmatch --

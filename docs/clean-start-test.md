@@ -100,7 +100,7 @@ at these two fixed dates.
 
 ## What "done" means here
 
-The handbook's own bar for this task: "the complete local product
+The bar for this task: "the complete local product
 starts reproducibly from documented commands." It does -- five
 containers, real health checks, and a real Earth-analysis result,
 reproducibly, from the commands above. A forecast request against this

@@ -16,7 +16,7 @@ on startup, not by Hibernate `ddl-auto` (still `validate`).
 
 ## The eight tables
 
-The handbook lists eight things to persist. All eight exist as real,
+Eight things must be persisted. All eight exist as real,
 migrated tables with correct types and indexes. Three have a Java
 read/write path wired up today:
 

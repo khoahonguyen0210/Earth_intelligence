@@ -25,7 +25,7 @@ single-call: it loops until nothing changes in a full pass over every
 node, rather than polling a queue across separate invocations the way
 `ForecastWorker` does for one job. This is the right shape to
 prove the algorithm itself -- dependency ordering, fan-out, failure
-propagation, retry -- against the handbook's own example DAG; a
+propagation, retry -- against the example DAG; a
 restart-safe, queue-backed version (the natural next step once this
 plugs into a real dispatcher) is later work, not this task's.
 
@@ -74,10 +74,10 @@ every node downstream of it.
 Python, no cost):
 
 ```text
-[x] the handbook's linear-chain example (get_data -> validate ->
+[x] the linear-chain example (get_data -> validate ->
     build_features -> run_forecast) runs to completion in dependency
     order
-[x] the handbook's fan-out example (run_forecast -> {get_result_evidence,
+[x] the fan-out example (run_forecast -> {get_result_evidence,
     generate_map}) runs both children after their shared dependency
 [x] a permanent failure cancels every downstream dependent, and the
     cancelled nodes are never actually dispatched
@@ -104,5 +104,5 @@ later task must still do. There is also no code here that turns a
 Python `Plan` into a `Workflow` -- that conversion is the
 other half of wiring the planner to real execution. Persisting a
 `Workflow`'s state as it runs (surviving a controller/worker restart,
-per the handbook's own later persistence work) is not implemented either: `execute`
+per the later persistence work) is not implemented either: `execute`
 holds everything in memory for the duration of one call.

@@ -63,7 +63,7 @@ test_build_dataset.py       test_build_dataset_assigns_correct_split_per_cutoff
 
 `ml/tests/forecast/test_leakage.py` is the project's own consolidated
 leakage-safety suite; its docstring is already a checklist mapping each
-handbook item to the test that proves it, reproduced here for a single
+required item to the test that proves it, reproduced here for a single
 place to look:
 
 ```text
@@ -83,8 +83,8 @@ test set never influences           test_xgboost_model.py::
 ## Metric calculations
 
 `models/metrics.py::compute_metrics` reports PR-AUC, ROC-AUC, Brier
-score, and log loss (accuracy deliberately excluded -- PROJECT_BIBLE
-§6, wrong for this class imbalance). Every metric is checked against an
+score, and log loss (accuracy deliberately excluded --
+wrong for this class imbalance). Every metric is checked against an
 independent reference, not just against itself:
 
 ```text
@@ -160,8 +160,8 @@ on-grid cutoff).
 ## What this task does not do
 
 - **Does not add new leakage properties.** `test_leakage.py`'s own
-  checklist already covers every property the handbook
-  asks for; this document only re-confirms it still passes on the current
+  checklist already covers every required
+  property; this document only re-confirms it still passes on the current
   code, it does not extend the checklist.
 - **Does not test `harness.py`'s own metadata/config.json separately.**
   `models/harness.py` writes a parallel metadata artifact (config.json

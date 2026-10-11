@@ -22,8 +22,8 @@ class Plan:
     steps: tuple[PlanStep, ...]
 ```
 
-A plan is a static, upfront, fully-specified sequence of steps -- matching
-`docs/PROMPT_SYSTEM.md`'s "natural language -> LLM -> structured plan ->
+A plan is a static, upfront, fully-specified sequence of steps -- matching the flow
+"natural language -> LLM -> structured plan ->
 validator -> workflow" (the whole plan is produced once, then validated,
 *then* executed), not a live turn-by-turn agentic loop. This is also why
 `depends_on` exists as an explicit field rather than being inferred: a

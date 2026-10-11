@@ -1,8 +1,8 @@
 # Kubernetes Benchmark — LOCKED
 
 This document freezes the Kubernetes benchmark. It is not a
-brainstorming document. It records the six metrics the handbook asks
-for -- runtime, throughput, speedup, efficiency, resource usage, failure
+brainstorming document. It records the six metrics --
+runtime, throughput, speedup, efficiency, resource usage, failure
 recovery -- against the real kind cluster earlier Kubernetes work built,
 reusing already-locked real measurements where they exist rather than
 re-deriving them.
@@ -16,7 +16,7 @@ with ordinary run-to-run noise, the same reason later distributed-scaling
 work didn't redo the multi-worker scaling benchmark's own scaling sweep.
 Speedup/efficiency are computed fresh from
 those real numbers (`compute_speedup_efficiency`,
-`ml/.../kubernetes/replica_scaling.py`, the handbook's own
+`ml/.../kubernetes/replica_scaling.py`, the
 `speedup(n)=T1/Tn`, `efficiency(n)=speedup(n)/n` formulas, matching
 the multi-worker scaling benchmark's `distributed/scaling.py`):
 
@@ -28,7 +28,7 @@ replicas   runtime_s   throughput_jobs_per_s   speedup   efficiency
 8          111.94      0.071                   0.574     0.072
 ```
 
-Same conclusion as the worker replica scaling benchmark, now expressed in the handbook's own
+Same conclusion as the worker replica scaling benchmark, now expressed in the
 speedup/efficiency terms: efficiency collapses monotonically past 2
 replicas, and 8 replicas is slower (speedup < 1) than running just one.
 

@@ -50,7 +50,7 @@ class WorkflowExecutorTest {
     }
 
     @Test
-    void runsTheHandbooksLinearChainExampleToCompletion() {
+    void runsTheLinearChainExampleToCompletion() {
         Workflow workflow = new Workflow(
                 "wf-1",
                 "forecast-pipeline",
@@ -75,7 +75,7 @@ class WorkflowExecutorTest {
     }
 
     @Test
-    void runsTheHandbooksFanOutExampleToCompletion() {
+    void runsTheFanOutExampleToCompletion() {
         Workflow workflow = new Workflow(
                 "wf-2",
                 "forecast-with-evidence-and-map",

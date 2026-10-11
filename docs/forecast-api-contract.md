@@ -5,8 +5,8 @@ brainstorming document. Later work on the Java-to-Python worker, PostGIS
 persistence, and Redis async jobs builds against this contract rather
 than redefining it.
 
-This is a restatement, not a redefinition, of `PROJECT_BIBLE.md` §15's
-"Java API" — Java owns request/job/result control, Python owns the
+This is a restatement, not a redefinition, of the
+"Java API" design — Java owns request/job/result control, Python owns the
 Earth-data/ML computation, exactly the boundary already
 established for the (non-forecast) Earth-analysis API.
 

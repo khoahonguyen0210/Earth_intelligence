@@ -37,10 +37,10 @@ http_server_requests_seconds_count{error="none",exception="none",method="GET",ou
 http_server_requests_seconds_count{error="none",exception="none",method="GET",outcome="SUCCESS",status="200",uri="/actuator/health"} 2
 ```
 
-## The handbook's eight metrics
+## The eight metrics
 
 ```text
-handbook item         Prometheus series                                    source
+required item         Prometheus series                                    source
 HTTP request count    http_server_requests_seconds_count                   Spring MVC (built in)
 HTTP error count      http_server_requests_seconds_count{outcome=          Spring MVC (built in)
                         "CLIENT_ERROR"|"SERVER_ERROR"}
@@ -115,7 +115,7 @@ can mint a new time series. `analysis.operation` is deliberately
 
 **Failures are counted per attempt, split by `terminal`.** A transient
 failure that is retried counts `terminal="false"`. The attempt that ends
-the job FAILED counts `terminal="true"`. The handbook's "job failure
+the job FAILED counts `terminal="true"`. The "job failure
 count" is the `terminal="true"` series; the other is the early warning
 that the retry/timeout/idempotency work's retries are hiding a flaky dependency.
 

@@ -145,7 +145,7 @@ input; it does not resubmit it.
 This page **replaces** the earlier structured Earth-analysis form
 (`QueryForm`/`ResultView`/`RegionMap`) as `App.tsx`'s own rendered
 content, matching this work's own description as the "final frontend
-product" -- PROJECT_BIBLE's product definition is natural-language-first,
+product" -- the product definition is natural-language-first,
 and the structured form was always an interim UI, built before the
 planner existed at all. The old components and their own tests are
 untouched on disk (still compiling, still passing) since `POST
@@ -155,7 +155,7 @@ simply no longer what `App.tsx` renders.
 ## The result page
 
 `EarthQueryResultView` replaces the placeholder result snippet
-previously left in `App.tsx` with the handbook's full list -- answer, map, numbers,
+previously left in `App.tsx` with the full list -- answer, map, numbers,
 time, region, evidence -- rendered per fact (a plan can produce more than
 one, e.g. a count alongside a forecast). `RegionMap` is reused
 as-is: it only ever needed a bbox and a label, both of which a fact's own
@@ -191,7 +191,7 @@ key alongside `model_version`, `data_cutoff`, `forecast_window`,
 `calibration`, and `evidence`; the component is written against that
 real nesting.
 
-It covers every field the handbook lists for this task: the California
+It covers every field required for this task: the California
 grid (one coloured `<rect>` per feature, projected against the same
 reference bbox `RegionMap` already uses so the two read at the same
 scale), each cell's real `probability`, a scale legend, the forecast
@@ -244,7 +244,7 @@ magnitude, not hammering the endpoint) until the real
 `Forecast.Status` reaches a terminal value, then fetches
 `GET /forecasts/{id}/result` and renders `ForecastMap` on
 success or the real backend error message on failure. Never a
-fabricated progress percentage: the handbook's own four states
+fabricated progress percentage: the four required states
 (queued/running/completed/failed) are a direct, honest fold of the six
 real backend values -- PENDING and RETRYING both read as "queued" (both
 are waiting for an attempt, not making one), CANCELLED folds into
@@ -357,7 +357,7 @@ the date range), a real count against `data/raw/firms/history`, and a
 grounded answer -- one run's answer plainly noted that the plan's own
 half-open time window did not exactly match the question's literal
 wording, rather than silently asserting an exact-sounding number, which
-is precisely the "never fabricate" property PROJECT_BIBLE locks.
+is precisely the "never fabricate" property the project locks.
 
 Full backend suite after adding the Ask Earth page and its backend:
 **173 tests, 0 failures** (155
@@ -412,7 +412,7 @@ own `evidence` (`dataset: "NASA_FIRMS:VIIRS_SNPP_SP"`, the real
 `EarthQueryResultView.tsx`'s expected shape field-for-field: the
 `isMapResult` branch would render `"bay_area: 245 fire_count"`, and the
 evidence section would show the real dataset, region, and time range --
-exactly the "map" and "evidence" the handbook asks this flow to reach.
+exactly the "map" and "evidence" this flow is meant to reach.
 
 ### forecast question -> job -> status -> prediction -> uncertainty -> evidence
 

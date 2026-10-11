@@ -58,7 +58,7 @@ and its sibling: both require the real trained model artifact
 condition (`pytest.mark.skipif`), not a gap -- the same code path is
 exercised against a stub model everywhere else in that file.
 
-## Coverage by handbook category
+## Coverage by category
 
 ```text
 data parsing          ml: test_era5.py, test_firms.py, test_observation.py,
@@ -105,7 +105,7 @@ in the totals above but not broken out here.
 
 ## What this task does not do
 
-- **No new tests were added.** Every category the handbook names
+- **No new tests were added.** Every named category
   already had unit coverage from the phase that introduced it; this
   document is the verification that the full suite still passes together,
   matching the pattern of the earlier browser end-to-end verification.

@@ -104,7 +104,7 @@ parseable datetime, whether a `result_id` refers to something that
 exists. `REGION_SPEC_SCHEMA.value` is intentionally typed as
 `anyOf: [string, number[]]`, not the full conditional shape, because
 that finer-grained check belongs to the deterministic plan validator
-(the handbook's own list -- "region", "parameter ranges" -- names this
+(the requirement list -- "region", "parameter ranges" -- names this
 as validator work), which already has real Python doing exactly this
 validation (`normalize_region`'s own `ValueError`s) to check plans
 against, rather than duplicating it in JSON Schema.

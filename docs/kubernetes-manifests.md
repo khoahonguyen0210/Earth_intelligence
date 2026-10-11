@@ -19,7 +19,7 @@ them.
 
 All four were already real and locked before this task started.
 
-## Five manifests, not the handbook's literal four
+## Five manifests, not the literal four
 
 ```text
 infra/k8s/configmap.yaml       -- non-secret app config
@@ -32,7 +32,7 @@ infra/k8s/backend.yaml         -- Deployment + Service (NodePort 30080)
 infra/k8s/frontend.yaml        -- Deployment + Service (NodePort 30173)
 ```
 
-The handbook names four deployables: backend, worker, frontend, redis. There
+The plan names four deployables: backend, worker, frontend, redis. There
 is no separate `worker` manifest here, for the same real reason
 `docs/docker-images.md` already found and already locked:
 The Java-to-Python bridge (`PythonForecastRunner`/`PythonAnalysisRunner`)
@@ -44,7 +44,7 @@ replica scaling" work scales `backend`'s `spec.replicas`, not a separate
 resource -- worth stating now since it changes what that work actually
 measures.
 
-Postgres and MinIO are not in the handbook's four-item list either, but
+Postgres and MinIO are not in the four-item list either, but
 both are real, already-locked dependencies the backend
 cannot start without (Flyway migrations, JPA `ddl-auto: validate`, the
 object-store client) -- omitting them would make `backend` crash-loop on

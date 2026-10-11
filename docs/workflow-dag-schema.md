@@ -11,7 +11,7 @@ backend/src/main/java/com/example/backend/workflow/WorkflowNode.java
 backend/src/main/java/com/example/backend/workflow/Workflow.java
 ```
 
-`WorkflowNode` is exactly the handbook's own field list for a DAG node:
+`WorkflowNode` is exactly the required field list for a DAG node:
 
 ```text
 task_id            -> taskId
@@ -30,7 +30,7 @@ error              -> error
 
 ## Why Java, not Python
 
-The architecture (`docs/PROMPT_SYSTEM.md`) is "Java owns request/job/
+The architecture is "Java owns request/job/
 workflow control, Python owns Earth-data/ML computation." Earlier work
 already put the async job/worker/retry machinery
 (`ForecastQueue`/`ForecastWorker`/`RedisForecastQueue`) on the Java
@@ -61,7 +61,7 @@ later work's job ("Persist workflow state"), not this one's.
 ## What this task does validate
 
 A `Workflow` is supposed to be a *directed acyclic* graph; nothing else
-in the handbook's task list checks that a given node list actually is
+in the task list checks that a given node list actually is
 one, so `Workflow.validate()` does, structurally:
 
 ```text
@@ -80,7 +80,7 @@ also deliberately *only* structural: whether a node's `taskType` names
 a real tool, whether its `inputRef` actually resolves to something, and
 which status transitions are legal are the state machine's and the
 DAG-execution engine's concerns -- `tests/workflow/WorkflowTest.java`
-proves the linear-chain and fan-out shapes from the handbook's own
+proves the linear-chain and fan-out shapes from the project's own
 example (`get_data -> validate -> build_features -> run_forecast`,
 then fanning out to `get_result_evidence`/`generate_map`) pass, and that
 a duplicate id, a self-dependency, an unknown dependency, and both a

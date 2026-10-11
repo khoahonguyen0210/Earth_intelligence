@@ -31,7 +31,7 @@ first.
 
 ## Layout
 
-The handbook's tree, with one module per locked AWS concern:
+The required tree, with one module per locked AWS concern:
 
 ```text
 infra/terraform/
@@ -62,7 +62,7 @@ defaults, so there is no `terraform.tfvars` to keep in sync.
 
 ## Reused, not rebuilt
 
-Per the reuse policy (PROJECT_BIBLE.md §13), the VPC, EKS, and IAM-role
+Per the reuse policy, the VPC, EKS, and IAM-role
 plumbing come from the community `terraform-aws-modules` rather than
 being hand-written:
 

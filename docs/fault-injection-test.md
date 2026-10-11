@@ -52,7 +52,7 @@ chunk 2:           attempts=1  failure_detected=false  result=OK
 chunk 3:           attempts=1  failure_detected=false  result=OK
 ```
 
-The handbook's own four checks, each verified against this real run:
+The four checks, each verified against this real run:
 
 ```text
 [x] failure detected      -- chunk 0's failure_detected=true
@@ -106,7 +106,7 @@ this project.
 This dispatcher is a fault-tolerant alternative to the existing plain
 `Pool.map`, not a replacement wired into those earlier benchmarks --
 their numbers stand as measured, on the simpler, non-fault-tolerant
-implementation the handbook asked for. Choosing a
+implementation originally specified. Choosing a
 timeout value in production (rather than for a controlled, one-shot
 test) that correctly balances "detect a real failure promptly" against
 "do not mistake a legitimate cold start for a failure" is a real,

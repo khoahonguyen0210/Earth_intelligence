@@ -22,7 +22,7 @@ frontend  -- built from frontend/Dockerfile -- nginx serving
              the Vite build, port 5173 -> container port 80
 ```
 
-Only these five: the handbook's own instruction ("use only
+Only these five: the project's own instruction ("use only
 the services the application actually needs") is why there is no
 separate worker service (`docs/docker-images.md` already explains why)
 and no reverse proxy (the frontend's `API_BASE_URL` is the browser's own

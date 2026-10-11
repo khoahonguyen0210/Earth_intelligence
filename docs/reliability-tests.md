@@ -3,7 +3,7 @@
 This document freezes the reliability testing. It is not a
 brainstorming document.
 
-The handbook lists seven controlled failures. Six are exercised end to
+Seven controlled failures are specified. Six are exercised end to
 end against the real, running system by
 `scripts/reliability/run_reliability_tests.py`; the seventh (partial
 workflow failure) has no HTTP entry point yet
@@ -191,7 +191,7 @@ to prove the corrupt row didn't wedge anything else.
 
 ## Partial workflow failure
 
-`WorkflowPartialFailureIntegrationTest` runs the handbook's forecast DAG
+`WorkflowPartialFailureIntegrationTest` runs the forecast DAG
 plus an independent branch through the real `WorkflowExecutor` against
 real Postgres:
 

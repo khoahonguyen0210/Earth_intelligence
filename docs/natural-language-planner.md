@@ -33,7 +33,7 @@ natural language (a plain question string)
 ```
 
 One structured-output call, not a live multi-turn tool-calling loop:
-`docs/PROMPT_SYSTEM.md`'s flow is "LLM -> structured plan -> validator ->
+The flow is "LLM -> structured plan -> validator ->
 workflow" -- the whole plan is produced once, then validated, before
 anything executes. A live tool-use loop (where the model sees real tool
 results between turns) doesn't fit that ordering, since by the time a

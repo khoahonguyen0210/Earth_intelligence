@@ -8,7 +8,7 @@ to either.
 ## Workload (fixed)
 
 ```text
-14 fixed natural-language questions, 2 per handbook category:
+14 fixed natural-language questions, 2 per category:
   count, trend, compare, map, forecast, ambiguous, unsupported
 provider:  Gemini (docs/natural-language-planner.md's provider note)
 model:     ai_earth_intelligence_and_forecasting_engine.planner.generate_plan.MODEL
@@ -114,7 +114,7 @@ job was to surface, not to resolve.
 ## What this document does not define
 
 This is a measurement, not a certification gate: there is no "must pass"
-threshold enforced anywhere, matching the handbook's Benchmark-task
+threshold enforced anywhere, matching the Benchmark-task
 definition of done (fixed workload, explicit metric, repeatable runs,
 raw result saved, summary generated) rather than the Code-task one.
 Re-running the script will very likely reproduce different exact plan

@@ -21,7 +21,7 @@ public interface ObjectStore {
 }
 ```
 
-Exactly the four operations the handbook lists. `get` returns
+Exactly the four required operations. `get` returns
 `Optional.empty()` for a missing key rather than throwing, matching how
 `AnalysisStore`/`ForecastStore` already return `Optional` for a missing
 id.
@@ -33,7 +33,7 @@ real AWS SDK v2 `S3Client` (`software.amazon.awssdk:s3`), pointed at
 MinIO's endpoint with path-style access
 (`S3ClientConfig`/`object-store.endpoint`). The same code will work
 unchanged against real AWS S3 in the later infrastructure phase
-(`PROJECT_BIBLE.md` §15's "AWS + Terraform") by only changing
+(the "AWS + Terraform" plan) by only changing
 `object-store.*` properties — no code change, no second implementation
 to maintain.
 

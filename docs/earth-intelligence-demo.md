@@ -2,7 +2,7 @@
 
 This document records the Earth intelligence demo. It is not
 a brainstorming document. It runs one fixed, supported query through
-the full chain the handbook asks for: natural-language question -> real
+the full chain: natural-language question -> real
 data -> analysis -> map -> evidence.
 
 ## A real packaging bug this demo found and fixed

@@ -18,8 +18,8 @@ calls `run_distributed_inference` (unmodified) once per worker
 count, against one shared `RunContext` -- the same loaded data and the
 same fitted model object for every point, not a fresh load/fit per
 worker count. This is what makes "keep workload/data/model fixed" (the
-handbook's own words for this task) literally true rather than only
-nominally true. Metrics are the handbook's own formulas, computed
+task's own words) literally true rather than only
+nominally true. Metrics use the standard formulas, computed
 against the first (`num_workers=1`) point's wall time as T1:
 
 ```text
@@ -59,14 +59,14 @@ more of that fixed cost without a compensating benefit.
 
 ## Why this is the correct benchmark to report, not a reason to redesign it
 
-The handbook's goal here is explicitly "a measured answer to whether
+The goal here is explicitly "a measured answer to whether
 spatial parallelism actually improves workload time/throughput" -- not
 a guarantee that it does. An earlier step deliberately fixed a workload
 (500 tiles against small real sample data) sized for a fast local
 baseline (the one-worker baseline), not for showing off parallelism at its best; this
 result is what that same fixed, honest choice produces when actually
 measured with more workers, and reporting it as found is truer to the
-handbook's own intent than re-picking a bigger workload after the fact
+task's own intent than re-picking a bigger workload after the fact
 to manufacture a better-looking number. Later bottleneck-identification
 work is where naming process-spawn/coordination overhead as
 the actual limiting factor -- rather than CPU, I/O, network, database,

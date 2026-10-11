@@ -8,7 +8,7 @@ the honesty of every ablation and benchmark result built on top of it.
 ## The frozen decision
 
 The main benchmark uses the **complete** locked feature set already defined
-in `project-context/PROJECT_BIBLE.md` §4 — fire-history, weather, and
+for this project — fire-history, weather, and
 static geography (including land-cover category) together. Nothing is
 dropped.
 
@@ -42,8 +42,8 @@ once separable data is available.
 
 Because there is no real per-group signal to react to yet, freezing the
 full locked set is not a data-driven choice among several observed
-variants — it is simply using the feature set `PROJECT_BIBLE.md` §4
-already specifies, unchanged. This is deliberate: once real historical
+variants — it is simply using the feature set
+already specified, unchanged. This is deliberate: once real historical
 data is ingested and the ablations produce real deltas, this frozen
 decision is still not to be revisited by picking whichever subset scored
 best on that day's numbers. A future change to the main benchmark's
@@ -53,7 +53,7 @@ post-hoc reaction to one experiment.
 
 ## What this document does not define
 
-The exact feature list, model ladder, and metrics are already locked in
-`project-context/PROJECT_BIBLE.md` §4–§6. This document exists only to
+The exact feature list, model ladder, and metrics are already locked
+elsewhere in the project. This document exists only to
 record the freeze decision and the reasoning behind it, not to
 restate or redefine the feature list itself.

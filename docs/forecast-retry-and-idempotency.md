@@ -4,7 +4,7 @@ This document freezes retry/timeout/idempotency behavior. It is not a
 brainstorming document. It builds on
 `docs/forecast-async-jobs.md` rather than redefining it.
 
-The handbook lists four rules; each maps to one concrete mechanism below.
+There are four rules; each maps to one concrete mechanism below.
 
 ## `transient dependency error -> retry`
 

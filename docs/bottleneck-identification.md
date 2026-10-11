@@ -14,7 +14,7 @@ scripts/distributed/run_bottleneck_report.py
 ```
 
 Those numbers alone only show *that* more workers were slower, not
-*which* of the handbook's six candidate factors (CPU, I/O, network,
+*which* of the six candidate factors (CPU, I/O, network,
 database, serialization, coordination) caused it. This task isolates
 each candidate with its own direct measurement rather than guessing from
 aggregate wall-clock numbers:

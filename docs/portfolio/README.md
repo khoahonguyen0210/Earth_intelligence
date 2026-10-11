@@ -2,8 +2,8 @@
 
 This directory records the portfolio evidence package. It is not a
 brainstorming document. It is the one place a reader unfamiliar
-with the rest of this repository can find every piece of evidence the
-handbook asks for, without having to know where each was produced.
+with the rest of this repository can find every piece of evidence
+the project claims, without having to know where each was produced.
 
 ## Contents
 

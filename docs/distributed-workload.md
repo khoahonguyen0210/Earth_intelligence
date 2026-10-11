@@ -31,7 +31,7 @@ a cluster to even establish the baseline.
 The first 500 tiles by grid order, not a random sample: reusing the
 existing deterministic ordering (already proven stable by its own
 tests) is simplest and needs no new seeding/randomness concern -- the
-handbook's requirement is a *fixed* batch, not a *representative* one.
+requirement is a *fixed* batch, not a *representative* one.
 
 ## Why version identifiers are reused, not reinvented
 
