@@ -100,6 +100,10 @@ uv run --project ml python scripts/storage/s3_artifacts.py pull-model --serve
 
 The bucket is versioned and encrypted in Terraform. Commands, key layout and error handling are in [`docs/s3-artifacts.md`](docs/s3-artifacts.md).
 
+## Forecast jobs in DynamoDB
+
+Job status and metadata can live in DynamoDB instead of Postgres by setting `FORECAST_STORE=dynamodb`. Jobs are looked up by ID with a strongly consistent read, idempotency keys are kept unique with a conditional transaction, workers claim jobs with conditional updates, and the recovery sweep queries a `status`/`updated_at` index. Results too large for an item go to S3. Both stores pass the same contract tests, and DynamoDB Local runs in Compose. Details are in [`docs/dynamodb-job-store.md`](docs/dynamodb-job-store.md).
+
 ## Questions about the system itself
 
 Ask Earth can also answer questions about how it works, such as "Does the model beat a simple baseline?" or "Is there a login?". A planner tool retrieves passages from `docs/` using Gemini embeddings, and the answer cites each source by path. The answer check also fails any citation that was not actually retrieved.
@@ -116,7 +120,7 @@ On 35 labelled questions worded unlike the docs, embedding search finds a correc
 | Frontend | React, TypeScript, Vite, Vitest |
 | ML | Python 3.12, XGBoost (with its built-in tree SHAP), scikit-learn, NumPy, xarray, PyTorch (research baseline) |
 | LLM and retrieval | Gemini (planning, answers, embeddings), BM25 |
-| Data | PostGIS, Redis, MinIO / S3, NASA FIRMS, ERA5-Land, ESA WorldCover |
+| Data | PostGIS, DynamoDB, Redis, MinIO / S3, NASA FIRMS, ERA5-Land, ESA WorldCover |
 | Infra | Docker Compose, Kubernetes, Helm, KEDA, Terraform, AWS |
 | Observability | Prometheus, OpenTelemetry, Jaeger |
 | CI and quality | GitHub Actions, Trivy, Ruff, mypy, pytest |
@@ -159,7 +163,7 @@ Stop everything with `docker compose down -v`.
 Start the infrastructure, then run the backend and frontend on your machine. This needs JDK 21 and Node.js.
 
 ```bash
-cd infra/docker && docker compose up -d postgres redis minio
+cd infra/docker && docker compose up -d postgres redis minio dynamodb
 
 cd backend && ./mvnw spring-boot:run     # terminal 1
 cd frontend && npm ci && npm run dev     # terminal 2
@@ -170,13 +174,13 @@ The ML code needs Python 3.12 and [uv](https://docs.astral.sh/uv/), and the data
 ## Testing
 
 ```bash
-cd infra/docker && docker compose up -d postgres redis minio   # backend tests need these
+cd infra/docker && docker compose up -d postgres redis minio dynamodb   # backend tests need these
 cd backend && ./mvnw test
 uv run --project ml pytest ml/tests -q
 cd frontend && npm test
 ```
 
-There are over 800 tests, and the backend ones run against real Postgres, Redis, and MinIO. CI runs Python, Java, frontend, and a Trivy dependency and secret scan on every push.
+There are over 850 tests, and the backend ones run against real Postgres, Redis, MinIO and DynamoDB Local. CI runs Python, Java, frontend, and a Trivy dependency and secret scan on every push.
 
 ## API
 
@@ -205,6 +209,7 @@ Keys go in `.env` (git-ignored). Everything else has a default in `application.p
 | `REDIS_HOST`, `REDIS_PORT` | Redis, default `127.0.0.1:6379` |
 | `OBJECT_STORE_ENDPOINT`, `OBJECT_STORE_BUCKET` | MinIO or S3 |
 | `ARTIFACT_BUCKET`, `S3_ENDPOINT_URL`, `AWS_REGION` | S3 bucket for datasets and models |
+| `FORECAST_STORE`, `FORECAST_JOBS_TABLE`, `DYNAMODB_ENDPOINT` | Job store: `postgres` (default) or `dynamodb` |
 | `LOG_FORMAT` | `ecs` (JSON) by default |
 
 ## Repository layout
@@ -221,7 +226,7 @@ docs/       Contracts, architecture, benchmarks, portfolio evidence
 
 ## Deployment
 
-`infra/docker` runs the full stack locally. `infra/k8s` and `infra/kind` run it on Kubernetes. `infra/terraform` defines the AWS target (VPC, EKS, RDS, ElastiCache, ECR, S3, Secrets Manager). It passes `fmt` and `validate`, and Trivy reports one accepted finding. The load balancer is created by the AWS Load Balancer Controller from the Ingress. Nothing has been applied to a live AWS account, since the environment costs about $0.40 per hour. See [`cloud-deployment.md`](docs/cloud-deployment.md).
+`infra/docker` runs the full stack locally. `infra/k8s` and `infra/kind` run it on Kubernetes. `infra/terraform` defines the AWS target (VPC, EKS, RDS, ElastiCache, DynamoDB, ECR, S3, Secrets Manager). It passes `fmt` and `validate`, and Trivy reports one accepted finding. The load balancer is created by the AWS Load Balancer Controller from the Ingress. Nothing has been applied to a live AWS account, since the environment costs about $0.40 per hour. See [`cloud-deployment.md`](docs/cloud-deployment.md).
 
 ## Security
 

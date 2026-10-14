@@ -23,6 +23,11 @@ variable "artifact_bucket_arn" {
   type        = string
 }
 
+variable "job_table_arn" {
+  description = "The DynamoDB forecast job table the backend may read and write."
+  type        = string
+}
+
 variable "backend_namespace" {
   description = "Namespace of the backend service account."
   type        = string

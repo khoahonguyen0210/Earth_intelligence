@@ -49,6 +49,19 @@ services:
       timeout: 5s
       retries: 10
 
+  dynamodb:
+    image: amazon/dynamodb-local:2.6.0
+    container_name: ai-earth-dynamodb
+    restart: unless-stopped
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports:
+      - "${DYNAMODB_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8000'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   jaeger:
     image: jaegertracing/jaeger:2.21.0
     container_name: ai-earth-jaeger
@@ -70,12 +83,19 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      dynamodb:
+        condition: service_healthy
     env_file:
       - ../../.env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ai_earth
       REDIS_HOST: redis
       OBJECT_STORE_ENDPOINT: http://minio:9000
+      FORECAST_STORE: ${FORECAST_STORE:-postgres}
+      DYNAMODB_ENDPOINT: http://dynamodb:8000
+      DYNAMODB_ACCESS_KEY: local
+      DYNAMODB_SECRET_KEY: local
+      DYNAMODB_CREATE_TABLE: "true"
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
     ports:
       - "8080:8080"

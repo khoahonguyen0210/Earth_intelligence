@@ -52,6 +52,12 @@ module "storage" {
   bucket_name = "${var.project}-artifacts-${data.aws_caller_identity.current.account_id}"
 }
 
+module "jobs" {
+  source = "../../modules/jobs"
+
+  table_name = "${local.name}-forecast-jobs"
+}
+
 module "registry" {
   source = "../../modules/registry"
 
@@ -87,6 +93,7 @@ module "platform" {
   backend_namespace       = local.backend_namespace
   backend_service_account = local.backend_service_account
   artifact_bucket_arn     = module.storage.bucket_arn
+  job_table_arn           = module.jobs.table_arn
 
   depends_on = [module.eks]
 }

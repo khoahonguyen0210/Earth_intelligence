@@ -60,6 +60,18 @@ module "backend_pod_identity" {
       actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
       resources = ["${var.artifact_bucket_arn}/*"]
     },
+    {
+      sid = "ForecastJobTable"
+      actions = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:Query",
+        "dynamodb:DescribeTable",
+        "dynamodb:ConditionCheckItem",
+      ]
+      resources = [var.job_table_arn, "${var.job_table_arn}/index/*"]
+    },
   ]
 
   associations = {

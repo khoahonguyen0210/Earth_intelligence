@@ -23,7 +23,7 @@ final class InMemoryForecasts {
     }
 
     static ForecastStore store(Spans spans) {
-        return new ForecastStore(repository(), new ObjectMapper(), spans);
+        return new JpaForecastStore(repository(), new ObjectMapper(), spans);
     }
 
     static ForecastJpaRepository repository() {

@@ -59,3 +59,8 @@ output "certificate_validation_records" {
   description = "DNS records to add by hand when domain_name's zone is not in Route 53."
   value       = one(module.tls[*].validation_records)
 }
+
+output "forecast_job_table" {
+  description = "DynamoDB table for forecast job status (FORECAST_JOBS_TABLE)."
+  value       = module.jobs.table_name
+}

@@ -212,7 +212,7 @@ class ForecastControllerTest {
                 .thenReturn(Optional.of(winnerEntity));
         when(repository.save(any())).thenThrow(new DataIntegrityViolationException("duplicate idempotency key"));
 
-        ForecastController controller = new ForecastController(new FakeQueue(), new ForecastStore(repository, objectMapper, Spans.noop()), Spans.noop());
+        ForecastController controller = new ForecastController(new FakeQueue(), new JpaForecastStore(repository, objectMapper, Spans.noop()), Spans.noop());
 
         ResponseEntity<ForecastController.ForecastSummaryResponse> response =
                 controller.createForecast(VALID_REQUEST, "race-key");

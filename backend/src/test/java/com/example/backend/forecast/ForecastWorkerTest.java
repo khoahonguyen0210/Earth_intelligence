@@ -263,7 +263,7 @@ class ForecastWorkerTest {
     @Test
     void aDatabaseOutageMidJobLeavesTheJobRunningForRecoveryNotLost() {
         ForecastJpaRepository repository = InMemoryForecasts.repository();
-        ForecastStore store = new ForecastStore(repository, new ObjectMapper(), Spans.noop());
+        ForecastStore store = new JpaForecastStore(repository, new ObjectMapper(), Spans.noop());
         store.save(Forecast.pending("job-1", REQUEST, Instant.now()));
         FakeQueue queue = new FakeQueue();
         queue.seed("job-1");
