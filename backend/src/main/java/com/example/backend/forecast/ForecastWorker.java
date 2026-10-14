@@ -66,17 +66,33 @@ public class ForecastWorker {
         dequeued.ifPresent(this::process);
     }
 
-    private void process(String forecastId) {
+    public record JobRun(String jobId, boolean ran, Forecast.Status status, int attempts) {
+    }
+
+    public JobRun runNow(String forecastId) {
         MDC.put(MDC_JOB_ID, forecastId);
         try {
             if (!store.claim(forecastId)) {
                 log.atInfo()
                         .addKeyValue("event", "job_skipped")
-                        .log("dequeued forecast is missing or not runnable; skipped");
-                return;
+                        .log("forecast is missing or not runnable; skipped");
+                Optional<Forecast> current = store.find(forecastId);
+                return new JobRun(forecastId, false, current.map(Forecast::status).orElse(null),
+                        current.map(Forecast::attempts).orElse(0));
             }
             attempt(store.find(forecastId).orElseThrow());
+            Forecast after = store.find(forecastId).orElseThrow();
+            return new JobRun(forecastId, true, after.status(), after.attempts());
+        } finally {
+            MDC.remove(MDC_JOB_ID);
+        }
+    }
+
+    private void process(String forecastId) {
+        try {
+            runNow(forecastId);
         } catch (DataAccessException e) {
+            MDC.put(MDC_JOB_ID, forecastId);
             log.atWarn()
                     .addKeyValue("event", "job_interrupted")
                     .log("a dependency failed during the job; recovery will re-run it: {}",

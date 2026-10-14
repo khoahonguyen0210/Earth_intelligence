@@ -104,6 +104,16 @@ The bucket is versioned and encrypted in Terraform. Commands, key layout and err
 
 Job status and metadata can live in DynamoDB instead of Postgres by setting `FORECAST_STORE=dynamodb`. Jobs are looked up by ID with a strongly consistent read, idempotency keys are kept unique with a conditional transaction, workers claim jobs with conditional updates, and the recovery sweep queries a `status`/`updated_at` index. Results too large for an item go to S3. Both stores pass the same contract tests, and DynamoDB Local runs in Compose. Details are in [`docs/dynamodb-job-store.md`](docs/dynamodb-job-store.md).
 
+## Kafka and a Go worker
+
+With `FORECAST_QUEUE=kafka`, the backend publishes each forecast job to a Kafka topic, and a worker written in Go consumes it and runs the job through one internal endpoint on the backend's management port, which claims it and calls the existing Python pipeline. Offsets are committed only after the backend answers, so delivery is at least once, and the backend's conditional claim makes duplicate deliveries harmless. Backend outages are retried with backoff, and malformed or rejected messages go to a dead-letter topic instead of blocking a partition.
+
+```bash
+cd infra/docker && FORECAST_QUEUE=kafka docker compose --profile kafka up -d --build
+```
+
+The message contract, delivery guarantees and tests are in [`docs/kafka-go-worker.md`](docs/kafka-go-worker.md).
+
 ## Questions about the system itself
 
 Ask Earth can also answer questions about how it works, such as "Does the model beat a simple baseline?" or "Is there a login?". A planner tool retrieves passages from `docs/` using Gemini embeddings, and the answer cites each source by path. The answer check also fails any citation that was not actually retrieved.
@@ -115,15 +125,15 @@ On 35 labelled questions worded unlike the docs, embedding search finds a correc
 
 | Area | Tools |
 |---|---|
-| Languages | Python, Java, TypeScript, HCL (Terraform), CSS |
-| Backend | Java 21, Spring Boot, JPA, Flyway, Maven |
+| Languages | Python, Java, Go, TypeScript, HCL (Terraform), CSS |
+| Backend | Java 21, Spring Boot, JPA, Flyway, Maven; Go worker with kafka-go |
 | Frontend | React, TypeScript, Vite, Vitest |
 | ML | Python 3.12, XGBoost (with its built-in tree SHAP), scikit-learn, NumPy, xarray, PyTorch (research baseline) |
 | LLM and retrieval | Gemini (planning, answers, embeddings), BM25 |
-| Data | PostGIS, DynamoDB, Redis, MinIO / S3, NASA FIRMS, ERA5-Land, ESA WorldCover |
+| Data | PostGIS, DynamoDB, Redis, Kafka, MinIO / S3, NASA FIRMS, ERA5-Land, ESA WorldCover |
 | Infra | Docker Compose, Kubernetes, Helm, KEDA, Terraform, AWS |
 | Observability | Prometheus, OpenTelemetry, Jaeger |
-| CI and quality | GitHub Actions, Trivy, Ruff, mypy, pytest |
+| CI and quality | GitHub Actions, Trivy, Ruff, mypy, pytest, go vet, go test -race |
 
 ## Quick start
 
@@ -174,13 +184,14 @@ The ML code needs Python 3.12 and [uv](https://docs.astral.sh/uv/), and the data
 ## Testing
 
 ```bash
-cd infra/docker && docker compose up -d postgres redis minio dynamodb   # backend tests need these
+cd infra/docker && docker compose --profile kafka up -d postgres redis minio dynamodb kafka   # backend tests need these
 cd backend && ./mvnw test
 uv run --project ml pytest ml/tests -q
 cd frontend && npm test
+cd worker && go test -race ./...
 ```
 
-There are over 850 tests, and the backend ones run against real Postgres, Redis, MinIO and DynamoDB Local. CI runs Python, Java, frontend, and a Trivy dependency and secret scan on every push.
+There are over 850 tests, and the backend ones run against real Postgres, Redis, MinIO, DynamoDB Local and Kafka. CI runs Python, Java, Go, frontend, and a Trivy dependency and secret scan on every push.
 
 ## API
 
@@ -210,6 +221,7 @@ Keys go in `.env` (git-ignored). Everything else has a default in `application.p
 | `OBJECT_STORE_ENDPOINT`, `OBJECT_STORE_BUCKET` | MinIO or S3 |
 | `ARTIFACT_BUCKET`, `S3_ENDPOINT_URL`, `AWS_REGION` | S3 bucket for datasets and models |
 | `FORECAST_STORE`, `FORECAST_JOBS_TABLE`, `DYNAMODB_ENDPOINT` | Job store: `postgres` (default) or `dynamodb` |
+| `FORECAST_QUEUE`, `KAFKA_BOOTSTRAP_SERVERS` | Job queue: `redis` (default) or `kafka` |
 | `LOG_FORMAT` | `ecs` (JSON) by default |
 
 ## Repository layout
@@ -218,6 +230,7 @@ Keys go in `.env` (git-ignored). Everything else has a default in `application.p
 backend/    Spring Boot API, JPA, Flyway migrations
 frontend/   React + Vite app
 ml/         Data, features, models, planner, docs retrieval, retraining, distributed runs
+worker/     Go worker that consumes forecast jobs from Kafka
 scripts/    Data download, training, evaluation, retrieval, retraining, S3 and demo scripts
 infra/      Docker, Kubernetes, kind, Terraform
 .github/    CI workflow

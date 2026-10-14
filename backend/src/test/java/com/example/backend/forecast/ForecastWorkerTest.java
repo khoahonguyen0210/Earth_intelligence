@@ -277,4 +277,29 @@ class ForecastWorkerTest {
         assertEquals(Forecast.Status.RUNNING, store.find("job-1").orElseThrow().status(),
                 "left RUNNING for ForecastRecovery to find, not dropped or marked failed");
     }
+
+    @Test
+    void runNowRunsAWaitingJobAndReportsItsFinalStatus() {
+        ForecastStore store = newStore();
+        store.save(Forecast.pending("job-1", REQUEST, Instant.now()));
+        ForecastWorker worker = new ForecastWorker(new FakeQueue(), store,
+                request -> ForecastOutcome.success(Map.of("model_version", "v1")),
+                DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0, RegionStore.noop());
+
+        ForecastWorker.JobRun run = worker.runNow("job-1");
+
+        assertEquals(new ForecastWorker.JobRun("job-1", true, Forecast.Status.SUCCEEDED, 1), run);
+    }
+
+    @Test
+    void runNowSkipsAJobThatIsAlreadyFinishedOrMissing() {
+        ForecastStore store = newStore();
+        store.save(Forecast.from("job-1", REQUEST, Instant.now(), ForecastOutcome.success(Map.of())));
+        ForecastWorker worker = new ForecastWorker(new FakeQueue(), store, request -> {
+            throw new AssertionError("a finished job must not run again");
+        }, DEFAULT_MAX_ATTEMPTS, NO_SECRETS, METRICS, Spans.noop(), 0, RegionStore.noop());
+
+        assertEquals(new ForecastWorker.JobRun("job-1", false, Forecast.Status.SUCCEEDED, 0), worker.runNow("job-1"));
+        assertEquals(new ForecastWorker.JobRun("missing", false, null, 0), worker.runNow("missing"));
+    }
 }
