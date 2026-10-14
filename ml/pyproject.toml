@@ -25,7 +25,9 @@ dev = [
     "matplotlib",
     "jsonschema",
     "types-jsonschema",
-    "google-genai"
+    "google-genai",
+    "boto3",
+    "moto[s3]"
 ]
 research = [
     "torch>=2.14.1",
@@ -54,6 +56,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["torch", "torch.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["boto3", "boto3.*", "botocore", "botocore.*", "moto"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

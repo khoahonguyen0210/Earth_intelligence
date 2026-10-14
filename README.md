@@ -89,6 +89,17 @@ uv run --project ml python scripts/models/auto_retrain.py
 
 Seasons already processed are skipped, so the command is safe to run on a schedule, and the model then stays current with no manual steps. On the 2025 season the candidate scored 0.399 against 0.464 for the model in service, so the gate kept the current model. Details are in [`docs/retraining.md`](docs/retraining.md).
 
+## Datasets and models on S3
+
+The training datasets and every model version in the registry can live in Amazon S3, or in MinIO locally. Every upload is read back and checked against its SHA-256, every download is verified before it replaces a local file, and when a bucket is configured each retraining run uploads its candidate and the updated registry on its own.
+
+```bash
+uv run --project ml python scripts/storage/s3_artifacts.py push-datasets
+uv run --project ml python scripts/storage/s3_artifacts.py pull-model --serve
+```
+
+The bucket is versioned and encrypted in Terraform. Commands, key layout and error handling are in [`docs/s3-artifacts.md`](docs/s3-artifacts.md).
+
 ## Questions about the system itself
 
 Ask Earth can also answer questions about how it works, such as "Does the model beat a simple baseline?" or "Is there a login?". A planner tool retrieves passages from `docs/` using Gemini embeddings, and the answer cites each source by path. The answer check also fails any citation that was not actually retrieved.
@@ -126,7 +137,7 @@ uv run --project ml python scripts/models/train_production_model.py
 uv run --project ml python scripts/rag/build_docs_index.py
 ```
 
-The downloads take a while, because ERA5-Land requests queue on the Copernicus servers. They resume if interrupted. Then start the stack:
+The downloads take a while, because ERA5-Land requests queue on the Copernicus servers. They resume if interrupted. If the data and model are already in a bucket, `s3_artifacts.py pull-datasets` and `pull-model --serve` replace these steps. Then start the stack:
 
 ```bash
 cd infra/docker
@@ -193,6 +204,7 @@ Keys go in `.env` (git-ignored). Everything else has a default in `application.p
 | `SPRING_DATASOURCE_URL` | Database, default `localhost:5432/ai_earth` |
 | `REDIS_HOST`, `REDIS_PORT` | Redis, default `127.0.0.1:6379` |
 | `OBJECT_STORE_ENDPOINT`, `OBJECT_STORE_BUCKET` | MinIO or S3 |
+| `ARTIFACT_BUCKET`, `S3_ENDPOINT_URL`, `AWS_REGION` | S3 bucket for datasets and models |
 | `LOG_FORMAT` | `ecs` (JSON) by default |
 
 ## Repository layout
@@ -201,7 +213,7 @@ Keys go in `.env` (git-ignored). Everything else has a default in `application.p
 backend/    Spring Boot API, JPA, Flyway migrations
 frontend/   React + Vite app
 ml/         Data, features, models, planner, docs retrieval, retraining, distributed runs
-scripts/    Data download, training, evaluation, retrieval, retraining and demo scripts
+scripts/    Data download, training, evaluation, retrieval, retraining, S3 and demo scripts
 infra/      Docker, Kubernetes, kind, Terraform
 .github/    CI workflow
 docs/       Contracts, architecture, benchmarks, portfolio evidence

@@ -4,6 +4,8 @@ import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import (
     load_dataset,
 )
@@ -16,6 +18,14 @@ from ai_earth_intelligence_and_forecasting_engine.models.auto_retrain import (
 from ai_earth_intelligence_and_forecasting_engine.models.retraining import (
     ModelRegistry,
     run_retraining,
+)
+from ai_earth_intelligence_and_forecasting_engine.storage.artifacts import (
+    push_model_version,
+    registry_key,
+)
+from ai_earth_intelligence_and_forecasting_engine.storage.s3 import (
+    ArtifactStore,
+    StorageError,
 )
 
 DATASET_PATH = Path("data/processed/historical_dataset_v1.csv")
@@ -48,7 +58,25 @@ def load_all_rows():
     return rows
 
 
+def sync_to_s3(registry: ModelRegistry, results: list[dict]) -> bool:
+    store = ArtifactStore.from_env()
+    if store is None:
+        return True
+    try:
+        store.check_bucket()
+        for result in results:
+            push_model_version(store, registry, result["candidate"])
+        if LOG_PATH.exists():
+            store.upload_file(LOG_PATH, registry_key(LOG_PATH.name))
+    except StorageError as error:
+        print(f"S3 sync failed, results are saved locally: {error}", file=sys.stderr)
+        return False
+    print(f"synced {len(results)} candidate(s) and the registry to s3://{store.bucket}")
+    return True
+
+
 def main() -> None:
+    load_dotenv()
     registry = ModelRegistry(REGISTRY_DIR)
     if registry.current is None:
         registry.register_existing("v1", SERVED_DIR)
@@ -76,6 +104,8 @@ def main() -> None:
     for result in results:
         outcome = "promoted" if result["promoted"] else "kept current model"
         print(f"season {result['seasons']['gate']}: {outcome} ({result['reason']})")
+    if not sync_to_s3(registry, results):
+        sys.exit(1)
 
 
 if __name__ == "__main__":
