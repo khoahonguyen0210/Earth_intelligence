@@ -34,6 +34,9 @@ Choices the paper leaves open:
 A version that uses only 2 m temperature, 2 m dew point and 10 m wind is
 called the **surface approximation**. It is not the paper's index.
 
+How well the surface approximation predicts fires on its own is measured
+in [Fire-Weather Index Validation](fire-weather-index-validation.md).
+
 ## Code
 
 | File | Purpose |

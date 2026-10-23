@@ -68,6 +68,21 @@ def test_bootstrap_brackets_the_point_estimate_and_orders_a_better_model_above()
     assert "random" not in difference
 
 
+def test_bootstrap_can_score_roc_auc():
+    rng = np.random.default_rng(1)
+    groups = np.repeat(np.arange(20), 200)
+    y = (rng.random(len(groups)) < 0.05).astype(int)
+    scores = {"good": y + rng.normal(0, 0.6, len(y)), "random": rng.random(len(y))}
+
+    metric, difference = block_bootstrap(
+        y, scores, groups, "random", n_samples=100, metric_name="roc_auc"
+    )
+
+    assert 0.4 < metric["random"].estimate < 0.6
+    assert metric["good"].estimate > 0.8
+    assert difference["good"].low > 0
+
+
 def test_bootstrap_is_reproducible_with_its_fixed_seed():
     groups = np.repeat(np.arange(10), 50)
     y = np.tile([1] + [0] * 9, 50)

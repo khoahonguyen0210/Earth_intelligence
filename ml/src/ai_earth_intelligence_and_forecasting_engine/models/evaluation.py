@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score, roc_auc_score
 
 from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import (
     DatasetRow,
@@ -35,6 +37,18 @@ def _pr_auc(y: np.ndarray, scores: np.ndarray) -> float:
     return float(average_precision_score(y, scores))
 
 
+def _roc_auc(y: np.ndarray, scores: np.ndarray) -> float:
+    if y.sum() == 0 or y.sum() == len(y):
+        return float("nan")
+    return float(roc_auc_score(y, scores))
+
+
+METRICS: dict[str, Callable[[np.ndarray, np.ndarray], float]] = {
+    "pr_auc": _pr_auc,
+    "roc_auc": _roc_auc,
+}
+
+
 def block_bootstrap(
     y_true: np.ndarray,
     scores: dict[str, np.ndarray],
@@ -42,7 +56,9 @@ def block_bootstrap(
     baseline: str,
     n_samples: int = BOOTSTRAP_SAMPLES,
     seed: int = BOOTSTRAP_SEED,
+    metric_name: Literal["pr_auc", "roc_auc"] = "pr_auc",
 ) -> tuple[dict[str, Interval], dict[str, Interval]]:
+    score_fn = METRICS[metric_name]
     rng = np.random.default_rng(seed)
     unique_groups = np.unique(groups)
     index_by_group = {group: np.flatnonzero(groups == group) for group in unique_groups}
@@ -52,13 +68,13 @@ def block_bootstrap(
         chosen = rng.choice(unique_groups, size=len(unique_groups), replace=True)
         index = np.concatenate([index_by_group[group] for group in chosen])
         for name, values in scores.items():
-            draws[name].append(_pr_auc(y_true[index], values[index]))
+            draws[name].append(score_fn(y_true[index], values[index]))
 
     def interval(point: float, samples: np.ndarray) -> Interval:
         low, high = np.nanpercentile(samples, [2.5, 97.5])
         return Interval(estimate=point, low=float(low), high=float(high))
 
-    points = {name: _pr_auc(y_true, values) for name, values in scores.items()}
+    points = {name: score_fn(y_true, values) for name, values in scores.items()}
     metric = {
         name: interval(points[name], np.array(samples))
         for name, samples in draws.items()
