@@ -32,24 +32,26 @@ def random_columns(
     dtype: torch.dtype = torch.float32,
     device: torch.device | str = "cpu",
 ) -> ColumnFields:
-    generator = torch.Generator().manual_seed(seed)
+    generator = torch.Generator(device=device).manual_seed(seed)
     grid = (*batch, height, width)
     stacked = (*batch, len(levels), height, width)
 
     def uniform(shape: tuple[int, ...], low: float, high: float) -> torch.Tensor:
         return low + (high - low) * torch.rand(
-            shape, generator=generator, dtype=torch.float64
+            shape, generator=generator, dtype=dtype, device=device
         )
 
     def normal(shape: tuple[int, ...], scale: float) -> torch.Tensor:
-        return scale * torch.randn(shape, generator=generator, dtype=torch.float64)
+        return scale * torch.randn(
+            shape, generator=generator, dtype=dtype, device=device
+        )
 
-    pressure = torch.tensor(levels, dtype=torch.float64)
+    pressure = torch.tensor(levels, dtype=dtype, device=device)
     t2m = uniform(grid, 270.0, 315.0)
     lapse = (1000.0 - pressure).view(-1, 1, 1) * 0.07
     temperature = t2m.unsqueeze(-3) - lapse + normal(stacked, 2.0)
 
-    columns = ColumnFields(
+    return ColumnFields(
         t2m=t2m,
         d2m=t2m - uniform(grid, 0.0, 35.0),
         u10=normal(grid, 6.0),
@@ -61,13 +63,14 @@ def random_columns(
         v=normal(stacked, 9.0),
         pressure=pressure,
     )
-    return columns.to(device, dtype)
 
 
 def edge_case_columns(
     dtype: torch.dtype = torch.float64, device: torch.device | str = "cpu"
 ) -> ColumnFields:
-    columns = random_columns((), 1, len(EDGE_CASES), DENSE_LEVELS, seed=7)
+    columns = random_columns(
+        (), 1, len(EDGE_CASES), DENSE_LEVELS, seed=7, dtype=torch.float64
+    )
     values = {
         name: getattr(columns, name).to(torch.float64).clone()
         for name in (

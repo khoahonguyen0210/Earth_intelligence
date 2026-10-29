@@ -114,6 +114,10 @@ def _masked_max(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
 
 def hot_dry_windy_index(columns: ColumnFields) -> torch.Tensor:
     validate(columns)
+    return compute_index(columns)
+
+
+def compute_index(columns: ColumnFields) -> torch.Tensor:
     surface_hpa = columns.surface_pressure / 100.0
     pressure = columns.pressure.view(-1, 1, 1)
     mask = layer_mask(columns.pressure, surface_hpa)
