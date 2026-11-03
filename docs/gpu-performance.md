@@ -114,6 +114,10 @@ Results go to `ml/artifacts/gpu_perf/<run_id>/`: `kernel_benchmark.csv`,
 `summary.json` with the GPU, driver, CUDA, PyTorch and Triton versions,
 and `percent_of_peak.png`.
 
+Without a local GPU, run `notebooks/gpu_kernels_on_t4.ipynb` on a free
+Kaggle T4 (see [notebooks/README.md](../notebooks/README.md)). It runs the
+tests, the benchmark and, if the container allows it, Nsight Compute.
+
 ## Kernel speed is not pipeline speed
 
 The index is one small step after a weather model that runs for many
