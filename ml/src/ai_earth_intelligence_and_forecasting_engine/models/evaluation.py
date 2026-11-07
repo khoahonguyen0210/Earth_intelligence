@@ -5,7 +5,12 @@ from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import (
+    average_precision_score,
+    brier_score_loss,
+    log_loss,
+    roc_auc_score,
+)
 
 from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import (
     DatasetRow,
@@ -43,10 +48,21 @@ def _roc_auc(y: np.ndarray, scores: np.ndarray) -> float:
     return float(roc_auc_score(y, scores))
 
 
+def _brier(y: np.ndarray, scores: np.ndarray) -> float:
+    return float(brier_score_loss(y, scores))
+
+
+def _log_loss(y: np.ndarray, scores: np.ndarray) -> float:
+    return float(log_loss(y, scores, labels=[0, 1]))
+
+
 METRICS: dict[str, Callable[[np.ndarray, np.ndarray], float]] = {
     "pr_auc": _pr_auc,
     "roc_auc": _roc_auc,
+    "brier": _brier,
+    "log_loss": _log_loss,
 }
+MetricName = Literal["pr_auc", "roc_auc", "brier", "log_loss"]
 
 
 def block_bootstrap(
@@ -56,7 +72,7 @@ def block_bootstrap(
     baseline: str,
     n_samples: int = BOOTSTRAP_SAMPLES,
     seed: int = BOOTSTRAP_SEED,
-    metric_name: Literal["pr_auc", "roc_auc"] = "pr_auc",
+    metric_name: MetricName = "pr_auc",
 ) -> tuple[dict[str, Interval], dict[str, Interval]]:
     score_fn = METRICS[metric_name]
     rng = np.random.default_rng(seed)

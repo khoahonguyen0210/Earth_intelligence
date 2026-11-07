@@ -63,6 +63,10 @@ module = ["triton", "triton.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+module = ["earth2studio", "earth2studio.*", "scipy", "scipy.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = ["boto3", "boto3.*", "botocore", "botocore.*", "moto"]
 ignore_missing_imports = true
 

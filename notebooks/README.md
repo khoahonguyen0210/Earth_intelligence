@@ -8,6 +8,7 @@ Download them and copy them to the path in the table.
 |---|---|---|
 | `earth2_models_on_t4.ipynb` | Which Earth2Studio models fit on a T4, their run time and memory, and which index inputs they output | `ml/artifacts/earth2_models/` |
 | `gpu_kernels_on_t4.ipynb` | GPU tests and the kernel benchmark | `ml/artifacts/gpu_perf/` |
+| `e7_forecasts_on_t4.ipynb` | Weather forecasts and daily index values for the [multi-day experiment](../docs/multi-day-risk.md) | `ml/artifacts/e7_forecasts/` |
 
 To run one on Kaggle:
 

@@ -118,6 +118,12 @@ def hot_dry_windy_index(columns: ColumnFields) -> torch.Tensor:
 
 
 def compute_index(columns: ColumnFields) -> torch.Tensor:
+    wind, vpd = index_components(columns)
+    surface_hpa = columns.surface_pressure / 100.0
+    return torch.where(torch.isnan(surface_hpa), surface_hpa, wind * vpd)
+
+
+def index_components(columns: ColumnFields) -> tuple[torch.Tensor, torch.Tensor]:
     surface_hpa = columns.surface_pressure / 100.0
     pressure = columns.pressure.view(-1, 1, 1)
     mask = layer_mask(columns.pressure, surface_hpa)
@@ -136,8 +142,7 @@ def compute_index(columns: ColumnFields) -> torch.Tensor:
     vpd = torch.maximum(
         surface_vpd(columns.t2m, columns.d2m), _masked_max(level_vpd, mask)
     )
-    index = wind * vpd
-    return torch.where(torch.isnan(surface_hpa), surface_hpa, index)
+    return wind, vpd
 
 
 def surface_hot_dry_windy_index(
