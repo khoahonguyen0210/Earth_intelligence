@@ -8,13 +8,7 @@ MAX_CHUNK_CHARS = 1500
 EXCLUDED_DOCS = frozenset({"rag.md"})
 _HEADING = re.compile(r"^(#{1,3})\s+(.+?)\s*$")
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
-_DROPPED_SENTENCE = re.compile(
-    r"(?i)\bhandbook\b|not a brainstorming document|^this document (freezes|records)"
-)
-_TITLE_SUFFIX = re.compile(r"\s*[—-]+\s*LOCKED\s*$")
-_HANDBOOK_IN_HEADING = re.compile(r"(?i)\s*\bthe handbook'?s\b\s*|\s*\bhandbook\b\s*")
-_HANDBOOK_POSSESSIVE = re.compile(r"(?i)\bthe handbook'?s\s+")
-_HANDBOOK_WORD = re.compile(r"(?i)\bhandbook(\s+)")
+_DROPPED_SENTENCE = re.compile(r"(?i)^this document (freezes|records)")
 
 
 @dataclass(frozen=True)
@@ -30,13 +24,13 @@ class Chunk:
 
 
 def _clean_heading(text: str) -> str:
-    cleaned = _HANDBOOK_IN_HEADING.sub(" ", _TITLE_SUFFIX.sub("", text)).strip()
+    cleaned = text.strip()
     return cleaned[:1].upper() + cleaned[1:] if cleaned else cleaned
 
 
 def _sanitize(paragraph: str) -> str:
     if paragraph.lstrip().startswith(("```", "|", "    ", "[")):
-        return _HANDBOOK_WORD.sub(r"\1", _HANDBOOK_POSSESSIVE.sub("the ", paragraph))
+        return paragraph
     sentences = _SENTENCE_END.split(" ".join(paragraph.split()))
     return " ".join(s for s in sentences if not _DROPPED_SENTENCE.search(s)).strip()
 

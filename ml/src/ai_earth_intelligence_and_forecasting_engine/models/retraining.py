@@ -32,7 +32,7 @@ from ai_earth_intelligence_and_forecasting_engine.models.production_model import
     train_production_model,
 )
 
-LOCKED_TEST_SEASON = 2024
+TEST_SEASON = 2024
 MIN_PR_AUC_GAIN = 0.01
 MAX_BRIER_RATIO = 1.05
 REGISTRY_FILE = "registry.json"
@@ -212,9 +212,9 @@ def run_retraining(
     registry: ModelRegistry,
     served_dir: Path | None = None,
 ) -> dict[str, Any]:
-    if newest_season == LOCKED_TEST_SEASON:
+    if newest_season == TEST_SEASON:
         raise ValueError(
-            f"{LOCKED_TEST_SEASON} is the locked test season and can never "
+            f"{TEST_SEASON} is the held-out test season and can never "
             "decide a promotion"
         )
     seasons = sorted({season_of(row) for row in rows})

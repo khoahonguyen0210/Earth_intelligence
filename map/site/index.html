@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>California Wildfire Risk</title>
+<meta name="description" content="Experimental 3-day wildfire risk map for California from NVIDIA Earth-2 weather forecasts and NASA satellite fire data.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --bg: #f7f5f2;
+    --panel: #ffffff;
+    --text: #1d1d1b;
+    --muted: #5f5d58;
+    --line: #e2ded6;
+    --accent: #b3311f;
+    --warn-bg: #fff4e5;
+    --warn-line: #f0b46a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514;
+      --panel: #1f1f1d;
+      --text: #ecebe7;
+      --muted: #a9a69f;
+      --line: #34332f;
+      --accent: #f07a5f;
+      --warn-bg: #2d2316;
+      --warn-line: #8a5a1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  .lead { margin: 0 0 16px; color: var(--muted); }
+  .warning {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+  .warning a, footer a { color: var(--accent); }
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .fact {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  .fact span { display: block; color: var(--muted); font-size: 0.8rem; }
+  .days { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .days button {
+    font: inherit;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .days button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  #map {
+    height: 70vh;
+    min-height: 420px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin: 10px 0 24px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .legend i {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    vertical-align: -2px;
+    margin-right: 4px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 0.85rem; }
+  #status { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>California Wildfire Risk</h1>
+  <p class="lead">The chance that satellites detect a fire in each 10 km cell, for each of the next three days.</p>
+
+  <div class="warning" role="note">
+    <strong>Experimental research map. This is not an official warning.</strong>
+    For official forecasts and fire information, see the
+    <a href="https://www.weather.gov/">National Weather Service</a> and
+    <a href="https://www.fire.ca.gov/">CAL FIRE</a>.
+  </div>
+
+  <div class="facts">
+    <div class="fact"><span>Data cutoff</span><b id="cutoff">-</b></div>
+    <div class="fact"><span>Weather forecast start</span><b id="start">-</b></div>
+    <div class="fact"><span>Weather model</span><b id="weather">-</b></div>
+    <div class="fact"><span>Risk model</span><b id="model">-</b></div>
+  </div>
+
+  <div class="days" id="days" aria-label="Forecast day"></div>
+  <div id="map" role="img" aria-label="Map of wildfire risk by grid cell"></div>
+  <div class="legend" id="legend"></div>
+  <p id="status"></p>
+
+  <h2>Recent runs</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Data cutoff (UTC)</th><th>Status</th><th>Run time</th><th>GPU time</th></tr></thead>
+      <tbody id="runs"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p>How it works: an NVIDIA Earth-2 weather model forecasts the next three days. The
+      Hot-Dry-Windy Index and recent fire detections feed a model trained on 2019 to 2022
+      fire seasons. Water and cells without terrain data are not shown.</p>
+    <p>Sources: fire detections from NASA FIRMS (VIIRS); weather forecast start from NOAA GFS;
+      forecast from NVIDIA Earth2Studio; elevation from Copernicus DEM GLO-30;
+      land cover from ESA WorldCover 2021 (CC BY 4.0). Map data © OpenStreetMap contributors.</p>
+  </footer>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -8,7 +8,6 @@ import torch
 from ai_earth_intelligence_and_forecasting_engine.data.history import (
     historical_cutoffs,
 )
-from ai_earth_intelligence_and_forecasting_engine.earth2.e7 import SPLIT_YEARS
 from ai_earth_intelligence_and_forecasting_engine.earth2.forecast import (
     APPROXIMATE_INDEX_VERSION,
     INDEX_LEVELS_HPA,
@@ -19,6 +18,7 @@ from ai_earth_intelligence_and_forecasting_engine.earth2.store import (
     cutoff_file_name,
     save_cutoff_forecast,
 )
+from ai_earth_intelligence_and_forecasting_engine.earth2.timing import SPLIT_YEARS
 
 OUTPUT_DIR = Path("ml/artifacts/e7_forecasts")
 

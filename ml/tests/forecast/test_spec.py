@@ -13,7 +13,7 @@ def test_forecast_window_is_24_hours():
     assert FORECAST_WINDOW_HOURS == 24
 
 
-def test_split_ranges_are_locked():
+def test_split_ranges_are_fixed():
     assert TRAIN_SPLIT.start == date(2019, 1, 1)
     assert TRAIN_SPLIT.end == date(2022, 12, 31)
     assert VALIDATION_SPLIT.start == date(2023, 1, 1)

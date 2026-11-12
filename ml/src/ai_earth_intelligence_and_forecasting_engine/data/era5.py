@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LOCKED_VARIABLES: tuple[str, ...] = (
+ERA5_VARIABLES: tuple[str, ...] = (
     "2m_temperature",
     "total_precipitation",
     "10m_u_component_of_wind",
@@ -26,7 +26,7 @@ class ERA5Config:
     url: str
     key: str
     dataset: str = "reanalysis-era5-land"
-    variables: tuple[str, ...] = LOCKED_VARIABLES
+    variables: tuple[str, ...] = ERA5_VARIABLES
 
 
 @dataclass(frozen=True)

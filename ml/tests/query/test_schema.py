@@ -9,7 +9,7 @@ from ai_earth_intelligence_and_forecasting_engine.query.schema import (
 )
 
 
-def test_query_intent_has_exactly_the_locked_values():
+def test_query_intent_has_exactly_the_expected_values():
     assert {intent.value for intent in QueryIntent} == {
         "count",
         "aggregate",

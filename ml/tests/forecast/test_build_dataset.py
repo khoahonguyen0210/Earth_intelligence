@@ -133,7 +133,7 @@ def test_manifest_positive_rates_match_hand_verified_fixture():
     assert manifest.positive_rates["test"] == 1.0
 
 
-def test_manifest_split_dates_match_locked_spec():
+def test_manifest_split_dates_match_the_spec():
     manifest = bd.build_dataset_manifest(_rows())
 
     assert manifest.split_dates["train"] == {

@@ -5,18 +5,17 @@ from ai_earth_intelligence_and_forecasting_engine.rag.chunking import (
     chunk_markdown,
 )
 
-DOC = """# Final ML Benchmark — LOCKED
+DOC = """# Final ML Benchmark
 
-This document freezes the final benchmark. It is not a brainstorming
-document. XGBoost reached a PR-AUC of 0.4513 on the 2024 test year.
+This document freezes the final benchmark. XGBoost reached a PR-AUC
+of 0.4513 on the 2024 test year.
 
 ## Setup
 
-The handbook asks for four models. Training used 2019 to 2022.
+Four models are compared. Training used 2019 to 2022.
 
 ```text
-handbook item     value
-the handbook's example DAG
+item     value
 ```
 
 ## Calibration
@@ -38,11 +37,9 @@ def test_chunks_follow_headings_and_keep_their_source():
     assert chunks[0].chunk_id == "docs/ml-benchmark.md#0"
 
 
-def test_build_plan_sentences_and_words_are_removed():
+def test_sentences_about_the_document_itself_are_removed():
     text = " ".join(chunk.text for chunk in chunk_markdown("docs/x.md", DOC))
 
-    assert "handbook" not in text.lower()
-    assert "brainstorming" not in text
     assert "This document freezes" not in text
     assert "XGBoost reached a PR-AUC of 0.4513" in text
     assert "Training used 2019 to 2022." in text

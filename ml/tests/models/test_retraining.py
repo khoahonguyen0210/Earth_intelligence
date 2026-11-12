@@ -77,8 +77,8 @@ def test_decide_promotes_only_a_clear_improvement():
     assert decide(GateScore(0.1, 0.01, 100, 5), None).promote
 
 
-def test_the_locked_test_season_can_never_decide_a_promotion(tmp_path):
-    with pytest.raises(ValueError, match="locked test season"):
+def test_the_test_season_can_never_decide_a_promotion(tmp_path):
+    with pytest.raises(ValueError, match="held-out test season"):
         run_retraining(ROWS, 2024, ModelRegistry(tmp_path / "registry"))
 
 

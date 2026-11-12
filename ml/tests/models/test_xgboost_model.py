@@ -107,7 +107,7 @@ def test_evaluate_xgboost_does_not_use_test_targets_to_select_config():
     assert result_a.best_iteration == result_b.best_iteration
 
 
-def test_evaluate_xgboost_produces_locked_metrics():
+def test_evaluate_xgboost_produces_expected_metrics():
     _result, _predictions, metrics = evaluate_xgboost(
         TRAIN_ROWS, VALIDATION_ROWS, TEST_ROWS
     )

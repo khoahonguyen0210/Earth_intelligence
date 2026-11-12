@@ -66,7 +66,7 @@ def _row(tile: str, cutoff: datetime, **values) -> DatasetRow:
     return DatasetRow(**fields)
 
 
-def test_split_keeps_the_locked_test_year_out() -> None:
+def test_split_keeps_the_held_out_test_year_out() -> None:
     years = [year for group in SPLIT_YEARS.values() for year in group]
     assert len(years) == len(set(years))
     assert 2024 not in years
@@ -171,7 +171,7 @@ def test_lead_scores_fit_both_models_and_keep_the_test_rows_aligned() -> None:
     train = rows_for(2020, 1500)
     validation = rows_for(2023, 600)
     test = rows_for(2025, 400)
-    scores, models = lead_scores(train, validation, test, locked_model=None)
+    scores, models = lead_scores(train, validation, test, production_model=None)
 
     assert set(models) == {NO_FORECAST_MODEL, FORECAST_MODEL}
     assert set(scores) == {"climatology", "persistence_24h", *models}

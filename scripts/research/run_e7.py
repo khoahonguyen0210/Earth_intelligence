@@ -20,15 +20,18 @@ from ai_earth_intelligence_and_forecasting_engine.earth2.e7 import (
     E7_VERSION,
     FORECAST_MODEL,
     NO_FORECAST_MODEL,
-    SPLIT_YEARS,
     build_lead_rows,
     cell_forecasts,
     e7_split,
     lead_fire_tiles,
     lead_scores,
 )
+from ai_earth_intelligence_and_forecasting_engine.earth2.portable import export_model
 from ai_earth_intelligence_and_forecasting_engine.earth2.store import load_forecast_set
-from ai_earth_intelligence_and_forecasting_engine.earth2.timing import LEAD_DAYS
+from ai_earth_intelligence_and_forecasting_engine.earth2.timing import (
+    LEAD_DAYS,
+    SPLIT_YEARS,
+)
 from ai_earth_intelligence_and_forecasting_engine.forecast.build_dataset import (
     load_dataset,
 )
@@ -62,11 +65,11 @@ DATASET_PATHS = (
 )
 FIRMS_DIRS = (Path("data/raw/firms/history"), Path("data/raw/firms/e7_labels"))
 FORECAST_DIR = Path("ml/artifacts/e7_forecasts")
-LOCKED_MODEL_DIR = Path("ml/artifacts/production_model_v1")
+PRODUCTION_MODEL_DIR = Path("ml/artifacts/production_model_v1")
 OUTPUT_DIR = Path("ml/artifacts/e7_multi_day_v1")
 PROBABILITY_SCORES = (
     "climatology",
-    "locked_24h_model",
+    "production_model",
     NO_FORECAST_MODEL,
     FORECAST_MODEL,
 )
@@ -119,12 +122,12 @@ def fire_tiles_by_lead(cutoffs: list[datetime]) -> dict[int, dict[datetime, set[
     return result
 
 
-def evaluate_lead(lead, rows, locked_model):
+def evaluate_lead(lead, rows, production_model):
     train = [row for row in rows if row.split == "train"]
     validation = [row for row in rows if row.split == "validation"]
     test = [row for row in rows if row.split == "test"]
     started = time.perf_counter()
-    scores, models = lead_scores(train, validation, test, locked_model)
+    scores, models = lead_scores(train, validation, test, production_model)
     y = np.array([row.target for row in test])
     groups = np.array([row.cutoff.isoformat() for row in test])
     report = {
@@ -182,9 +185,9 @@ def main() -> None:
         for row in base_rows
     )
 
-    locked = (
-        load_production_model(LOCKED_MODEL_DIR).calibrated
-        if LOCKED_MODEL_DIR.exists()
+    served = (
+        load_production_model(PRODUCTION_MODEL_DIR).calibrated
+        if PRODUCTION_MODEL_DIR.exists()
         else None
     )
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -200,12 +203,16 @@ def main() -> None:
                 cell_forecasts(forecasts, cells, lead),
                 cell_index,
             )
-            report, scores, models, test = evaluate_lead(lead, rows, locked)
+            report, scores, models, test = evaluate_lead(lead, rows, served)
             reports.append(report)
             print(json.dumps({k: report[k] for k in ("lead_day", "rows", "fires")}))
 
-            with (output_dir / "models" / f"lead_{lead}.pkl").open("wb") as model_file:
+            model_path = output_dir / "models" / f"lead_{lead}"
+            with model_path.with_suffix(".pkl").open("wb") as model_file:
                 pickle.dump(models[FORECAST_MODEL], model_file)
+            model_path.with_suffix(".json").write_text(
+                json.dumps(export_model(models[FORECAST_MODEL])), "utf-8"
+            )
             table = build_calibration_table(
                 [row.target for row in test], scores[FORECAST_MODEL].tolist()
             )
@@ -242,7 +249,7 @@ def main() -> None:
         },
         "xgboost": BASE_CONFIG,
         "calibration": "isotonic on the validation split",
-        "locked_24h_model": str(LOCKED_MODEL_DIR) if locked else None,
+        "production_model": str(PRODUCTION_MODEL_DIR) if served else None,
         "bootstrap": {
             "groups": "cutoff date",
             "samples": BOOTSTRAP_SAMPLES,
@@ -252,7 +259,7 @@ def main() -> None:
     metrics = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "seconds": round(time.perf_counter() - started, 1),
-        "day_1_label_mismatches_with_locked_target": int(mismatched),
+        "day_1_label_mismatches": int(mismatched),
         "leads": reports,
     }
     (output_dir / "config.json").write_text(json.dumps(config, indent=2), "utf-8")

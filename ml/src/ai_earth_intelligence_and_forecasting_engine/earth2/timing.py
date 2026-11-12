@@ -5,6 +5,13 @@ from datetime import datetime, timedelta
 STEP_HOURS = 6
 LEAD_DAYS = (1, 2, 3)
 DAILY_HOURS_UTC = (0, 12, 18)
+SPLIT_YEARS = {
+    "train": (2019, 2020, 2021, 2022),
+    "validation": (2023,),
+    "test": (2025,),
+}
+CUTOFF_HOUR_UTC = 10
+READY_DELAY = timedelta(minutes=30)
 
 
 def initialization_time(cutoff: datetime) -> datetime:
@@ -30,3 +37,8 @@ def daily_valid_times(cutoff: datetime, lead_day: int) -> list[datetime]:
 def forecast_steps(cutoff: datetime) -> int:
     last = daily_valid_times(cutoff, LEAD_DAYS[-1])[-1]
     return (last - initialization_time(cutoff)) // timedelta(hours=STEP_HOURS)
+
+
+def daily_cutoff(now: datetime) -> datetime:
+    today = now.replace(hour=CUTOFF_HOUR_UTC, minute=0, second=0, microsecond=0)
+    return today if now >= today + READY_DELAY else today - timedelta(days=1)

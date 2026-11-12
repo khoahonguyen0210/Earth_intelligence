@@ -92,7 +92,7 @@ def test_evaluate_logistic_regression_does_not_use_test_targets_to_select_config
     assert result_a.selected_c == result_b.selected_c
 
 
-def test_evaluate_logistic_regression_produces_locked_metrics():
+def test_evaluate_logistic_regression_produces_expected_metrics():
     _result, _predictions, metrics = evaluate_logistic_regression(
         TRAIN_ROWS, VALIDATION_ROWS, TEST_ROWS
     )

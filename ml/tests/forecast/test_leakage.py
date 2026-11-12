@@ -197,7 +197,7 @@ def test_train_validation_test_splits_partition_every_day_exactly_once():
     assert train_days + validation_days + test_days == total_days
 
 
-def test_dates_outside_the_locked_range_belong_to_no_split():
+def test_dates_outside_the_split_range_belong_to_no_split():
     assert split_for_date(TRAIN_SPLIT.start - timedelta(days=1)) is None
     assert split_for_date(TEST_SPLIT.end + timedelta(days=1)) is None
 

@@ -37,7 +37,7 @@ REGION = normalize_region(RegionSpec(kind="named", value="california"))
 CUTOFF = datetime(2024, 8, 3, 12, 0, tzinfo=timezone.utc)
 
 
-def test_forecast_status_values_are_locked():
+def test_forecast_status_values_are_fixed():
     assert FORECAST_STATUS_VALUES == (
         "PENDING",
         "RUNNING",
@@ -176,7 +176,7 @@ def _sample_calibration_table() -> list[CalibrationBin]:
     ]
 
 
-def test_build_forecast_result_populates_locked_fields():
+def test_build_forecast_result_populates_every_field():
     result = build_forecast_result(
         cells=[CellForecast(cell=GRID_CELLS[0], probability=0.42)],
         region=REGION,

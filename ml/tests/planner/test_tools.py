@@ -82,7 +82,7 @@ def test_all_claude_tool_definitions_are_json_serializable():
     json.dumps(all_claude_tool_definitions())
 
 
-def test_region_spec_schema_kind_enum_matches_the_locked_valid_kinds():
+def test_region_spec_schema_kind_enum_matches_the_valid_kinds():
     assert set(REGION_SPEC_SCHEMA["properties"]["kind"]["enum"]) == VALID_REGION_KINDS
 
 

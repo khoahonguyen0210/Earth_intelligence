@@ -105,7 +105,7 @@ def test_parse_forecast_payload_builds_request():
     assert request.cutoff == "2024-08-03T12:00:00Z"
 
 
-def test_compute_forecast_returns_full_locked_shape():
+def test_compute_forecast_returns_the_full_shape():
     result = compute_forecast(
         TRAIN_ROWS,
         VALIDATION_ROWS,
@@ -275,6 +275,6 @@ def test_run_forecast_refuses_a_cutoff_outside_the_real_history():
         _run_real(
             {
                 "region": {"kind": "named", "value": "california"},
-                "cutoff": "2025-08-15T10:00:00Z",
+                "cutoff": "2024-12-15T10:00:00Z",
             }
         )

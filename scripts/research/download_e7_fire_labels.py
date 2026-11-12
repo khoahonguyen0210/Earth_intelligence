@@ -10,8 +10,10 @@ from ai_earth_intelligence_and_forecasting_engine.data.history import (
     firms_spans,
     historical_cutoffs,
 )
-from ai_earth_intelligence_and_forecasting_engine.earth2.e7 import SPLIT_YEARS
-from ai_earth_intelligence_and_forecasting_engine.earth2.timing import LEAD_DAYS
+from ai_earth_intelligence_and_forecasting_engine.earth2.timing import (
+    LEAD_DAYS,
+    SPLIT_YEARS,
+)
 
 HISTORY_DIR = Path("data/raw/firms/history")
 EXTRA_DIR = Path("data/raw/firms/e7_labels")

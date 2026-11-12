@@ -6,7 +6,7 @@ from typing import Any
 REGION_SPEC_SCHEMA: dict[str, Any] = {
     "type": "object",
     "description": (
-        "A region exactly as locked by RegionSpec. "
+        "A region exactly as defined by RegionSpec. "
         "value's shape depends on kind: bbox -> [west, south, east, "
         "north]; coordinates -> [latitude, longitude]; named -> a "
         "region name string (e.g. 'california')."
@@ -27,7 +27,7 @@ REGION_SPEC_SCHEMA: dict[str, Any] = {
 TIME_RANGE_SPEC_SCHEMA: dict[str, Any] = {
     "type": "object",
     "description": (
-        "A time window exactly as locked by "
+        "A time window exactly as defined by "
         "TimeRangeSpec -- ISO 8601 date/datetime strings; end is "
         "exclusive."
     ),
@@ -86,7 +86,7 @@ RESOLVE_REGION = ToolSchema(
 GET_DATA = ToolSchema(
     name="get_data",
     description=(
-        "Retrieve a reference to the locked Earth dataset covering a "
+        "Retrieve a reference to the project's Earth dataset covering a "
         "region and time window -- one of the two time-ranged data "
         "sources (static geography has no time window, so it is not "
         "reachable through this tool). Returns a summary (record count, "
@@ -135,7 +135,7 @@ CALCULATE_STATISTICS = ToolSchema(
         "CountResult ({count}), DailyAggregateResult "
         "({daily: [{date, count}]}), or WeeklyAggregateResult "
         "({weekly: [{week_start, count}]}) depending on operation -- "
-        "the locked result shapes."
+        "the fixed result shapes."
     ),
     output_fields=frozenset({"count", "daily", "weekly"}),
 )

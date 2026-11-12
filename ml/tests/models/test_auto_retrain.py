@@ -36,7 +36,7 @@ def test_a_season_counts_as_complete_only_after_the_data_lag(today, expected):
     assert latest_complete_season(today) == expected
 
 
-def test_nothing_is_pending_until_a_season_after_the_locked_one_is_complete(
+def test_nothing_is_pending_until_a_season_after_the_test_season_is_complete(
     tmp_path,
 ):
     assert pending_seasons(_registry(tmp_path), date(2025, 12, 31)) == []

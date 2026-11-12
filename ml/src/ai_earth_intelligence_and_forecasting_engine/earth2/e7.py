@@ -15,6 +15,7 @@ from ai_earth_intelligence_and_forecasting_engine.data.observation import Observ
 from ai_earth_intelligence_and_forecasting_engine.earth2.store import ForecastSet
 from ai_earth_intelligence_and_forecasting_engine.earth2.timing import (
     LEAD_DAYS,
+    SPLIT_YEARS,
     initialization_time,
     lead_window,
 )
@@ -41,11 +42,6 @@ from ai_earth_intelligence_and_forecasting_engine.models.xgboost_model import (
 )
 
 E7_VERSION = "e7_v1"
-SPLIT_YEARS = {
-    "train": (2019, 2020, 2021, 2022),
-    "validation": (2023,),
-    "test": (2025,),
-}
 BASE_FEATURES = (
     "previous_24h_count",
     "previous_72h_count",
@@ -181,7 +177,7 @@ def lead_scores(
     train: Sequence[DatasetRow],
     validation: Sequence[DatasetRow],
     test: Sequence[DatasetRow],
-    locked_model: CalibratedModel | None,
+    production_model: CalibratedModel | None,
 ) -> tuple[dict[str, np.ndarray], dict[str, CalibratedModel]]:
     models = {
         NO_FORECAST_MODEL: fit_lead_model(train, validation, BASE_FEATURES),
@@ -192,9 +188,9 @@ def lead_scores(
         "climatology": np.array(predict_climatology(climatology, _rows(test))),
         "persistence_24h": np.array(persistence_scores(_rows(test), "24h")),
     }
-    if locked_model is not None:
-        scores["locked_24h_model"] = np.array(
-            predict_calibrated(locked_model, _rows(test))
+    if production_model is not None:
+        scores["production_model"] = np.array(
+            predict_calibrated(production_model, _rows(test))
         )
     for name, model in models.items():
         scores[name] = np.array(predict_calibrated(model, _rows(test)))

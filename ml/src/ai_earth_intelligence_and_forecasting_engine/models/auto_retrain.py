@@ -6,7 +6,7 @@ from datetime import date
 from typing import Any
 
 from ai_earth_intelligence_and_forecasting_engine.models.retraining import (
-    LOCKED_TEST_SEASON,
+    TEST_SEASON,
     ModelRegistry,
 )
 
@@ -28,7 +28,7 @@ def pending_seasons(registry: ModelRegistry, today: date) -> list[int]:
     done = processed_seasons(registry)
     return [
         season
-        for season in range(LOCKED_TEST_SEASON + 1, latest + 1)
+        for season in range(TEST_SEASON + 1, latest + 1)
         if season not in done
     ]
 

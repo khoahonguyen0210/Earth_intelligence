@@ -55,7 +55,7 @@ VALIDATION_ROWS = _separable_split("validation", 1)
 TEST_ROWS = _separable_split("test", 2)
 
 
-def test_run_baseline_benchmark_covers_all_four_locked_models(tmp_path):
+def test_run_baseline_benchmark_covers_all_four_models(tmp_path):
     rows = run_baseline_benchmark(
         TRAIN_ROWS, VALIDATION_ROWS, TEST_ROWS, artifacts_root=tmp_path
     )

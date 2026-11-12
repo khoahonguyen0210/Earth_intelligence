@@ -1,0 +1,114 @@
+name: Daily risk map
+
+on:
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-risk-map
+  cancel-in-progress: false
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      KERNEL_SLUG: ai-earth-daily-risk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check setup
+        run: |
+          test -n "$KAGGLE_USERNAME" && test -n "$KAGGLE_KEY" || { echo "Kaggle secrets are missing"; exit 1; }
+          for lead in 1 2 3; do
+            test -f "map/models/lead_$lead.json" || { echo "map/models has no trained models"; exit 1; }
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        working-directory: ml
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . --group dev kaggle
+
+      - name: Choose cutoff
+        id: cutoff
+        run: |
+          echo "started=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_OUTPUT"
+          python - >> "$GITHUB_OUTPUT" <<'PY'
+          from datetime import datetime, timezone
+          from ai_earth_intelligence_and_forecasting_engine.earth2.timing import daily_cutoff
+          print(f"value={daily_cutoff(datetime.now(timezone.utc)).isoformat()}")
+          PY
+
+      - name: Start GPU run on Kaggle
+        run: |
+          python map/kernel/render_kernel.py \
+            --kernel-id "$KAGGLE_USERNAME/$KERNEL_SLUG" \
+            --repository "${{ github.server_url }}/${{ github.repository }}.git" \
+            --commit "${{ github.sha }}" \
+            --cutoff "${{ steps.cutoff.outputs.value }}" \
+            --output kernel
+          kaggle kernels push -p kernel
+
+      - name: Wait for the GPU run
+        timeout-minutes: 150
+        run: |
+          sleep 120
+          while true; do
+            state=$(kaggle kernels status "$KAGGLE_USERNAME/$KERNEL_SLUG" 2>/dev/null | grep -oiE 'status "[^"]+"' | tr '[:upper:]' '[:lower:]' || true)
+            echo "$(date -u +%H:%M) $state"
+            case "$state" in
+              *complete*) break ;;
+              *error*|*cancel*) exit 1 ;;
+            esac
+            sleep 60
+          done
+
+      - name: Download GPU output
+        run: kaggle kernels output "$KAGGLE_USERNAME/$KERNEL_SLUG" -p kernel_output
+
+      - name: Build map
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: |
+          python scripts/map/build_daily_map.py \
+            --forecast kernel_output \
+            --output site_build \
+            --site-url "${{ vars.PAGES_URL }}" \
+            --run-started "${{ steps.cutoff.outputs.started }}" \
+            --expected-cutoff "${{ steps.cutoff.outputs.value }}"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site_build --project-name=${{ vars.PAGES_PROJECT }} --branch=main
+
+      - name: Write run summary
+        if: always()
+        run: |
+          summary=$(find kernel_output -name summary.json 2>/dev/null | head -1)
+          if [ -n "$summary" ]; then
+            python - "$summary" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          print(f"Cutoff {data['cutoff']}, GPU {data['gpu']}, total {data['total_seconds']} s\n")
+          print("| Stage | Seconds | Share |\n|---|---|---|")
+          for row in data["stages"]:
+              print(f"| {row['stage']} | {row['seconds']} | {row['share_of_total']:.1%} |")
+          PY
+          fi

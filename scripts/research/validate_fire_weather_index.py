@@ -99,7 +99,7 @@ def main() -> None:
         "climatology_fit": "train split, 2019 to 2022",
         "local_percentile": "rank of the value among the same cell's 2019 to 2022 values",
         "periods": ["2023 (validation)", "2025 season"],
-        "excluded": "2024 locked test year",
+        "excluded": "2024 held-out test year",
         "bootstrap": {
             "groups": "cutoff date",
             "samples": BOOTSTRAP_SAMPLES,

@@ -16,6 +16,9 @@ Thumbs.db
 data/raw/
 data/processed/
 ml/artifacts/
+/site_build/
+/kernel/
+/kernel_output/
 
 # C extensions
 *.so
@@ -124,7 +127,7 @@ venv/
 ENV/
 env.bak/
 
-# Kubernetes secrets -- real values, same treatment as .env
+# Kubernetes secrets
 infra/k8s/secret.yaml
 
 
@@ -174,3 +177,25 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+
+# API keys and tokens
+kaggle.json
+.kaggle/
+.cdsapirc
+*.pem
+
+# Cloudflare
+.wrangler/
+
+# GPU profiles
+*.nsys-rep
+*.ncu-rep
+*.qdrep
+
+# Frontend test output
+coverage/
+*.tsbuildinfo
+
+# Go builds
+/worker/forecast-worker
+*.exe

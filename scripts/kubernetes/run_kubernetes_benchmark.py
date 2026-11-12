@@ -22,7 +22,7 @@ FORECAST_REQUEST = {
     "cutoff": "2024-08-15T10:00:00Z",
 }
 
-LOCKED_REPLICA_SCALING_TRIALS = [
+REPLICA_SCALING_TRIALS = [
     ReplicaScalingTrialResult(1, 8, 64.2856718999974, 0.12444452649487395, (), {"FAILED": 8}),
     ReplicaScalingTrialResult(2, 8, 51.32596069999272, 0.155866541822005, (), {"FAILED": 8}),
     ReplicaScalingTrialResult(4, 8, 56.76142000002437, 0.1409408009876526, (), {"FAILED": 8}),
@@ -109,7 +109,7 @@ def measure_recovery() -> dict:
 def main() -> None:
     scaling_points = [
         replica_scaling_point_to_dict(p)
-        for p in compute_speedup_efficiency(LOCKED_REPLICA_SCALING_TRIALS)
+        for p in compute_speedup_efficiency(REPLICA_SCALING_TRIALS)
     ]
     print("=== runtime / throughput / speedup / efficiency ===")
     for point in scaling_points:

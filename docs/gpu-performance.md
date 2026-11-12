@@ -122,4 +122,6 @@ tests, the benchmark and, if the container allows it, Nsight Compute.
 
 The index is one small step after a weather model that runs for many
 seconds. A faster index kernel only matters as much as the index's share
-of the full run. Kernel results are always shown next to that share.
+of the full run. Kernel results are always shown next to that share,
+which comes from the stage times of the daily run (see
+[Daily Risk Map](daily-risk-map.md#pipeline-profile)).
