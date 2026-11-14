@@ -94,8 +94,9 @@ The forecast model is scored on how well it ranks the places that actually burne
 | Adding terrain and land cover | **+0.081** over fire history and weather alone |
 | A worker killed mid-run | **0 grid cells lost**, recovered in **1.35 s** |
 | AI planner on 22 real questions | **100%** correct intent and region, **6 of 6** off-topic or malicious requests blocked |
+| Hot-Dry-Windy fire-weather index alone (2025) | **0.372** ROC-AUC, worse than chance and far below each cell's fire rate (0.852) |
 
-More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-baseline.md`](docs/neural-baseline.md), and [`docs/retraining.md`](docs/retraining.md). Mixed and negative results are in [`docs/headline-results.md`](docs/headline-results.md).
+More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-baseline.md`](docs/neural-baseline.md), [`docs/retraining.md`](docs/retraining.md), and [`docs/fire-weather-index-validation.md`](docs/fire-weather-index-validation.md). Mixed and negative results are in [`docs/headline-results.md`](docs/headline-results.md).
 
 ## Technology Stack
 
@@ -104,6 +105,7 @@ More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-base
 | Backend API | Java 21, Spring Boot | Receives questions and jobs, stores results |
 | AI | Gemini | Plans the steps, writes answers, searches the docs |
 | Data and models | Python, XGBoost, scikit-learn, xarray, PyTorch | Loads Earth data, computes results, forecasts risk |
+| GPU | Triton, CUDA C++, NVIDIA Earth2Studio | Fire-weather index kernels and 3-day weather forecasts |
 | Frontend | React, TypeScript, Vite | Ask questions and explore maps |
 | Job worker | Go | Processes forecast jobs from Kafka |
 | Message queues | Redis, Apache Kafka | Pass forecast jobs to workers |
@@ -111,6 +113,7 @@ More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-base
 | Object storage | Amazon S3, MinIO | Datasets, model versions, and large results |
 | Monitoring | Prometheus, OpenTelemetry, Jaeger | Metrics and request traces |
 | Infrastructure | Docker Compose, Kubernetes, Helm, KEDA, Terraform | Run locally, on Kubernetes, and on AWS |
+| Daily map | GitHub Actions, Kaggle, Cloudflare Pages | A free public risk map, updated every day |
 | Quality | GitHub Actions, JUnit, pytest, Vitest, go test, Ruff, mypy, Trivy | Tests, linting, and security scans on every push |
 
 ## Data
@@ -181,6 +184,17 @@ uv run --project ml python scripts/models/auto_retrain.py
 ```
 
 Seasons that were already processed are skipped, so the command is safe to run on a schedule. On the 2025 season, the new model scored 0.399 against 0.464, so the current model was kept. See [`docs/retraining.md`](docs/retraining.md).
+
+## Multi-Day Forecasts and GPU Kernels
+
+This part adds NVIDIA Earth-2 weather forecasts. It sits beside the main 24-hour forecast and does not change it.
+
+- **Fire-weather index** — The Hot-Dry-Windy Index (Srock et al., 2018) in plain PyTorch, checked against the paper's worked examples. On its own it does not predict new fires, so it is used as one input next to fire history. See [`fire-weather-index-validation.md`](docs/fire-weather-index-validation.md).
+- **GPU kernels** — The index is also written as a fused Triton kernel and a CUDA C++ kernel, next to `torch.compile`. All versions share one set of tests against a float64 reference, and the benchmark reports each one as a share of the GPU's measured memory bandwidth. See [`gpu-performance.md`](docs/gpu-performance.md).
+- **Risk 1 to 3 days ahead** — An Earth-2 weather model (SFNO) forecasts three days. The daily index values join fire history and terrain in a calibrated XGBoost model for each day. The experiment was specified before it was run. See [`multi-day-risk.md`](docs/multi-day-risk.md).
+- **Free daily map** — Every day, GitHub Actions starts a GPU run on Kaggle, scores every cell, and publishes a static map to Cloudflare Pages. See [`daily-risk-map.md`](docs/daily-risk-map.md).
+
+GPU work runs on a free Kaggle T4 with the notebooks in [`notebooks/`](notebooks/README.md). Results for the kernels, the 3-day model, and the map are added here when their GPU runs are complete.
 
 ## Getting Started
 
@@ -313,8 +327,10 @@ API keys go in `.env`, which Git ignores. Every other setting has a default in `
 ```text
 backend/    Spring Boot API and database migrations
 frontend/   React web app
-ml/         Data loading, features, models, AI planner, document search, retraining
+ml/         Data loading, features, models, AI planner, document search, retraining, GPU kernels
 worker/     Go worker that runs forecast jobs from Kafka
+map/        Daily risk map: Kaggle GPU script, model files, and the static page
+notebooks/  Kaggle notebooks for GPU runs
 scripts/    Data download, training, evaluation, S3, and demo scripts
 infra/      Docker Compose, Kubernetes, and Terraform
 docs/       API contracts, architecture, benchmarks, and design notes
