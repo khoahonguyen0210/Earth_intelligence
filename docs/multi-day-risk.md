@@ -13,24 +13,24 @@ Research questions:
   persistence and climatology?
 
 This specification was fixed before any E7 forecast was run. It does not
-change the locked benchmark, its splits or its results.
+change the main benchmark, its splits or its results.
 
 ## Specification
 
 | Item | Choice |
 |---|---|
-| Lead days | +1, +2, +3. Day *d* is the 24 hours from cutoff + (*d* − 1) days to cutoff + *d* days. Day +1 is the locked target. |
-| Target | A FIRMS fire in the 0.1° cell during that day, with the same filter as the locked target |
-| Cutoffs | The locked dataset's cutoffs: 10:00 UTC, every 7 days from June 1 to late October, 22 per year |
-| Years | 2019 to 2023 and 2025. The 2024 locked test year is not used. |
+| Lead days | +1, +2, +3. Day *d* is the 24 hours from cutoff + (*d* − 1) days to cutoff + *d* days. Day +1 is the main benchmark's target. |
+| Target | A FIRMS fire in the 0.1° cell during that day, with the same filter as the main target |
+| Cutoffs | The main dataset's cutoffs: 10:00 UTC, every 7 days from June 1 to late October, 22 per year |
+| Years | 2019 to 2023 and 2025. The 2024 held-out test year is not used. |
 | Split | Train 2019 to 2022, validation 2023, test 2025 season |
 | Weather model | SFNO from Earth2Studio, default package, if the T4 table shows it fits. Otherwise this page is changed before any run. |
 | Initial conditions | ERA5 from ARCO at 06:00 UTC on the cutoff day, the latest 6-hour time at or before the cutoff |
 | Forecast steps | 11 steps of 6 hours, to 00:00 UTC three days later |
 | Features | Fire history (5 counts), elevation, slope, land cover, and four forecast values for the lead day |
 | Forecast values | The day's highest index, highest wind, highest vapor pressure deficit (VPD) and highest 2 m temperature, from the 12, 18 and 00 UTC forecasts in that day, interpolated from the 0.25° model grid to each cell's center |
-| Model | XGBoost with the locked settings, early stopping on validation, isotonic calibration on validation. No tuning. |
-| Baselines | Climatology, persistence (previous 24-hour count), the locked 24-hour model used unchanged for every lead, and XGBoost without forecast values |
+| Model | XGBoost with the fixed settings, early stopping on validation, isotonic calibration on validation. No tuning. |
+| Baselines | Climatology, persistence (previous 24-hour count), the production 24-hour model used unchanged for every lead, and XGBoost without forecast values |
 | Metrics | PR-AUC, ROC-AUC, Brier score and log loss per lead day |
 | Intervals | 95% block bootstrap over forecast dates, 1,000 samples, fixed seed, as in `docs/evaluation.md` |
 
@@ -59,9 +59,9 @@ directly (`hdwi_v1`).
   every cutoff, and loading stops if a stored forecast starts later.
 - Values valid after the cutoff are used only as forecasts. Reanalysis
   after the cutoff is never a feature.
-- Fire history and geography come from the locked dataset, whose
+- Fire history and geography come from the main dataset, whose
   leakage tests already pass.
-- Day +1 labels are rebuilt from FIRMS and checked against the locked
+- Day +1 labels are rebuilt from FIRMS and checked against the main
   target. Any difference is reported.
 - Early stopping and calibration use the validation year only. The test
   season is scored once.

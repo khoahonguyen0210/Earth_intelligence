@@ -1,26 +1,25 @@
-# Cloud Deployment — LOCKED
+# Cloud Deployment
 
-This document freezes the AWS deployment. It is not a brainstorming
-document. Later work lays out Terraform for exactly this, provisions
-it, then deploys onto it; none of that reopens the
-choices below.
+This document defines the AWS deployment. The Terraform layout
+(`docs/terraform-layout.md`) implements it, and provisioning and
+deploying would follow it without changing the choices below.
 
 Every version, add-on name and support claim below was checked against
 the current AWS / Terraform / KEDA / Spring documentation while writing
-this, not recalled -- see "Verified against" at the end.
+this, not from memory; see "Verified against" at the end.
 
 ## One region, one environment
 
 ```text
 region:       us-west-2 (Oregon)
-environment:  production (the only one -- this project's own
+environment:  production (the only one; see the
               infra/terraform/environments/production/ layout)
 ```
 
 `us-west-2`, not `us-west-1` (N. California): the study region is
 California, but no request path depends on latency to California. Both
 subprocess scripts the backend invokes read local files baked into the
-image -- `run_forecast_cli.py` and `run_analysis_cli.py` both read
+image: `run_forecast_cli.py` and `run_analysis_cli.py` both read
 `data/raw/firms/firms_sample.csv` (`backend/Dockerfile` copies
 `data/raw`), and the live FIRMS fetch (`data.firms.fetch_firms_sample`)
 is only called from offline scripts (`data/benchmark.py`,
@@ -42,11 +41,11 @@ Secrets Manager                AWS Secrets Manager -> External Secrets
 logging/metrics integration    CloudWatch (Container Insights + Logs)
 ```
 
-Plus one item the list leaves out but the locked stack does
-not: Redis. It becomes **Amazon ElastiCache (Redis OSS 7.1)**, not the
-`infra/k8s/redis.yaml` pod -- the rule "do not build custom
-equivalents of managed services" applies to it exactly as it does to
-Postgres. Same reasoning retires `infra/k8s/postgres.yaml` (-> RDS) and
+One more item is not in the list but is in the stack: Redis. It
+becomes **Amazon ElastiCache (Redis OSS 7.1)**, not the
+`infra/k8s/redis.yaml` pod. The rule "do not build your own version of
+a managed service" applies to it just as it does to Postgres. The same
+reasoning retires `infra/k8s/postgres.yaml` (-> RDS) and
 `infra/k8s/minio.yaml` (-> S3) in the cloud; all three stay as-is for
 the local kind cluster.
 
@@ -54,8 +53,8 @@ the local kind cluster.
 
 ```text
 VPC                10.0.0.0/16
-public subnets     2 (one per AZ)   -- ALB, NAT gateway
-private subnets    2 (one per AZ)   -- EKS nodes, RDS, ElastiCache
+public subnets     2 (one per AZ)   ALB, NAT gateway
+private subnets    2 (one per AZ)   EKS nodes, RDS, ElastiCache
 NAT gateway        1 (single AZ)
 VPC endpoint       S3 gateway endpoint (free) on the private route tables
 ```
@@ -66,8 +65,8 @@ on 5432 and 6379 respectively.
 
 The NAT gateway is required even though the request path makes no
 outbound internet call (see above): nodes in private subnets must pull
-third-party images from public registries -- KEDA and External Secrets
-Operator from `ghcr.io`, among others -- and reach the EKS, ECR, STS,
+third-party images from public registries (KEDA and External Secrets
+Operator from `ghcr.io`, among others) and reach the EKS, ECR, STS,
 Secrets Manager and CloudWatch APIs. Mirroring every third-party image
 into ECR and adding an interface endpoint per AWS API would cost more
 than the NAT gateway it replaces. The S3 gateway endpoint is free and
@@ -89,20 +88,20 @@ container registry Amazon ECR: ai-earth-backend, ai-earth-frontend
 
 1.36, the newest EKS release: 1.33 and older are already in EKS
 extended support, which bills $0.60/cluster-hour instead of $0.10 --
-6x the control-plane cost for no benefit on a new cluster.
+six times the control-plane cost for no benefit on a new cluster.
 
-EKS, not ECS: earlier work already locked real Kubernetes manifests and a
-KEDA `ScaledObject` (`infra/k8s/autoscaling.yaml`); ECS would throw
+EKS, not ECS: the project already has Kubernetes manifests and a
+KEDA `ScaledObject` (`infra/k8s/autoscaling.yaml`), and ECS would throw
 both away. Managed node group, not Fargate: Fargate runs no DaemonSets,
 which rules out the CloudWatch agent/Fluent Bit below, and measurements
-already showed backend boot as the dominant recovery cost (34.81 s)
--- Fargate's per-pod VM provisioning would add to it.
+already showed backend start-up as the main recovery cost (34.81 s),
+and Fargate's per-pod VM provisioning would add to it.
 
 `m6i.large`, not burstable `t3`: measurements showed one backend pod at
 ~1.2 cores sustained while processing forecasts and ~3.5 cores while
 booting. That is sustained load, which exhausts `t3` CPU credits. Two
-nodes is the floor for AZ spread, not a capacity estimate; a later
-measurement records real capacity.
+nodes is the minimum for AZ spread, not a capacity estimate; a later
+measurement would record actual capacity.
 
 Cluster components, all installed by Terraform, none hand-built:
 
@@ -134,7 +133,7 @@ cloudwatch-agent             CloudWatchAgentServerPolicy
 External Secrets Operator has one Pod Identity constraint: its
 `ClusterSecretStore` must omit the `auth` block (no `serviceAccountRef`),
 because ESO cannot impersonate a service account whose role comes from
-Pod Identity -- it authenticates as its own controller pod instead.
+Pod Identity; it authenticates as its own controller pod instead.
 
 ## Database: RDS for PostgreSQL 16
 
@@ -151,7 +150,7 @@ backups          7-day automated retention
 ```
 
 RDS for PostgreSQL 16 ships PostGIS, and the master user has the
-`rds_superuser` role that `CREATE EXTENSION postgis` needs -- so Flyway's
+`rds_superuser` role that `CREATE EXTENSION postgis` needs, so Flyway's
 existing V1 migration runs unchanged; no separate extension-install step.
 Not Aurora: nothing here needs Aurora's storage layer, and its minimum
 cost is well above a `db.t4g.micro`. Single-AZ, not Multi-AZ: the same
@@ -169,10 +168,11 @@ Redis OSS, not Valkey: the stack locks Redis, and ElastiCache still
 supports Redis OSS 7.1 with no announced end of standard support (only
 v4-v6 have dates).
 
-Single node, with a real, accepted risk: the queue is one Redis list,
+Single node, with a known and accepted risk: the queue is one Redis list,
 while job state lives in Postgres (`Forecast` rows). If the
 node is lost, every id still sitting in the list is gone, and those
-jobs stay `PENDING` in Postgres forever -- nothing re-enqueues them.
+jobs stay `PENDING` in Postgres forever, because nothing queues them
+again.
 The existing retry logic covers a failed or timed-out Python subprocess, not a
 lost queue entry. A replica shrinks this window but does not close it
 (replication is asynchronous), and doubles the Redis cost; the actual
@@ -229,11 +229,11 @@ once, at JVM start. So one week after `terraform apply`, every new
 Hikari connection would fail authentication while old connections kept
 working. That is a slow, confusing outage, not a crash.
 
-Locked handling, using established tools rather than new code:
+The handling uses existing tools instead of new code:
 
 ```text
-ExternalSecret refreshInterval   5m   -- picks up the rotated password
-reloader annotation on backend        -- rolling-restarts the Deployment
+ExternalSecret refreshInterval   5m   picks up the rotated password
+reloader annotation on backend        rolling-restarts the Deployment
   (secret.reloader.stakater.com/          whenever ai-earth-secret changes
    reload: ai-earth-secret)
 ```
@@ -254,14 +254,14 @@ ALB target health check: GET /readyz on backend:8080
 Adding the Ask Earth page added `/queries` (its own resource,
 `docs/ask-earth.md`), routed exactly like the other three.
 
-Earlier work moved every actuator endpoint to the internal management port
+The security work moved every actuator endpoint to the internal management port
 8081, which the ALB never routes. The public backend port answers only
 the API and the status-only `/readyz`/`/livez` probes
 (`docs/security-baseline.md`). With a domain chosen, the same Ingress
 also listens on HTTPS :443 with the ACM certificate from Terraform's
 `certificate_arn` output, and HTTP :80 only redirects to it (gap 9).
 
-The routed prefixes are exactly the backend's real controller mappings
+The routed prefixes are exactly the backend's controller mappings
 (`POST /analyses`, `POST /forecasts`, `GET /analyses/{id}`,
 `GET /results/{id}`, `GET /forecasts/{id}`, `GET /forecasts/{id}/result`)
 plus the health endpoint.
@@ -286,10 +286,9 @@ RDS, ElastiCache,   native CloudWatch metrics, no extra agent
 ALB, NAT
 ```
 
-This is the "integration" -- plumbing AWS's own
-logs/metrics sink into the cluster. The application-level structured
-logging, Prometheus-compatible metrics and OpenTelemetry tracing locked
-elsewhere in the stack already ship through
+This is the integration: it connects AWS's own logs and metrics service
+to the cluster. The application's structured logging,
+Prometheus-compatible metrics and OpenTelemetry tracing ship through
 this same agent rather than a second pipeline (the add-on already
 supports OTLP ingestion from v6.2.0).
 
@@ -307,7 +306,7 @@ that bootstrap is documented separately.
 
 ## Gaps the code must close before deployment can proceed
 
-These are real couplings in the code as it stands today. Each one works
+These are dependencies in the code as it stands today. Each one works
 locally only because MinIO, the kind cluster, or the compose stack
 happens to match a hardcoded value:
 
@@ -346,7 +345,7 @@ happens to match a hardcoded value:
                               it (kind has no collector); the cloud ConfigMap
                               points it at the CloudWatch agent's OTLP
                               receiver, verified against the add-on during deployment.
-9. HTTPS                      not planned: the owner will not buy a domain
+9. HTTPS                      not planned: no domain will be bought
                               (docs/security-baseline.md), so the ALB serves
                               HTTP on its AWS DNS name. If one is ever chosen
                               (Terraform
@@ -374,18 +373,18 @@ ceiling is re-measured later instead of copied.
 ```text
 kubectl    present (Docker Desktop's bundled binary)
 docker     present
-terraform  MISSING -- needed for the Terraform work (terraform fmt/validate)
-aws CLI    MISSING -- needed for provisioning (credentials, state bucket
+terraform  MISSING; needed for the Terraform work (terraform fmt/validate)
+aws CLI    MISSING; needed for provisioning (credentials, state bucket
            bootstrap, aws eks update-kubeconfig)
-helm       not required locally -- Terraform's helm provider installs
+helm       not required locally; Terraform's helm provider installs
            the charts above
 ```
 
 ## Approximate fixed cost while running
 
 On-demand list prices, rounded, before any traffic or data transfer.
-These are estimates, not measurements (a later benchmark records the real
-cost):
+These are estimates, not measurements (a cloud benchmark would record
+the actual cost):
 
 ```text
 EKS control plane (standard support)  $0.10/h   ~$73 / month
@@ -402,7 +401,7 @@ not anything is running. The environment is therefore meant to be
 brought up for provisioning, deployment, and measurement work, and for later demos, then taken down with
 `terraform destroy`, not left running.
 
-## What this document does not define
+## Out of scope
 
 - The Terraform module layout is defined separately.
 - Running `init`/`plan`/`apply` is covered separately.

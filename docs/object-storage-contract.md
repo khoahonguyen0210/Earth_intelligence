@@ -1,13 +1,12 @@
-# Object Storage Contract — LOCKED
+# Object Storage Contract
 
-This document freezes the object storage abstraction. It is not a
-brainstorming document.
+This document defines the object storage abstraction.
 
 Infrastructure: `infra/docker/docker-compose.yml` runs `bitnamilegacy/minio`
 (MinIO no longer publishes community images) on port `9000`
-(S3 API) / `9001` (web console), credentials `ai_earth`/`ai_earth_dev` —
-matching Postgres's credentials for consistency, not because they're the
-same service. Run `docker compose up -d` from `infra/docker/` before
+(S3 API) / `9001` (web console), credentials `ai_earth`/`ai_earth_dev`.
+These match the Postgres credentials for consistency; the services are
+not the same. Run `docker compose up -d` from `infra/docker/` before
 using it, same as Postgres.
 
 ## The abstraction
@@ -29,28 +28,27 @@ id.
 ## Why MinIO, and why the S3 SDK
 
 MinIO is S3-API-compatible, so `S3ObjectStore` is written against the
-real AWS SDK v2 `S3Client` (`software.amazon.awssdk:s3`), pointed at
+AWS SDK v2 `S3Client` (`software.amazon.awssdk:s3`), pointed at
 MinIO's endpoint with path-style access
-(`S3ClientConfig`/`object-store.endpoint`). The same code will work
-unchanged against real AWS S3 in the later infrastructure phase
-(the "AWS + Terraform" plan) by only changing
-`object-store.*` properties — no code change, no second implementation
-to maintain.
+(`S3ClientConfig`/`object-store.endpoint`). The same code works
+unchanged against AWS S3 (see `docs/cloud-deployment.md` and
+`docs/s3-artifacts.md`) by changing only the
+`object-store.*` properties, with no code change and no second
+implementation to maintain.
 
 The target bucket (`object-store.bucket`, default `ai-earth-artifacts`)
 is created automatically on startup if it doesn't exist yet
 (`S3ObjectStore`'s constructor), the same zero-manual-setup posture as
 Flyway auto-applying the Postgres schema.
 
-## What this document does not define
+## Out of scope
 
-No Java caller writes through this abstraction yet — `AnalysisStore`/
+No Java caller writes through this abstraction yet. `AnalysisStore` and
 `ForecastStore` still store their (currently modest-sized) results
 directly as Postgres `jsonb`, per `docs/persistence-schema.md`. The
-natural first real caller is a future task that needs to store something
-genuinely large — a full-California forecast grid, a model artifact, a
-plot — outside a relational row; this document only fixes the interface
-and the infrastructure that task builds against, not which caller uses
-it first or what key-naming scheme it uses. `S3ObjectStoreTest` proves
-the actual put/get/exists/delete wiring against the real local MinIO,
-the same way `BackendApplicationTests` proves the real Postgres wiring.
+first caller will be something that needs to store a large object (a
+forecast grid for all of California, a model artifact or a plot)
+outside a table row. This document fixes only the interface and the
+infrastructure, not which caller uses it first or how keys are named. `S3ObjectStoreTest` checks
+put, get, exists and delete against the local MinIO, in the same way
+that `BackendApplicationTests` checks the Postgres connection.

@@ -9,7 +9,7 @@ measured baseline and never replaces calibrated XGBoost in service.
 `research/neural.py`, PyTorch on CPU:
 
 - **Same inputs and splits as the benchmark.** The 12 numeric features
-  and land-cover one-hot from the locked feature set, through the same
+  and land-cover one-hot from the fixed feature set, through the same
   preprocessor. Train 2019 to 2022, validation 2023, test 2024.
 - **Network:** a multilayer perceptron, 23 inputs, hidden layers of 64
   and 32 units with ReLU and 10% dropout, one output logit.

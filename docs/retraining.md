@@ -28,7 +28,7 @@ an older newest season. So the comparison is fair, and it is made on
 data neither model has seen, which is how the next season will look in
 service.
 
-**2024 is the locked test season and can never be a gate.** The
+**2024 is the held-out test season and can never be a gate.** The
 published benchmark scores the model on 2024, so 2024 must never decide
 which model is chosen. Runs gated on 2025 or later may use 2024 as
 training data, since the benchmark is already frozen.
@@ -100,9 +100,9 @@ count and pattern, so scores from different gate seasons should not be
 compared with each other, only candidate against current on the same
 season.
 
-## A real run on new data: 2025
+## A run on new data: 2025
 
-The loop was then run for real on the 2025 fire season, downloaded and
+The loop was then run on the 2025 fire season, downloaded and
 built with the same scripts and a `--year` option:
 
 ```bash

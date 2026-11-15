@@ -1,12 +1,11 @@
-# Multi-Worker Scaling — LOCKED
+# Multi-Worker Scaling
 
-This document freezes the multi-worker scaling benchmark. It is not a
-brainstorming document. It runs
-`docs/one-worker-baseline.md`'s exact implementation at
-1/2/4/8 workers against the exact same frozen workload
-rather than building a second implementation to compare against.
+This benchmark runs the implementation from
+`docs/one-worker-baseline.md` with 1, 2, 4 and 8 workers on the same
+frozen workload. It does not build a second implementation to compare
+against.
 
-## The implementation
+## Implementation
 
 ```text
 ml/src/ai_earth_intelligence_and_forecasting_engine/distributed/scaling.py
@@ -14,13 +13,12 @@ scripts/distributed/run_scaling_benchmark.py
 ```
 
 `run_scaling_benchmark(workload, context, worker_counts=(1, 2, 4, 8))`
-calls `run_distributed_inference` (unmodified) once per worker
-count, against one shared `RunContext` -- the same loaded data and the
-same fitted model object for every point, not a fresh load/fit per
-worker count. This is what makes "keep workload/data/model fixed" (the
-task's own words) literally true rather than only
-nominally true. Metrics use the standard formulas, computed
-against the first (`num_workers=1`) point's wall time as T1:
+calls `run_distributed_inference` (unchanged) once per worker count
+with one shared `RunContext`. Every run uses the same loaded data and
+the same fitted model object; nothing is loaded or fitted again per
+worker count. This keeps the workload, data and model fixed in fact,
+not only in name. The metrics use the standard formulas, with the wall
+time of the first run (`num_workers=1`) as T1:
 
 ```text
 speedup(n)    = T1 / Tn
@@ -29,9 +27,9 @@ efficiency(n) = speedup(n) / n
 
 ## Result
 
-A real run of `scripts/distributed/run_scaling_benchmark.py` (500 real
-tiles, the real fitted model from the one-worker baseline, `docker`/Redis/Postgres not
-involved -- this is pure Python multiprocessing):
+A run of `scripts/distributed/run_scaling_benchmark.py` (500 tiles,
+the fitted model from the one-worker baseline, and no Docker, Redis or
+Postgres; this is plain Python multiprocessing):
 
 ```text
 workers   wall_s   speedup   efficiency
@@ -41,59 +39,50 @@ workers   wall_s   speedup   efficiency
       8   69.555     0.008        0.001
 ```
 
-**More workers made this workload slower, not faster -- monotonically,
-at every step.** This is the real, measured answer, not a bug in the
-implementation: `WorkerChunkResult`'s `cpu_seconds` per worker for this
-workload's actual computation is a small fraction of a second (matching
-the one-worker baseline: 500 tiles cost 0.734 total CPU-seconds), but this
-project's development machine is Windows, where `multiprocessing` uses
-the `spawn` start method -- every additional worker process pays the
-cost of starting a brand-new Python interpreter and re-importing the
-entire `ml` package (numpy, xgboost, scikit-learn, rasterio, ...) from
-scratch, which this same investigation (the one-worker baseline's own smoke-testing)
-already observed taking multiple real seconds per process, before that
-worker does a single tile's worth of real work. At this workload size,
-that fixed per-process startup cost totally dominates the genuinely
-tiny amount of real parallelizable compute, so adding workers only adds
-more of that fixed cost without a compensating benefit.
+**Each added worker made this workload slower.** This is the measured
+answer, not a bug. The compute per worker (`cpu_seconds` in
+`WorkerChunkResult`) is a small fraction of a second; in the one-worker
+baseline, all 500 tiles took 0.734 CPU-seconds in total. The
+development machine runs Windows, where `multiprocessing` uses the
+`spawn` start method. Every extra worker process starts a new Python
+interpreter and imports the whole `ml` package again (numpy, xgboost,
+scikit-learn, rasterio and others). Tests for the one-worker baseline
+had already seen this take several seconds per process, before the
+worker computes a single tile. At this workload size, that fixed
+start-up cost is far larger than the small amount of compute that can
+run in parallel, so each added worker only adds more of the fixed cost.
 
-## Why this is the correct benchmark to report, not a reason to redesign it
+## Why this result is reported as it is
 
-The goal here is explicitly "a measured answer to whether
-spatial parallelism actually improves workload time/throughput" -- not
-a guarantee that it does. An earlier step deliberately fixed a workload
-(500 tiles against small real sample data) sized for a fast local
-baseline (the one-worker baseline), not for showing off parallelism at its best; this
-result is what that same fixed, honest choice produces when actually
-measured with more workers, and reporting it as found is truer to the
-task's own intent than re-picking a bigger workload after the fact
-to manufacture a better-looking number. Later bottleneck-identification
-work is where naming process-spawn/coordination overhead as
-the actual limiting factor -- rather than CPU, I/O, network, database,
-or serialization -- belongs; this document's job was only to measure and
-report the scaling numbers themselves.
+The goal was to measure whether spatial parallelism improves time and
+throughput, not to show that it does. The workload (500 tiles on small
+sample data) was fixed earlier for a fast local baseline, not chosen to
+show parallelism at its best. This result is what that fixed choice
+gives with more workers. Choosing a bigger workload after seeing the
+numbers, just to get a better result, would defeat the purpose.
+`docs/bottleneck-identification.md` later confirms that process
+start-up (coordination) is the limiting factor, rather than CPU, I/O,
+network, database or serialization.
 
-## Result artifact
+## Result file
 
 ```text
 data/processed/distributed/scaling_benchmark.json
 ```
 
-Gitignored, regenerable, like every other `data/processed/` artifact in
-this project. Contains the full workload record, the data-loading
-stage timing, whether the synthetic model-fitting fallback was used
-(the one-worker baseline's own documented, expected case), and each of the four
-worker-count points (`DistributedRunResult` plus its `speedup`/
+Like every file under `data/processed/`, it is ignored by git and can
+be rebuilt. It holds the full workload record, the data-loading time,
+whether the synthetic model-fitting fallback was used (an expected
+case, documented in the one-worker baseline), and each of the four
+worker-count results (`DistributedRunResult` with its `speedup` and
 `efficiency`).
 
-## What this document does not define
+## Out of scope
 
-Diagnosing *why* in more depth than "process-spawn overhead, observed
-directly" -- with real profiling tooling, breaking down exactly how much
-of each worker's wall time is interpreter startup versus import versus
-real compute -- is later bottleneck-identification work's job. Whether a different worker model
-(a persistent pool reused across many workloads, threads instead of
-processes, a Linux/fork-based deployment target) would change this
-result is a real, open question this task does not answer -- it measures
-what this project's actual current implementation and platform produce,
-not every implementation that could exist.
+A deeper breakdown, such as how much of each worker's wall time is
+interpreter start-up, imports or compute, is in
+`docs/bottleneck-identification.md`. Whether another worker model
+(a persistent pool reused across workloads, threads instead of
+processes, or a Linux target with `fork`) would change the result is an
+open question. This benchmark measures the current implementation on
+the current platform only.

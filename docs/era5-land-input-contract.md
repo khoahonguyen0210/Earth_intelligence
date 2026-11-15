@@ -33,7 +33,7 @@ The geographic area uses:
 
 The API request is limited to a bounded historical sample.
 
-## Locked Variables
+## Fixed Variables
 
 Exactly:
 

@@ -1,44 +1,38 @@
-# Fault-Injection Test — LOCKED
+# Fault-Injection Test
 
-This document freezes the fault-injection test. It is not a
-brainstorming document. It runs a real killed worker against
-`docs/multi-worker-scaling.md`'s distributed execution, and
-its own real recovery time connects directly to
-`docs/bottleneck-identification.md`'s finding.
+This test kills a worker during the distributed run from
+`docs/multi-worker-scaling.md` and checks that the run recovers. The
+recovery time links back to the finding in
+`docs/bottleneck-identification.md`.
 
-## The implementation
+## Implementation
 
 ```text
 ml/src/ai_earth_intelligence_and_forecasting_engine/distributed/fault_tolerance.py
 scripts/distributed/run_fault_injection_test.py
 ```
 
-The existing `run_distributed_inference` dispatches every chunk with
-one blocking `Pool.map` call -- fine for a happy-path benchmark, but a
-single call cannot detect or retry one crashed chunk without losing or
-re-running every other chunk's already-completed real result.
-`run_with_fault_tolerance` dispatches each chunk individually via
-`Pool.apply_async`, polls every pending result for readiness, and
-retries -- redispatching to the very same pool, without re-injecting the
-crash -- whichever chunk does not complete within `task_timeout_seconds`.
+`run_distributed_inference` sends every chunk with one blocking
+`Pool.map` call. That works when nothing fails, but one call cannot
+detect and retry a single crashed chunk without losing or rerunning the
+chunks that already finished. `run_with_fault_tolerance` sends each
+chunk on its own with `Pool.apply_async` and polls every pending
+result. If a chunk does not finish within `task_timeout_seconds`, it
+sends that chunk again to the same pool, this time without the crash.
 
-`ChunkTask.inject_crash` (an extension of the existing `ChunkTask`) makes one
-worker call `os._exit(1)` immediately instead of doing any real work --
-observably identical, from the parent's point of view, to that worker
-being killed externally, and deterministic/reproducible in a way an
-actual external `kill -9` timed to land on the right process could not
-be. Confirmed directly against the real interpreter before writing the
-dispatcher: a worker that calls `os._exit` leaves its `AsyncResult`
-simply never completing -- `.get()` raises `multiprocessing.TimeoutError`
-after the caller's own timeout, never a distinct "worker died"
-exception -- which is why detection here is timeout-based, not
-exception-type-based, and why the pool's other worker(s) are confirmed
-to keep running and returning real results throughout.
+`ChunkTask.inject_crash` makes one worker call `os._exit(1)` at once,
+before doing any work. To the parent process this looks the same as a
+worker killed from outside, but unlike a `kill -9` timed by hand, it is
+repeatable. A test against the interpreter showed that when a worker
+calls `os._exit`, its `AsyncResult` never completes: `.get()` raises
+`multiprocessing.TimeoutError` after the caller's timeout, and there is
+no separate "worker died" exception. So failure detection is based on
+the timeout. The other workers keep running and returning results.
 
 ## Result
 
-A real run of `scripts/distributed/run_fault_injection_test.py` (500
-real tiles, 4 real workers, chunk 0's worker genuinely killed):
+A run of `scripts/distributed/run_fault_injection_test.py` (500 tiles,
+4 workers, the worker for chunk 0 killed):
 
 ```text
 any_failure_detected:            true
@@ -52,63 +46,51 @@ chunk 2:           attempts=1  failure_detected=false  result=OK
 chunk 3:           attempts=1  failure_detected=false  result=OK
 ```
 
-The four checks, each verified against this real run:
+The four checks:
 
 ```text
-[x] failure detected      -- chunk 0's failure_detected=true
-[x] task retried           -- chunk 0's attempts=2 (one real retry)
-[x] no final result lost   -- 500/500 tiles recovered; every chunk's
-                               result is present, including the three
-                               that never failed at all
-[x] terminal state correct -- every chunk ends SUCCEEDED, none left
-                               stuck or silently dropped
+[x] failure detected      chunk 0 has failure_detected=true
+[x] task retried          chunk 0 has attempts=2 (one retry)
+[x] no final result lost  500/500 tiles recovered; every chunk's
+                          result is present, including the three
+                          that never failed
+[x] final state correct   every chunk ends SUCCEEDED; none is stuck
+                          or dropped
 ```
 
-Recovery time is real and reported per chunk (`total_recovery_seconds`
-sums every chunk that needed one) -- this run's 1.154s reflects a
-replacement worker that happened to be ready quickly; a slower
-environment or a busier pool can and did (in earlier local runs while
-building this test) take substantially longer, for a real, understood
-reason below.
+Recovery time is reported per chunk, and `total_recovery_seconds` adds
+up every chunk that needed recovery. In this run, a replacement worker
+was ready quickly, so recovery took 1.154 s. Earlier runs during
+development took much longer, for the reason below.
 
-## Recovery time connects directly to the bottleneck-identification finding
+## Recovery time and the bottleneck
 
-While building this test's timeout value, a real, informative failure
-showed up: with a short `task_timeout_seconds` (5s), a retried chunk
-would sometimes still not complete in time and trigger a second,
-unnecessary retry, even though nothing was actually still broken. The
-cause: `multiprocessing.Pool` replaces a dead worker with a brand-new
-process, and that replacement pays the exact same real cold-start cost
-already measured directly elsewhere (multiple real seconds -- spawning a
-fresh interpreter and re-importing the whole `ml` package: numpy,
-xgboost, scikit-learn, rasterio) before it can run anything at all. A
-timeout tight enough to detect a real crash promptly can be too tight
-to tell "still cold-starting a legitimate replacement" apart from
-"genuinely still dead" -- `task_timeout_seconds=30` in both the test
-suite and the real script above gives real replacement cold-starts
-comfortable room, at the cost of detecting a genuine permanent failure
-more slowly. This is the same coordination overhead already named as
-this pipeline's actual bottleneck, now shown to also be the dominant
-cost of *recovering* from a failure, not just of scaling up in the
-first place.
+With a short `task_timeout_seconds` (5 s), a retried chunk sometimes
+still did not finish in time, which caused a second retry even though
+nothing was broken. `multiprocessing.Pool` replaces a dead worker with a
+new process, and that process pays the same start-up cost measured in
+`docs/bottleneck-identification.md`: several seconds to start a new
+interpreter and import the whole `ml` package (numpy, xgboost,
+scikit-learn, rasterio). A timeout short enough to catch a crash quickly
+can be too short to tell a slow new worker from a dead one. The test
+suite and the script both use `task_timeout_seconds=30`, which leaves
+enough time for a new worker to start, at the cost of detecting a
+permanent failure more slowly. The start-up cost that limits scaling is
+also the main cost of recovering from a failure.
 
-## Result artifact
+## Result file
 
 ```text
 data/processed/distributed/fault_injection_report.json
 ```
 
-Gitignored, regenerable, like every other `data/processed/` artifact in
-this project.
+Like every file under `data/processed/`, it is ignored by git and can
+be rebuilt.
 
-## What this document does not define
+## Limits
 
-This dispatcher is a fault-tolerant alternative to the existing plain
-`Pool.map`, not a replacement wired into those earlier benchmarks --
-their numbers stand as measured, on the simpler, non-fault-tolerant
-implementation originally specified. Choosing a
-timeout value in production (rather than for a controlled, one-shot
-test) that correctly balances "detect a real failure promptly" against
-"do not mistake a legitimate cold start for a failure" is a real,
-unresolved tuning question this task surfaces but does not solve
-generally.
+This dispatcher is a fault-tolerant alternative to `Pool.map`. The
+earlier benchmarks do not use it, and their numbers stand as measured
+on the simpler dispatcher. Choosing a production timeout that catches
+failures quickly without mistaking a slow start for a failure is still
+an open question.

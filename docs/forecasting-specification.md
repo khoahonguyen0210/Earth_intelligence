@@ -1,12 +1,10 @@
-# Wildfire Forecasting Specification — LOCKED
+# Wildfire Forecasting Specification
 
-This document freezes the forecasting specification. It is not a
-brainstorming document. Do not alter these
-values for the main benchmark; a change here invalidates every experiment
-built on top of it.
+This document fixes the forecasting specification. These values must
+not change for the main benchmark, because a change would make every
+experiment built on them invalid.
 
-This is a restatement, not a redefinition, of the scientific problem locked
-for this project.
+It restates the project's scientific problem; it does not redefine it.
 
 ## Study region
 
@@ -70,11 +68,10 @@ TEST        2024-01-01 -> 2024-12-31
 The test period is not touched until model configuration is frozen.
 Validation data may be used for tuning; test data may not.
 
-## What this document does not define
+## Out of scope
 
-The exact feature list (fire-history windows, weather variables, static
-geography), the model ladder, and the evaluation metrics are already
-locked and implemented elsewhere. This document exists so the label
-construction and leakage tests have one unambiguous specification to
-build against and be tested against, not to duplicate the full research
-dossier.
+The feature list (fire-history windows, weather variables, static
+geography), the models and the evaluation metrics are fixed and
+implemented elsewhere. This document gives the label
+construction and leakage tests one clear specification to build and test
+against.

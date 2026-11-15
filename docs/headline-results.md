@@ -1,92 +1,82 @@
-# Headline Results — LOCKED
+# Headline Results
 
-These are the headline results, taken from the final benchmarks. Each
-one is real, measured and reproducible, and is stated as **Achieved X by
-doing Z**. Every number is copied unchanged from its source document.
+These are the main results from the final benchmarks. Each one was
+measured and can be reproduced. Every number is copied unchanged from
+its source document.
 
 ## The five headline results
 
-**Achieved a PR-AUC of 0.4513 with XGBoost -- nearly double
-climatology's 0.2522 baseline -- by training the locked feature set on
-the real 2019-2022 California fire history and weather record (877,800
-rows, 88 weekly cutoffs).**
+**XGBoost reached a PR-AUC of 0.4513, nearly double the 0.2522 of
+climatology.** It was trained on the full feature set using the
+2019-2022 California fire history and weather record (877,800 rows,
+88 weekly cutoffs).
 Source: `docs/ml-benchmark.md`.
 
-**Achieved a PR-AUC gain of +0.081 (0.370 -> 0.451) by adding real
-terrain and land-cover features -- elevation, slope, ESA WorldCover
-class -- on top of fire history and weather, more than five times
-weather's own +0.014 contribution.**
+**Terrain and land-cover features raised PR-AUC by +0.081 (0.370 ->
+0.451).** Elevation, slope and the ESA WorldCover class were added on
+top of fire history and weather. Their gain is more than five times the
++0.014 that weather added.
 Source: `docs/ablation-benchmark.md`.
 
-**Achieved well-calibrated probabilities -- predicted and observed
-fire frequency matching to three decimal places (0.0018 vs 0.0012)
-across the dominant near-zero bin, 218,223 of 219,450 real test rows
--- by isotonic-calibrating XGBoost on the validation split before
-evaluating on the held-out test split.**
+**The probabilities are well calibrated.** In the near-zero bin, which
+holds 218,223 of the 219,450 test rows, predicted and observed fire
+frequency agree to three decimal places (0.0018 and 0.0012). XGBoost was
+calibrated with isotonic regression on the validation split before it
+was evaluated on the held-out test split.
 Source: `docs/ml-benchmark.md`.
 
-**Achieved zero lost tiles after a real killed worker -- recovered in
-1.353 seconds, with 500/500 tiles present at completion -- by detecting
-the failure via a per-chunk timeout and retrying only the lost chunk
-against the same worker pool, without re-running any chunk that had
-already finished.**
+**No tiles were lost after a worker was killed.** The run recovered in
+1.353 seconds with all 500/500 tiles present. A per-chunk timeout
+detects the failure, and only the lost chunk is retried on the same
+worker pool; finished chunks are not run again.
 Source: `docs/distributed-benchmark.md`.
 
-**Achieved 100% intent correctness, 100% region correctness, and 100%
-execution success across 14 real natural-language questions against
-the live Gemini API, by validating every planner-produced plan against
-the real backend tool schema before any step executes.**
-Source: `docs/planner-accuracy-benchmark.md`.
+**The planner reached 100% intent correctness, 100% region correctness
+and 100% execution success on 14 questions against the live Gemini
+API.** Every plan is checked against the backend tool schema before any
+step runs.
+Source: `docs/planner-accuracy-benchmark.md`. The later 22-question
+version is in `docs/evaluation.md`.
 
-## Real, measured results not selected as headlines, and why
+## Measured results not chosen as headlines
 
-Some measured results are limitations or mixed findings, so they are not
-headlines. They stay documented in their own source documents and are
-listed here so nothing is hidden:
+Some results are limits or mixed findings, so they are not headlines.
+They are documented in their source documents and listed here so that
+nothing is hidden:
 
 ```text
-weather's mixed contribution     +0.0144 PR-AUC but -0.0117 ROC-AUC
-                                  when added to fire history alone.
-                                  Real and reproducible, but a genuine
-                                  small/mixed effect, not a headline
-                                  win. docs/ablation-benchmark.md
+weather's mixed effect           +0.0144 PR-AUC but -0.0117 ROC-AUC when
+                                 added to fire history alone. The effect
+                                 is reproducible but small and mixed.
+                                 docs/ablation-benchmark.md
 
-more workers = slower            1/2/4/8-worker scaling is
-                                  monotonically slower on this
-                                  project's Windows/spawn platform
-                                  (587 -> 22 tiles/s). Real and
-                                  reproducible (matches the
-                                  multi-worker scaling benchmark's
-                                  original finding exactly), but a
-                                  platform limitation, not an
-                                  achievement. docs/distributed-benchmark.md
+more workers = slower            1, 2, 4 and 8 workers get steadily
+                                 slower on this Windows/spawn platform
+                                 (587 -> 22 tiles/s). This repeats the
+                                 first scaling result, but it is a
+                                 platform limit, not an achievement.
+                                 docs/distributed-benchmark.md
 
-causal-question planner miss     "Explain why California has so many
-                                  wildfires" answered with a count plan
-                                  instead of being rejected, in both
-                                  the original and this final run. A
-                                  real, reproduced limitation.
-                                  docs/planner-accuracy-benchmark.md
+"why" question miss              "Explain why California has so many
+                                 wildfires" got a count plan instead of
+                                 a rejection, in both the first and the
+                                 final run. A known limit.
+                                 docs/planner-accuracy-benchmark.md
 
-time_correctness run-to-run      dropped 1.0 -> 0.667 between the
-  variance                       original and final planner runs --
-                                  the unseeded live model's date-range
-                                  convention choice, not a code
-                                  regression. Real, but not
-                                  reproducible run-to-run by
-                                  definition, so it cannot be a
-                                  headline. docs/planner-accuracy-benchmark.md
+time_correctness changes         fell from 1.0 to 0.667 between the
+  between runs                   first and final planner runs, because
+                                 the live model chose a different
+                                 date-range convention, not because of
+                                 a code change. A result that changes
+                                 between runs cannot be a headline.
+                                 docs/planner-accuracy-benchmark.md
 ```
 
-## What this task does not do
+## Rules followed
 
-- **Does not invent, round favorably, or cherry-pick partial numbers.**
-  Every value above appears verbatim in its source document, which in
-  turn is a direct, unedited benchmark script printout.
-- **Does not select from benchmarks outside this document's own scope**
-  (e.g. the API latency benchmark, the Kubernetes
-  benchmark). Those are real, locked results in their own right, but
-  this document asks specifically for headline selection from the
-  final benchmarks -- later documentation work is
-  where the project's full result set, including those, gets
-  presented together.
+- **No number is invented, rounded up or partly quoted.** Every value
+  above appears as written in its source document, which in turn copies
+  the benchmark script's output.
+- **Only the final benchmarks are used.** Other results, such as the
+  API latency and Kubernetes benchmarks, are reported in their own
+  documents and in the README.

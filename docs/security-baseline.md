@@ -1,7 +1,6 @@
-# Security Baseline — LOCKED
+# Security Baseline
 
-This document freezes the security baseline. It is not a brainstorming
-document.
+This document describes the security baseline.
 
 ## The eight items
 
@@ -31,11 +30,11 @@ HSTS behind it, and `nosniff`/`no-store` on every API response.
 
 ## Authentication: where it is required
 
-**Decision (confirmed with the project owner): the product API stays
-public; only the operational surface is locked down.** The product has
+**Decision: the product API stays public; only the operational surface
+is closed off.** The product has
 no user accounts and holds no personal data. A request is a region and
 a time. Adding accounts would add an identity provider that is not in
-the locked cloud design, for no protected asset. So the question becomes
+the cloud design, with nothing to protect. So the question becomes
 which surfaces must not be public, and those are made unreachable rather
 than password-protected:
 
@@ -102,13 +101,14 @@ fields in the JSON sent to Python or stored with a job
 
 ## Secret handling
 
-- **Sources.** Real secrets come from the environment: the gitignored
-  `.env` for compose, the gitignored `infra/k8s/secret.yaml` for kind,
+- **Sources.** Secret values come from the environment: the `.env` file
+  for compose and `infra/k8s/secret.yaml` for kind (both ignored by git),
   and Secrets Manager → External Secrets in AWS. `application.properties`
   holds only the local compose credentials (`ai_earth`/`ai_earth_dev`),
   which every deployment overrides.
-- **Redaction before storage (new).** Earlier work redacted Python's error
-  text only in logs, but the same text was stored in Postgres and returned
+- **Redaction before storage (new).** Before this change, Python's error
+  text was redacted
+  only in logs, but the same text was stored in Postgres and returned
   in the API's 422 body. A FIRMS URL carries the map key in its path, so a
   failed FIRMS call would have handed the key to any API client. The
   outcome is now redacted once, where it comes back from Python
@@ -119,7 +119,7 @@ fields in the JSON sent to Python or stored with a job
   longer contains the key.
 - **Spans** carry the same redacted text (per the tracing design).
 - **Scanning.** The CI job below fails on any committed secret. That it
-  really detects one was checked by scanning a throwaway repository with
+  does detect one was checked by scanning a throwaway repository with
   a planted AWS key pair: 2 CRITICAL findings, exit 1. The **entire git
   history** was scanned once with gitleaks 8.30.1 (a mirror clone, every
   branch): 97 commits, no leaks.
@@ -232,29 +232,29 @@ Already true since the planner was built, and unchanged:
   from real step results. With no facts, it answers "cannot answer"
   without calling the model.
 
-Added by this task, all enforced in the validator rather than asked for
-in the prompt:
+New limits, all enforced in the validator rather than requested in the
+prompt:
 
 ```text
-at most 8 steps       real plans are small (example DAG: 6 nodes; no benchmark
+at most 8 steps       actual plans are small (example DAG: 6 nodes; no benchmark
                       case needs more than 2 matching steps); stops a runaway plan whose
-                      every step could start real work
+                      every step could start costly work
 step_id               a letter + up to 31 letters/digits/underscores, via fullmatch --
                       the test caught that `match` with "$" accepted "s1\n"
 question <= 1,000     same bound as the API; generate_plan refuses before calling the
                       model, so an oversized question costs nothing
 ```
 
-The prompt and the model's output schema are deliberately unchanged, so
+The prompt and the model's output schema are unchanged on purpose, so
 the planner benchmark stays comparable.
 
 ## HTTPS and headers
 
-**Decision (project owner, 2026-09-27): no domain will be bought, so the
-product stays internal.** It is reached locally (Docker Compose, the kind
+**Decision (2026-09-27): no domain will be bought, so the product stays
+internal.** It is reached locally (Docker Compose, the kind
 cluster) or, if the AWS stack is ever brought up, over plain HTTP on the
-ALB's own AWS DNS name. HTTPS is therefore ready but deliberately not
-enabled: the certificate below is never created, and HSTS never fires,
+ALB's own AWS DNS name. HTTPS is therefore ready but not enabled, on
+purpose: the certificate below is never created, and HSTS never fires,
 since no request arrives over HTTPS. Enabling it later takes only a
 domain, with no code change.
 
@@ -266,7 +266,7 @@ domain, with no code change.
   `hashicorp/terraform:1.16.4`, the same as the Terraform layout's own
   validation. The Ingress settings that consume it (HTTPS :443,
   `ssl-redirect`, TLS 1.3/1.2 policy) are `docs/cloud-deployment.md`
-  gap 9, for later work.
+  gap 9, left for later.
 - **`SecurityHeadersFilter`** sets these on every response, refusals
   included:
   - `X-Content-Type-Options: nosniff`: a JSON body is never reinterpreted
@@ -312,7 +312,7 @@ PrometheusEndpointIntegrationTest    ~  now scrapes the management port
 StructuredLoggingIntegrationTest     ~  now requests /readyz
 ```
 
-Backend suite: **146 tests, 0 failures** (121 before this task).
+Backend suite: **146 tests, 0 failures** (121 before).
 Planner suite: 78 passed. Each rate-limited test context counts under
 its own Redis keys (`src/test/resources/config/application.properties`),
 so test classes cannot use up each other's budget.
@@ -342,10 +342,11 @@ GET :8081/actuator/health      {"components":{"db":{"details":{"database":"Postg
 
 ## Found, not fixed here
 
-- **Python CI is already red.** `ruff check .` reports 20 findings and
-  `mypy src` reports 2 errors, all in files from earlier commits
+- **Python CI was red at the time.** `ruff check .` reported 20 findings
+  and `mypy src` reported 2 errors, all in files from earlier commits
   (`data/history.py`, `forecast/build_dataset.py` and others), none in
-  code this task touched. It is a separate cleanup.
+  the security code. They were fixed later in a separate change; both
+  checks now pass.
 - **The backend image cannot be built without the trained model.**
   `backend/Dockerfile` copies `ml/artifacts/production_model_v1` (since
   the production-model commit), and that directory exists only after

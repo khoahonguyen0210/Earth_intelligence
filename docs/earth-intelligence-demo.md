@@ -1,38 +1,35 @@
-# Earth Intelligence Demo — LOCKED
+# Earth Intelligence Demo
 
-This document records the Earth intelligence demo. It is not
-a brainstorming document. It runs one fixed, supported query through
-the full chain: natural-language question -> real
-data -> analysis -> map -> evidence.
+This demo runs one fixed, supported query through the full chain:
+question in plain English -> data -> analysis -> map -> evidence.
 
-## A real packaging bug this demo found and fixed
+## Packaging bug found and fixed
 
-Running this query against the **packaged Docker container** (not
-`./mvnw spring-boot:run`, which is how every earlier live Ask Earth
-verification — `docs/end-to-end-test-pass.md` — was actually
-run) failed immediately: `Cannot run program "python" (in directory
-"..")`. `backend/Dockerfile` sets
-`FORECAST_PYTHON_EXECUTABLE`/`ANALYSIS_PYTHON_EXECUTABLE` and their
-`_WORKDIR` counterparts to the image's own bundled venv, but Ask Earth
-(`ASK_EARTH_PYTHON_EXECUTABLE`/`ASK_EARTH_PYTHON_WORKDIR`) didn't exist
-yet when the Dockerfile was first written, and the variables were never
-added when Ask Earth itself was introduced later —
-every request through `/queries` inside the container fell back to a
-bare `python` on `PATH`, which this image doesn't have. **This means
-Ask Earth had never actually been proven to work inside the packaged
-container until this demo ran it for real and hit the gap.** Fixed by
-adding both variables to `backend/Dockerfile`'s existing `ENV` block,
-pointing at the same `/app/ml/.venv/bin/python` / `/app` the forecast
-and analysis paths already use.
+Earlier live Ask Earth checks (`docs/end-to-end-test-pass.md`) ran the
+backend with `./mvnw spring-boot:run`. Running this query against the
+packaged Docker container failed at once with `Cannot run program
+"python" (in directory "..")`.
 
-## The fixed query
+`backend/Dockerfile` sets `FORECAST_PYTHON_EXECUTABLE` and
+`ANALYSIS_PYTHON_EXECUTABLE`, and their `_WORKDIR` versions, to the
+venv inside the image. Ask Earth did not exist when the Dockerfile was
+written, and its variables (`ASK_EARTH_PYTHON_EXECUTABLE` and
+`ASK_EARTH_PYTHON_WORKDIR`) were never added when Ask Earth was built.
+So inside the container, every `/queries` request fell back to a plain
+`python` on `PATH`, which the image does not have. **Until this demo,
+Ask Earth had never been shown to work inside the packaged
+container.** The fix adds both variables to the existing `ENV` block in
+`backend/Dockerfile`, pointing at the same `/app/ml/.venv/bin/python`
+and `/app` that the forecast and analysis paths use.
+
+## Query
 
 ```text
 "Show me a map of wildfire counts across the Bay Area in August 2024"
 ```
 
 Run against the rebuilt container (`docker compose up -d --build
-backend`), the real Gemini API, and the real FIRMS history:
+backend`), the Gemini API and the FIRMS history:
 
 ```bash
 curl -X POST http://localhost:8080/queries \
@@ -41,49 +38,48 @@ curl -X POST http://localhost:8080/queries \
 curl http://localhost:8080/queries/<id>/result
 ```
 
-## The full chain, each link real
+## The chain
 
 ```text
-natural-language question
+question in plain English
   -> "Show me a map of wildfire counts across the Bay Area in August 2024"
 
-real data
+data
   -> NASA_FIRMS:VIIRS_SNPP_SP, region bbox [-123.3, 36.9, -121.2, 38.9],
      period 2024-08-01 to 2024-09-01
 
 analysis
-  -> a real plan (generate_map, region "bay area", the model's own
-     reading of "August 2024" into an exact time range), dispatched
-     against the real FIRMS history
+  -> a plan (generate_map, region "bay area", and the model's reading
+     of "August 2024" as an exact time range), dispatched against the
+     FIRMS history
 
 map
-  -> a real GeoJSON FeatureCollection: one polygon (the Bay Area's real
-     bbox), properties.value: 245, units: "fire_count"
+  -> a GeoJSON FeatureCollection: one polygon (the Bay Area bounding
+     box), properties.value: 245, units: "fire_count"
 
 evidence
   -> dataset, region_bbox, period_start/period_end, and the original
-     query_parameters (intent: map, question, operation) all present
+     query_parameters (intent: map, question, operation), all present
      and consistent with the map and the answer text
 ```
 
-Grounded answer text: *"For the Bay Area in August 2024, there were
-245 wildfires recorded (computed). This data is based on the
+Grounded answer: "For the Bay Area in August 2024, there were 245
+wildfires recorded (computed). This data is based on the
 NASA_FIRMS:VIIRS_SNPP_SP dataset covering the period from August 1,
-2024, to September 1, 2024 (computed)."* — every number traceable to
-the same evidence block, nothing asserted beyond what was computed.
+2024, to September 1, 2024 (computed)." Every number can be traced to
+the same evidence block, and nothing is stated beyond what was
+computed.
 
-This is the same query and the same real count (245) `docs/ask-earth.md`
-already verified at the API layer outside a container; this
-demo's contribution is proving it end to end **inside the actual
-packaged artifact** for the first time, and fixing the one real gap
-that stood between "works locally" and "works as shipped."
+`docs/ask-earth.md` checked the same query and the same count (245)
+through the API outside a container. This demo shows it working end to
+end inside the packaged artifact for the first time, and fixes the one
+gap between "works locally" and "works as shipped".
 
-## What this task does not do
+## Notes
 
-- **Does not add browser-automation screenshots.** As before,
-  this environment has no browser-automation tool; the request shown
-  above is the exact one `frontend/src/api/client.ts`'s `AskEarthForm`
-  submits, against the real running container, not a mock.
-- **Does not re-verify the frontend's own rendering of this result.**
-  `EarthQueryResultView.test.tsx`'s component tests already cover that
-  the `isMapResult` branch renders this exact shape correctly.
+- **There are no browser screenshots.** The request above is the same
+  one that `AskEarthForm` sends through `frontend/src/api/client.ts`,
+  against the running container, not a mock.
+- **The frontend rendering is not checked again here.** The component
+  tests in `EarthQueryResultView.test.tsx` already check that the
+  `isMapResult` branch renders this shape correctly.

@@ -1,22 +1,20 @@
-# Reproducibility Package — LOCKED
+# Reproducibility Package
 
-This document records the reproducibility package. It is
-not a brainstorming document. Every command below is either copied
-from its own locked source doc or was run for real during this
-project's own test passes (`docs/clean-start-test.md`,
-`docs/end-to-end-test-pass.md`) — nothing here is untested.
+Every command below is copied from the document that defines it, or was
+run during the project's test passes (`docs/clean-start-test.md`,
+`docs/end-to-end-test-pass.md`, `docs/clean-clone-test.md`). Nothing
+here is untested.
 
-## 1. Clean setup
+## 1. Setup
 
 ```bash
 git clone <this repo>
 cd AI-Earth-intelligence-and-Forecasting-Engine
-cp .env.example .env        # fill in FIRMS_MAP_KEY at minimum;
-                             # GEMINI_API_KEY needed for planner/ask-earth
+cp .env.example .env        # fill in FIRMS_MAP_KEY at least;
+                            # GEMINI_API_KEY is needed for the planner and Ask Earth
 uv sync --project ml        # Python 3.12+, installs ml/ as an
-                             # editable package (docs/clean-start-test.md
-                             # fixed the real gap where this used to
-                             # silently install nothing)
+                            # editable package (docs/clean-start-test.md
+                            # fixed the bug where this installed nothing)
 ```
 
 ## 2. Local services
@@ -27,22 +25,21 @@ docker compose up -d --build
 curl http://localhost:8080/readyz   # {"status":"UP"}
 ```
 
-Brings up Postgres/PostGIS, Redis, MinIO, Jaeger, the backend
-(`:8080`), and the frontend (`:5173`) — five containers, verified from
-a genuinely clean build in `docs/clean-start-test.md`. For local Java
-development against the same infra without rebuilding the backend
-image each time:
+This starts Postgres/PostGIS, Redis, MinIO, Jaeger, the backend
+(`:8080`) and the frontend (`:5173`): six containers, checked from a
+clean clone in `docs/clean-clone-test.md`. For Java development against
+the same services without rebuilding the backend image each time:
 
 ```bash
-docker compose up -d postgres redis minio jaeger   # infra only
+docker compose up -d postgres redis minio jaeger   # services only
 cd backend && ./mvnw spring-boot:run
 cd frontend && npm run dev                          # :5173, Vite
 ```
 
 ## 3. Earth analysis
 
-A real, live natural-language request (the exact request `client.ts`
-itself sends):
+A live request in plain English (the same request that `client.ts`
+sends):
 
 ```bash
 curl -X POST http://localhost:8080/queries \
@@ -53,7 +50,7 @@ curl -X POST http://localhost:8080/queries \
 curl http://localhost:8080/queries/<id>/result
 ```
 
-A real run of exactly this (`docs/end-to-end-test-pass.md`) returned:
+A run of this request (`docs/end-to-end-test-pass.md`) returned:
 
 ```json
 {
@@ -62,7 +59,7 @@ A real run of exactly this (`docs/end-to-end-test-pass.md`) returned:
 }
 ```
 
-The structured, non-LLM equivalent (no planner call, one fixed
+The structured version, without the LLM (no planner call, one fixed
 operation):
 
 ```bash
@@ -80,74 +77,76 @@ curl -X POST http://localhost:8080/forecasts \
   -d '{"region": {"kind": "named", "value": "california"}, "cutoff": "2024-08-10T10:00:00Z"}'
 # -> {"forecast_id": "...", "status": "PENDING"}
 
-curl http://localhost:8080/forecasts/<forecast_id>          # poll until terminal
+curl http://localhost:8080/forecasts/<forecast_id>          # poll until it finishes
 curl http://localhost:8080/forecasts/<forecast_id>/result
 ```
 
-**Requires a real trained production model first** — `ml/artifacts/production_model_v1/`
-is a gitignored local build artifact, not stored in the repo. The backend
-image copies it in at build time, so build it before `docker compose
-build` and before expecting `SUCCEEDED` (section 5 below, first two
-commands). Without it, `POST /forecasts` reaches a
-real, honest `FAILED`/`422` naming the missing model
-(`docs/clean-start-test.md`) rather than a silent or fabricated result.
+**This needs a trained production model first.**
+`ml/artifacts/production_model_v1/` is a local build output that git
+ignores; it is not in the repository. The backend image copies it at
+build time, so build it before `docker compose build` and before
+expecting `SUCCEEDED` (the first two commands in section 5). Without
+it, `POST /forecasts` ends in `FAILED`/`422` with a message naming the
+missing model (`docs/clean-start-test.md`), not an empty or invented
+result.
 
-Use an **on-grid weekly cutoff** (10:00 UTC, every 7 days from June 1
-through October — `build_historical_dataset.py`'s own cutoff rule,
-e.g. `2024-08-10T10:00:00Z` above) for an exact ERA5/FIRMS alignment;
-an off-grid cutoff still runs, falling back to the latest cutoff before
-it (`ERA5History.for_cutoff`'s documented contract).
+Use a weekly cutoff on the grid (10:00 UTC, every 7 days from June 1
+through October, the cutoff rule of `build_historical_dataset.py`, for
+example `2024-08-10T10:00:00Z` above) so that ERA5 and FIRMS line up
+exactly. A cutoff off the grid still runs, using the latest cutoff
+before it (the documented behavior of `ERA5History.for_cutoff`).
 
-A real run of exactly this (`docs/end-to-end-test-pass.md`) reached
-`SUCCEEDED` with 9,975 real grid cells, model version `v1`, a real
-2-bin calibration table, and full evidence.
+A run of this request (`docs/end-to-end-test-pass.md`) reached
+`SUCCEEDED` with 9,975 grid cells, model version `v1`, a 2-bin
+calibration table and full evidence.
 
 ## 5. ML benchmark
 
 ```bash
-python scripts/forecast/build_historical_dataset.py   # once; needs
-                                                        # data/raw/{firms,era5,geography}
-                                                        # history already ingested
+python scripts/forecast/build_historical_dataset.py   # once; needs the
+                                                      # data/raw/{firms,era5,geography}
+                                                      # history downloaded first
 python scripts/models/train_production_model.py       # writes
-                                                        # ml/artifacts/production_model_v1/
-                                                        # -- needed for section 4 above
+                                                      # ml/artifacts/production_model_v1/,
+                                                      # needed for section 4
 
-python scripts/models/run_ml_benchmark.py        # PR-AUC/ROC-AUC/Brier/
-                                                        # log loss/inference time,
-                                                        # all four locked models
-python scripts/models/run_ablation_benchmark.py  # fire history vs
-                                                        # +weather vs
-                                                        # +weather+geography
+python scripts/models/run_ml_benchmark.py             # PR-AUC, ROC-AUC, Brier,
+                                                      # log loss and inference
+                                                      # time for all four models
+python scripts/models/run_ablation_benchmark.py       # fire history vs
+                                                      # +weather vs
+                                                      # +weather+geography
 ```
 
-Real results from these exact commands: `docs/ml-benchmark.md`,
+Results from these commands: `docs/ml-benchmark.md` and
 `docs/ablation-benchmark.md`.
 
 ## 6. Distributed benchmark
 
 ```bash
 python scripts/distributed/run_scaling_benchmark.py       # 1/2/4/8 workers:
-                                                            # runtime, throughput,
-                                                            # speedup, efficiency
-python scripts/distributed/run_fault_injection_test.py    # a real killed worker:
-                                                            # detection + recovery
+                                                          # runtime, throughput,
+                                                          # speedup, efficiency
+python scripts/distributed/run_fault_injection_test.py    # a killed worker:
+                                                          # detection and recovery
 ```
 
-Uses the small, frozen 500-tile sample workload
-(`distributed/workload.py`) — no historical dataset build needed for
-this one. Real results from these exact commands:
-`docs/distributed-benchmark.md`.
+These use the small, frozen 500-tile sample workload
+(`distributed/workload.py`), so they need no historical dataset.
+Results from these commands: `docs/distributed-benchmark.md`.
 
-## What this package does not cover
+## Not covered
 
-**The AI planner benchmark** (`python scripts/query/run_planner_benchmark.py`,
-needs `GEMINI_API_KEY`) is real and reproducible but calls a live,
-unseeded LLM — README's "How to reproduce" and
-`docs/planner-accuracy-benchmark.md` cover it; it is left out of this
-numbered package because re-running it does not reproduce the same
-exact numbers the way every command above does (documented directly in
-`docs/planner-accuracy-benchmark.md`'s own run-to-run comparison).
-**Cloud/Kubernetes deployment** commands are in `docs/local-kubernetes-deployment.md`
-and `docs/cloud-deployment.md` — out of scope for a local
-reproducibility package (and, per README's Deployment section, the
-cloud path was never applied to a real AWS account).
+**The AI planner benchmark**
+(`python scripts/query/run_planner_benchmark.py`, needs
+`GEMINI_API_KEY`) can be run again, but it calls a live LLM with no
+fixed seed, so it does not give exactly the same numbers each time
+(see the comparison between runs in
+`docs/planner-accuracy-benchmark.md`). The README's "How to reproduce"
+section and that document cover it.
+
+**Kubernetes and cloud deployment** commands are in
+`docs/local-kubernetes-deployment.md` and `docs/cloud-deployment.md`.
+They are outside a local reproducibility package, and, as the README's
+Deployment section says, the cloud setup was never applied to an AWS
+account.

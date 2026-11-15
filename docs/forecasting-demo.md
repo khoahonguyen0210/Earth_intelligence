@@ -1,14 +1,12 @@
-# Forecasting Demo — LOCKED
+# Forecasting Demo
 
-This document records the forecasting demo. It is
-not a brainstorming document. It runs the full chain --
-forecast request -> AI plan -> validation -> workflow -> data ->
-model -> risk map -> calibration -> evidence -- for real, against the
-packaged Docker container, using the same documented historical cutoff
-(`2024-08-10T10:00:00Z`, an on-grid weekly cutoff) as
+This demo runs the full chain against the packaged Docker container:
+forecast request -> AI plan -> validation -> workflow -> data -> model
+-> risk map -> calibration -> evidence. It uses the same historical
+cutoff (`2024-08-10T10:00:00Z`, a weekly cutoff on the grid) as
 `docs/ml-benchmark.md` and `docs/end-to-end-test-pass.md`.
 
-## The request
+## Request
 
 ```bash
 curl -X POST http://localhost:8080/queries \
@@ -16,12 +14,12 @@ curl -X POST http://localhost:8080/queries \
   -d '{"question": "Run a wildfire risk forecast for California with cutoff 2024-08-10T10:00:00Z"}'
 ```
 
-Unlike the earlier map-query demo, this one goes through the *forecast* tool
-specifically, so it exercises `AI plan -> validation -> workflow` before
-`data -> model` ever runs -- the same distinction
-`docs/architecture-diagram.md` draws between the two paths.
+Unlike the map query in `docs/earth-intelligence-demo.md`, this request
+uses the forecast tool. So it goes through `AI plan -> validation ->
+workflow` before `data -> model` runs. `docs/architecture-diagram.md`
+shows the two paths.
 
-## The full chain, each link real
+## The chain
 
 ```text
 forecast request
@@ -29,55 +27,50 @@ forecast request
      2024-08-10T10:00:00Z"
 
 AI plan
-  -> a real Gemini call produced exactly one step:
+  -> one Gemini call produced exactly one step:
      {"tool": "run_forecast", "input": {"cutoff": "2024-08-10T10:00:00Z",
       "region": {"kind": "named", "value": "california"}}}
 
 validation
-  -> validate_plan_or_raise accepted it (a real region, a real ISO
-     cutoff, the one approved run_forecast tool) -- an invalid plan
-     never reaches dispatch, and this one wasn't
+  -> validate_plan_or_raise accepted it (a known region, an ISO
+     cutoff, and the approved run_forecast tool); an invalid plan
+     never reaches dispatch
 
 workflow
-  -> execute_plan's dispatch_run_forecast submitted the real
-     POST /forecasts and polled it to a terminal status server-side,
-     inside the same /queries request
+  -> dispatch_run_forecast in execute_plan sent POST /forecasts and
+     polled it on the server until it finished, inside the same
+     /queries request
 
 data
-  -> 8,626 real FIRMS observations in the 30-day lookback window
-     (2024-07-11 to 2024-08-10), real ERA5 valid time 2024-08-10T10:00:00Z
+  -> 8,626 FIRMS observations in the 30-day lookback window
+     (2024-07-11 to 2024-08-10), ERA5 valid time 2024-08-10T10:00:00Z
 
 model
   -> xgboost + isotonic calibration, model_version v1, trained on
-     877,800 real rows (88 cutoffs, 2019-06-01 to 2022-10-26)
+     877,800 rows (88 cutoffs, 2019-06-01 to 2022-10-26)
 
 risk map
-  -> 9,975 real grid cells, probability in [0.0, 1.0]
+  -> 9,975 grid cells, probability in [0.0, 1.0]
 
 calibration
-  -> a real 2-bin calibration table from this forecast's own run
+  -> a 2-bin calibration table from this forecast's run
 
 evidence
-  -> dataset wildfire_forecast:v1, region california, the real
-     firms_window/era5_valid_time/firms_observations, forecast_window
-     2024-08-10T10:00:00Z -> 2024-08-11T10:00:00Z (24h)
+  -> dataset wildfire_forecast:v1, region california,
+     firms_window, era5_valid_time and firms_observations,
+     forecast_window 2024-08-10T10:00:00Z -> 2024-08-11T10:00:00Z (24h)
 ```
 
-The Ask Earth fact itself only ever carries `{forecast_id, status}` --
-`docs/ask-earth.md` documents this deliberately: a
-`run_forecast` fact is a job reference, not the map. Following that
-same real `forecast_id` through `GET /forecasts/{id}/result` (the exact
-call `ForecastPanel` makes) is what surfaces the risk map, calibration,
-and evidence above -- one continuous, real chain from question to
-number, not two unrelated demos.
+The Ask Earth fact holds only `{forecast_id, status}`. As
+`docs/ask-earth.md` explains, a `run_forecast` fact is a reference to a
+job, not the map. Calling `GET /forecasts/{id}/result` with that
+`forecast_id`, which is what `ForecastPanel` does, returns the risk
+map, calibration and evidence above. The result is one chain from the
+question to the numbers, not two separate demos.
 
-## What this task does not do
+## Notes
 
-- **Does not use a fabricated or rounded cutoff.** `2024-08-10T10:00:00Z`
-  is the same on-grid weekly cutoff already locked in
-  `docs/ml-benchmark.md`'s own training/evaluation split, reused
-  here rather than a new, undocumented one.
-- **Does not add browser screenshots**, for the same reason
-  `docs/earth-intelligence-demo.md` does not: no browser-automation
-  tool in this environment. The requests above are the exact ones
-  `ForecastPanel`/`AskEarthForm` issue.
+- **The cutoff is not new.** `2024-08-10T10:00:00Z` is the same weekly
+  cutoff on the grid that `docs/ml-benchmark.md` uses for its split.
+- **There are no browser screenshots.** The requests above are the same
+  ones that `ForecastPanel` and `AskEarthForm` send.

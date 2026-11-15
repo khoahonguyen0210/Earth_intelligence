@@ -1,19 +1,19 @@
-# Workflow State Machine — LOCKED
+# Workflow State Machine
 
-This document freezes the workflow state machine. It is not a
-brainstorming document. It builds on
-`docs/workflow-dag-schema.md` rather than redefining it, and the DAG execution work drives real nodes through this machine rather than inventing its own transition rules.
+This document defines the states of a workflow node and the allowed
+changes between them. It builds on `docs/workflow-dag-schema.md`, and
+the DAG executor uses this machine instead of its own rules.
 
-## The transition table (fixed)
+## Transition table
 
 ```text
 PENDING   -> READY, CANCELLED
 READY     -> RUNNING, CANCELLED
 RUNNING   -> SUCCEEDED, FAILED, RETRYING, CANCELLED
 RETRYING  -> RUNNING, CANCELLED
-SUCCEEDED -> (terminal)
-FAILED    -> (terminal)
-CANCELLED -> (terminal)
+SUCCEEDED -> (final)
+FAILED    -> (final)
+CANCELLED -> (final)
 ```
 
 ```text
@@ -23,61 +23,55 @@ backend/src/main/java/com/example/backend/workflow/IllegalStateTransitionExcepti
 
 ## Why PENDING never goes straight to RUNNING
 
-A `WorkflowNode` can have dependencies a plain `Forecast`
-never has. `READY` is the state that records "this
-node's dependencies have all resolved, it may now be dispatched" --
-collapsing it into `PENDING` would lose the one fact the DAG-execution
-scheduler actually needs to decide what to run next. This is also
-exactly why `Forecast.Status` (six states, no `READY`) and
-`WorkflowNode.Status` (seven states, `READY` included) differ: a
-standalone forecast has no dependencies to wait on, so for it
-`PENDING` already means "eligible to run" -- `ForecastWorker.process`
-picks up `PENDING` forecasts directly. A `WorkflowNode` cannot make that
-same assumption.
+A `WorkflowNode` can have dependencies, which a plain `Forecast` never
+has. `READY` records that all of a node's dependencies have finished and
+the node may now be dispatched. Merging it into `PENDING` would lose the
+one fact the executor needs to decide what to run next.
 
-## Why RETRYING re-enters at RUNNING, not READY
+This is also why `Forecast.Status` (six states, no `READY`) differs
+from `WorkflowNode.Status` (seven states, with `READY`). A single
+forecast has nothing to wait for, so for it `PENDING` already means
+"may run", and `ForecastWorker.process` takes `PENDING` forecasts
+directly. A `WorkflowNode` cannot assume this.
 
-A retry re-dispatches a node whose dependencies were already satisfied
-once; it does not need to re-check them. This mirrors real, already-
-shipped precedent: `ForecastWorker.process` already
-treats `PENDING` and `RETRYING` as equally eligible to become `RUNNING`
-for a `Forecast`. Losing the same shortcut for `WorkflowNode` would
-handle a retry inconsistently with a job the project already runs in
-production-shaped code.
+## Why RETRYING goes back to RUNNING, not READY
 
-## Why cancellation is legal from every non-terminal state
+A retry dispatches a node whose dependencies were already met once, so
+there is no need to check them again. The forecast flow already works
+this way: `ForecastWorker.process` treats `PENDING` and `RETRYING` as
+equally able to become `RUNNING`. Doing otherwise for `WorkflowNode`
+would handle a retry differently from the job flow the project already
+runs.
 
-The reliability language -- the retry/timeout/
-idempotency work's "worker timeout -> recover/retry", and the
-fault-injection tests' expectation that a controlled kill still reaches
-"a correct terminal state" -- assumes
-in-flight and queued work can both be stopped, not only work that
-hasn't started yet. Restricting `CANCELLED` to just `PENDING`/`READY`
-would leave no legal way to record "this was cancelled while running,"
-which is a real, expected outcome, not an error case to special-case
-around.
+## Why every non-final state can be cancelled
 
-## What this task validates
+The reliability work expects that both queued and running work can be
+stopped: a worker timeout leads to recovery or a retry, and a
+controlled kill in the fault-injection tests must still reach a correct
+final state. If only `PENDING` and `READY` could become `CANCELLED`,
+there would be no allowed way to record "cancelled while running",
+which is a normal, expected outcome and not an error.
 
-`WorkflowStateMachine.transition(node, to, updatedAt)` is the one path
-meant to change a node's status: it raises
-`IllegalStateTransitionException` on an illegal request rather than
-silently applying it -- the same "cannot bypass the validator" property
-the plan validator already guarantees for a `Plan`.
-`tests/workflow/WorkflowStateMachineTest.java` checks the full 7x7
-state-pair cross-product against the exact table above (not spot
-checks), plus that every terminal state truly has zero legal outgoing
-transitions and that `transition` both applies a legal change and
-rejects an illegal one with a message naming the task, the current
-state, and the attempted state.
+## Validation
 
-## What this document does not define
+`WorkflowStateMachine.transition(node, to, updatedAt)` is the one way to
+change a node's status. It raises `IllegalStateTransitionException` for
+a forbidden change instead of applying it, in the same way that the
+plan validator cannot be skipped for a `Plan`.
 
-Nothing here decides *when* a real node should transition -- computing
-"all of this node's dependencies have SUCCEEDED, so it may become
-READY" or "this failure was transient, retry it" is the DAG-execution
-engine's job, using the real dependency graph `Workflow.validate()`
-already proves is well-formed and the real transient/
-permanent distinction `ForecastOutcome` already established
-for a single job. This task only fixes which transitions are legal once
-something else decides to attempt one.
+`tests/workflow/WorkflowStateMachineTest.java` checks all 7x7 pairs of
+states against the table above, not just a few samples. It also checks
+that no final state has an allowed outgoing change, and that
+`transition` applies an allowed change and rejects a forbidden one with
+a message naming the task, the current state and the requested state.
+
+## Out of scope
+
+The state machine does not decide when a node should change state.
+Working out that "all of this node's dependencies have SUCCEEDED, so it
+may become READY", or that "this failure was temporary, so retry it", is
+the executor's job. It uses the dependency graph that
+`Workflow.validate()` checks, and the split between temporary and
+permanent failures that `ForecastOutcome` defines for a single job. The
+state machine only fixes which changes are allowed once something else
+asks for one.

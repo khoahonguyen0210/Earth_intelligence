@@ -1,88 +1,84 @@
-# Forecast Retry, Timeout, and Idempotency — LOCKED
+# Forecast Retry, Timeout and Idempotency
 
-This document freezes retry/timeout/idempotency behavior. It is not a
-brainstorming document. It builds on
-`docs/forecast-async-jobs.md` rather than redefining it.
+This document describes how forecast jobs handle retries, timeouts and
+duplicate requests. It builds on `docs/forecast-async-jobs.md`.
 
-There are four rules; each maps to one concrete mechanism below.
+There are four rules, and each has one mechanism below.
 
-## `transient dependency error -> retry`
+## Temporary dependency error -> retry
 
-`ForecastOutcome` now carries a `transientFailure` flag alongside
-`success`/`result`/`error`. `PythonForecastRunner` sets it when the
-problem is with reaching/running the dependency, not with the request:
-
-```text
-transient  -- couldn't start/write to the Python process (IOException)
-transient  -- the process exceeded forecast.python.timeout-seconds and
-              was killed (see "worker timeout" below)
-transient  -- the runner thread was interrupted
-permanent  -- the process exited non-zero (the request/data produced an
-              error the Python side reported)
-permanent  -- the process's stdout wasn't parseable JSON (a contract
-              bug, not something a retry fixes)
-```
-
-`ForecastWorker` is the only thing that reads the flag: on a transient
-outcome with attempts remaining, it re-enqueues the same forecast id
-instead of finishing the job.
-
-## `invalid request/data -> fail without infinite retry`
-
-A permanent outcome (`transientFailure() == false`) goes straight to
-`FAILED` on the very first attempt, regardless of
-`forecast.worker.max-attempts` -- `ForecastWorker` only ever retries a
-transient outcome. This is what keeps a bad request (an unresolvable
-region, a model that can't fit the given data) from being retried at
-all, let alone infinitely.
-
-## `same idempotency key -> one logical job`
-
-`POST /forecasts` accepts an optional `Idempotency-Key` header (not a
-body field -- `docs/forecast-api-contract.md`'s request shape,
-`region`+`cutoff`, is unchanged). A header is looked up against
-`forecasts.idempotency_key` (added by
-`V2__forecast_retry_and_idempotency.sql`, a partial unique index so rows
-without a key don't collide with each other):
+`ForecastOutcome` has a `transientFailure` flag next to `success`,
+`result` and `error`. `PythonForecastRunner` sets it when the problem is
+in reaching or running the dependency, not in the request:
 
 ```text
-no header, or key not seen before  -> normal 201 Created, new PENDING job
-key matches an existing forecast   -> 200 OK, that forecast's current
-                                       {forecast_id, status} -- no new
-                                       row, nothing re-enqueued
+temporary  could not start or write to the Python process (IOException)
+temporary  the process ran longer than forecast.python.timeout-seconds
+           and was killed (see "Worker timeout" below)
+temporary  the runner thread was interrupted
+permanent  the process exited with a non-zero code (the Python side
+           reported an error caused by the request or the data)
+permanent  the process's stdout was not valid JSON (a contract bug
+           that a retry will not fix)
 ```
 
-A race between two requests carrying the same new key is closed by the
-database, not by application-level locking: both attempt the insert,
-the unique index lets exactly one through, and the loser catches
-`DataIntegrityViolationException` and re-reads the winner's row to
-return it -- still exactly one logical job either way.
+`ForecastWorker` is the only reader of the flag. For a temporary failure
+with attempts left, it queues the same forecast id again instead of
+finishing the job.
 
-## `worker timeout -> recover/retry`
+## Invalid request or data -> fail without endless retries
 
-`PythonForecastRunner` waits on the subprocess with
-`Process.waitFor(forecast.python.timeout-seconds, SECONDS)` rather than
-the unbounded `waitFor()` used before. On expiry it calls
-`process.destroyForcibly()` (recovering the resource -- the process does
-not linger) and returns a transient outcome, which `ForecastWorker`
-retries like any other transient failure.
+A permanent failure (`transientFailure() == false`) goes straight to
+`FAILED` on the first attempt, whatever `forecast.worker.max-attempts`
+is, because `ForecastWorker` retries only temporary failures. So a bad
+request (a region that cannot be resolved, or a model that cannot fit
+the data) is not retried at all.
 
-stdout/stderr are drained on two background daemon threads started
-before the timed wait, not read sequentially after it: a process whose
-combined output exceeds the OS pipe buffer blocks on its own write call
-until something reads, so waiting for exit before reading at all would
-deadlock (and then "time out") on any sufficiently large forecast
-payload -- a full California grid `FeatureCollection` easily qualifies.
-Killing the process on timeout also unblocks those reader threads (a
-plain blocking `InputStream.read()` doesn't respond to interruption, but
-does return once the pipe it's reading is closed).
+## Same idempotency key -> one job
 
-## What this document does not define
+`POST /forecasts` accepts an optional `Idempotency-Key` header. It is a
+header, not a body field, so the request shape in
+`docs/forecast-api-contract.md` (`region` and `cutoff`) is unchanged.
+The key is looked up in `forecasts.idempotency_key`, which
+`V2__forecast_retry_and_idempotency.sql` adds with a partial unique
+index, so rows without a key do not conflict with each other:
 
-There is no backoff delay between retries -- a retried job is
-re-enqueued immediately, going through `RETRYING` in between. No
-idempotency-key expiry/cleanup exists; a key is unique for the life of
-its row, same as everything else already kept indefinitely in Postgres.
-Cancelling a queued/running job (`CANCELLED`) is still not implemented --
-`docs/forecast-api-contract.md` locks the three existing routes and adding
-a cancel endpoint is out of scope here.
+```text
+no header, or a new key           -> 201 Created, new PENDING job
+key matches an existing forecast  -> 200 OK with that forecast's current
+                                     {forecast_id, status}; no new row
+                                     and nothing queued again
+```
+
+When two requests with the same new key arrive at once, the database
+settles it, not locks in the application. Both try to insert, the
+unique index lets exactly one through, and the other catches
+`DataIntegrityViolationException` and returns the winner's row. Either
+way there is one job.
+
+## Worker timeout -> recover and retry
+
+`PythonForecastRunner` waits for the subprocess with
+`Process.waitFor(forecast.python.timeout-seconds, SECONDS)` instead of
+the unlimited `waitFor()` used before. When the time runs out, it calls
+`process.destroyForcibly()`, so the process does not linger, and returns
+a temporary failure, which `ForecastWorker` retries like any other.
+
+stdout and stderr are read on two background daemon threads that start
+before the timed wait, not one after the other once the process ends. A
+process whose output is larger than the OS pipe buffer blocks on its own
+write until something reads it. Waiting for the process to exit before
+reading would therefore deadlock, and then time out, on any large
+forecast; a full California grid `FeatureCollection` is large enough.
+Killing the process on timeout also frees those reader threads: a
+blocking `InputStream.read()` ignores interruption but returns once its
+pipe is closed.
+
+## Out of scope
+
+There is no delay between retries; a retried job is queued again at
+once and passes through `RETRYING` on the way. Idempotency keys do not
+expire and are not cleaned up; a key stays unique for the life of its
+row, like everything else kept in Postgres. Cancelling a queued or
+running job (`CANCELLED`) is not implemented, because
+`docs/forecast-api-contract.md` defines only the three existing routes.

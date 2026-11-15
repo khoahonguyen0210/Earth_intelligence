@@ -1,18 +1,13 @@
-# Integration Test Pass — LOCKED
+# Integration Test Pass
 
-This document records the integration test pass. It is not a
-brainstorming document.
-
-It asks for the real boundaries to be tested: Spring API ↔
-PostgreSQL/PostGIS, ↔ Redis, ↔ object storage, ↔ Python worker. This
-codebase has no separate unit-vs-integration test tier to run
-independently -- an earlier change removed the last mocked-datasource path
-(`BackendApplicationTests` needs a live datasource to even boot Spring),
-and every subsequent phase kept that decision rather than reintroducing
-a fake-infrastructure tier. So `./mvnw test` (the same command the unit
-test pass already ran) *is* the integration test pass for the backend; this task
-is the check that it actually exercises all four boundaries, not a
-second, separate test run.
+This pass tests the backend's boundaries: Spring API to
+PostgreSQL/PostGIS, to Redis, to object storage and to the Python
+worker. The backend has no separate unit and integration test levels.
+An earlier change removed the last mocked datasource
+(`BackendApplicationTests` needs a live datasource to start Spring), and
+later work kept it that way. So `./mvnw test`, the same command as the
+unit test pass, is also the integration test pass. This document checks
+that it covers all four boundaries; it is not a second test run.
 
 ## Evidence per boundary
 
@@ -23,86 +18,77 @@ Spring API <-> Postgres/PostGIS
     OpsSurfaceIntegrationTest, RateLimitIntegrationTest,
     SecurityHeadersIntegrationTest, WorkflowPartialFailureIntegrationTest,
     TracingIntegrationTest, EarthQueryIntegrationTest, PrometheusEndpointIntegrationTest
-    -- all @SpringBootTest classes that boot the full app against the real
-    docker-compose Postgres (Flyway-migrated schema), not a mock or an
-    in-memory substitute.
+    All are @SpringBootTest classes that start the full app against the
+    docker-compose Postgres (schema migrated by Flyway), not a mock or an
+    in-memory database.
 
 Spring API <-> Redis
-    RedisForecastQueueTest (real Lettuce connection, real LPUSH/RPOP),
-    RateLimitFilterTest/RateLimitIntegrationTest (real token-bucket state
-    in Redis), ForecastMetricsTest, ForecastRecoveryIntegrationTest, and
-    TracingIntegrationTest (real queue enqueue/dequeue inside a live
+    RedisForecastQueueTest (a Lettuce connection, LPUSH/RPOP),
+    RateLimitFilterTest and RateLimitIntegrationTest (token-bucket state
+    in Redis), ForecastMetricsTest, ForecastRecoveryIntegrationTest and
+    TracingIntegrationTest (queue enqueue and dequeue inside a live
     request).
 
 Spring API <-> object storage
-    S3ObjectStoreTest proves the actual put/get/exists/delete wiring
-    against real local MinIO. This is the one boundary with no
-    production caller to integration-test through a full request --
-    see "What this does not cover" below; it is not an oversight, it is
-    the object storage contract's own documented scope (docs/object-storage-contract.md:
-    "No Java caller writes through this abstraction yet").
+    S3ObjectStoreTest tests put, get, exists and delete against a local
+    MinIO. No production code calls object storage yet, so there is no
+    full request to test through. This follows the documented scope in
+    docs/object-storage-contract.md: "No Java caller writes through this
+    abstraction yet". See "Not covered" below.
 
 Spring API <-> Python worker
-    PythonForecastRunnerTest and PythonEarthQueryRunnerTest spawn the
-    real python interpreter against small fixture scripts under
-    src/test/resources, proving the actual process boundary (argv,
-    stdin/stdout JSON, exit codes, timeout-and-kill, transient-vs-
-    permanent failure classification) rather than a stubbed-out
-    interface. TracingIntegrationTest and EarthQueryIntegrationTest
-    exercise the same process boundary inside a real, running Spring
-    Boot app end to end: a real HTTP POST creates a Postgres row, a
-    real Redis enqueue/dequeue hands it to ForecastWorker, and a real
-    python subprocess runs and returns a result that is written back
-    to Postgres and visible on a real HTTP GET.
+    PythonForecastRunnerTest and PythonEarthQueryRunnerTest start the
+    Python interpreter on small fixture scripts under
+    src/test/resources. They test the process boundary itself (argv,
+    stdin/stdout JSON, exit codes, timeout and kill, and the split
+    between temporary and permanent failures), not a stub.
+    TracingIntegrationTest and EarthQueryIntegrationTest test the same
+    boundary inside a running Spring Boot app: an HTTP POST creates a
+    Postgres row, a Redis enqueue and dequeue hands it to
+    ForecastWorker, and a Python subprocess returns a result that is
+    written to Postgres and returned by an HTTP GET.
 ```
 
 ## Results
 
-One clean run, `./mvnw clean test`, against the same local
-`docker compose up -d` stack (Postgres/PostGIS, Redis, MinIO) the unit
-test pass used:
+One clean run of `./mvnw clean test`, against the same local
+`docker compose up -d` stack (Postgres/PostGIS, Redis, MinIO) as the
+unit test pass:
 
 ```text
 173 passed, 0 failed, 0 errors
 ```
 
-**A pitfall hit while producing this number, worth recording:** running
-two `mvnw test` invocations concurrently against the same checkout
-produces spurious failures -- observed as
-`PythonEarthQueryRunnerTest.returnsFailureForANonZeroExit` failing with
-"the pipe is being closed" (a Windows process-pipe error from two JVMs'
-worker fixture processes and shared `target/surefire-reports` output
-colliding), and the total failure count climbing as both runs
-progressed. Confirmed as a test-running mistake rather than a product
-bug two ways: the same test class alone, rerun in isolation, passed; and
-a single clean run afterward (the 173/0 above) also passed. Don't run
-concurrent `mvnw test` against one checkout -- it shares local Redis,
-ports, and `target/` with itself.
+**Do not run two test runs at once.** Two `mvnw test` runs on the same
+checkout at the same time caused false failures. For example,
+`PythonEarthQueryRunnerTest.returnsFailureForANonZeroExit` failed with
+"the pipe is being closed", a Windows pipe error caused by the fixture
+processes of two JVMs and their shared `target/surefire-reports` output
+getting in each other's way. The failure count grew as both runs went
+on. Two checks showed that this was a mistake in how the tests were run,
+not a product bug: the same test class passed when run alone, and a
+single clean run afterward passed (the 173/0 above). Concurrent runs on
+one checkout share the local Redis, ports and `target/` folder.
 
-## What this does not cover
+## Not covered
 
-- **Object storage has no boundary test through a real request**,
-  because nothing in the product calls it yet (the object storage
-  contract's own documented
-  decision, not a gap this task invents scope to close). `S3ObjectStoreTest`
-  is the honest ceiling of what can be integration-tested today: the
-  abstraction against real MinIO, not a controller-to-MinIO round trip
-  that doesn't exist.
-- **The CLI wrapper scripts themselves
-  (`scripts/query/run_forecast_cli.py`/`run_analysis_cli.py`/
-  `run_ask_earth_cli.py`) are never run as a real subprocess with the
-  real ML pipeline behind them.** Each is ~10 lines (read stdin JSON,
-  call the real function, write stdout JSON, exit 1 on error); the
-  function each calls is covered by `ml/tests` directly, and the
-  stdin/stdout/exit-code protocol itself is covered from the Java side
-  by `PythonForecastRunnerTest`/`PythonEarthQueryRunnerTest` against
-  fixture scripts speaking the identical protocol. Building a fixture
-  that runs the real CLI with a real trained model and real FIRMS/ERA5/
-  geography data was already tried and dropped
-  (`docs/reliability-tests.md`, "malformed-data forecast leg") for the
-  same reason: it needs a full model-plus-data fixture a directory of
-  sample rows can't stand in for. Not reattempted here.
-- **No Kubernetes-level or Docker-Compose-level integration test.**
-  Those exist already, one layer up, and are out
-  of scope for this task, which is specifically the Spring API's own
+- **Object storage is not tested through a full request**, because
+  nothing in the product calls it yet. This is a documented decision of
+  the object storage contract. `S3ObjectStoreTest` is the most that can
+  be tested today: the abstraction against MinIO, not a controller to
+  MinIO round trip that does not exist.
+- **The CLI wrapper scripts
+  (`scripts/query/run_forecast_cli.py`, `run_analysis_cli.py`,
+  `run_ask_earth_cli.py`) are not run as subprocesses with the ML
+  pipeline behind them.** Each is about 10 lines: read JSON from stdin,
+  call a function, write JSON to stdout and exit 1 on error. `ml/tests`
+  covers each function directly, and on the Java side
+  `PythonForecastRunnerTest` and `PythonEarthQueryRunnerTest` cover the
+  stdin, stdout and exit-code protocol with fixture scripts that use the
+  same protocol. A fixture that runs a CLI with a trained model and full
+  FIRMS, ERA5 and geography data was tried before and dropped
+  (`docs/reliability-tests.md`, "malformed-data forecast leg"). It needs
+  a full model and data set that a folder of sample rows cannot replace.
+- **There is no Kubernetes or Docker Compose integration test here.**
+  Those exist one level up. This pass covers only the Spring API's own
   boundaries.

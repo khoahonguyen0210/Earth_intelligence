@@ -25,7 +25,7 @@ extent is used project-wide.
 
 ## Resolution
 
-`0.1 x 0.1` degrees, matching the locked project grid.
+`0.1 x 0.1` degrees, matching the project grid.
 
 ## Grid Dimensions
 

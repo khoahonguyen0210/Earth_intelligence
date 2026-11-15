@@ -1,12 +1,10 @@
-# Deterministic Plan Validator — LOCKED
+# Deterministic Plan Validator
 
-This document freezes the plan shape and validator. It is not a
-brainstorming document. It builds on
-`docs/planner-tool-schemas.md` rather than redefining it; the
-natural-language planner and the workflow engine build
-against this validator rather than reimplementing validation themselves.
+This document defines the plan shape and the validator. It builds on
+`docs/planner-tool-schemas.md`. The natural-language planner and the
+workflow engine use this validator instead of writing their own checks.
 
-## The plan shape
+## Plan shape
 
 ```python
 @dataclass(frozen=True)
@@ -22,63 +20,59 @@ class Plan:
     steps: tuple[PlanStep, ...]
 ```
 
-A plan is a static, upfront, fully-specified sequence of steps -- matching the flow
-"natural language -> LLM -> structured plan ->
-validator -> workflow" (the whole plan is produced once, then validated,
-*then* executed), not a live turn-by-turn agentic loop. This is also why
-`depends_on` exists as an explicit field rather than being inferred: a
-future workflow engine (the DAG, whose nodes already carry
-`dependencies`) needs the ordering declared up front, before anything
-runs.
+A plan is a fixed, complete list of steps written before anything runs.
+It follows the flow "natural language -> LLM -> structured plan ->
+validator -> workflow": the whole plan is produced once, checked, and
+only then executed. It is not a loop in which the model acts turn by
+turn. That is also why `depends_on` is an explicit field and not
+inferred: the workflow engine (the DAG, whose nodes have
+`dependencies`) needs the order stated before anything runs.
 
-## Cross-step references
+## References between steps
 
-A step's `input` may reference an earlier step's real output with a
-plain string: `"$<step_id>.<field>"`, e.g.
-`{"result_id": "$forecast.forecast_id"}`. This is deliberately just a
-string, not a nested object marker, because it only makes sense on
-string-typed fields (`result_id` today), which means it automatically
-satisfies that field's `input_schema` type -- no special-casing needed
-in the schema-shape check. `ToolSchema` gained an
-`output_fields: frozenset[str]` for exactly this: checking that a
-reference names a field the referenced tool's result actually has.
-Resolving the reference to a real value is the workflow engine's job;
-this validator only checks the reference is well-formed.
+A step's `input` may refer to an earlier step's output with a plain
+string, `"$<step_id>.<field>"`, for example
+`{"result_id": "$forecast.forecast_id"}`. It is a plain string, not a
+nested marker object, because a reference only makes sense in a string
+field (today only `result_id`). So it always matches that field's type
+in `input_schema`, and the schema check needs no special case.
+`ToolSchema` has an `output_fields: frozenset[str]` for checking that a
+reference names a field that the referenced tool's result actually
+has. Replacing the reference with a value is the workflow engine's job;
+the validator only checks that the reference is well formed.
 
-In practice, the only tool whose output is ever worth referencing later
-is `run_forecast` (it returns a `forecast_id`) feeding
-`get_result_evidence`'s `result_id` -- `calculate_statistics`/
-`generate_map` already return their evidence inline (mirroring
-`run_analysis.py`'s synchronous `{result, evidence}` response), so a
-plan answering a non-forecast question typically has no cross-step
-references at all.
+In practice, the only output worth referring to later is the
+`forecast_id` from `run_forecast`, used as `result_id` by
+`get_result_evidence`. `calculate_statistics` and `generate_map` already
+return their evidence with the result (like the synchronous
+`{result, evidence}` response of `run_analysis.py`), so a plan for a
+question that is not a forecast usually has no references between steps.
 
 ## The seven checks
 
-Each maps to a concrete mechanism, reusing real, already-locked
-validation rather than re-implementing it:
+Each check uses existing validation code instead of a new copy:
 
 ```text
 tool name              -> step.tool must be one of planner.tools.TOOL_NAMES
 input schema           -> jsonschema.validate against the tool's input_schema
-region                 -> query.region.normalize_region -- same
-                           ValueErrors normalize_region already raises
+region                 -> query.region.normalize_region, with the same
+                          ValueErrors that normalize_region already raises
 time range             -> query.time_range.normalize_time_range
-allowed operations     -> the tool's own operation enum, via input schema
-parameter ranges       -> region/time_range above, plus run_forecast's
-                           cutoff via query.forecast_result.parse_cutoff
+allowed operations     -> the tool's own operation enum, through the input schema
+parameter ranges       -> region and time_range above, plus run_forecast's
+                          cutoff through query.forecast_result.parse_cutoff
 workflow dependencies  -> depends_on and $step.field references both
-                           resolve to a real, earlier step whose tool
-                           actually produces that field
+                          point to an existing earlier step whose tool
+                          produces that field
 ```
 
-Using the real `normalize_region`/`normalize_time_range`/`parse_cutoff`
-functions (rather than duplicating range/format checks) means the
-validator's notion of "valid region" can never drift from what the
-actual Earth-analysis/forecast pipelines accept -- one source of truth,
-checked by `tests/planner/test_validator.py`'s parametrized invalid-
-region cases (degenerate bbox, unsupported named region, coordinates
-outside the California grid).
+Because the validator calls `normalize_region`, `normalize_time_range`
+and `parse_cutoff` instead of repeating their range and format checks,
+its idea of a valid region can never differ from what the Earth
+analysis and forecast pipelines accept. There is one source of truth.
+`tests/planner/test_validator.py` checks this with parametrized invalid
+regions (an empty bounding box, an unsupported named region, and
+coordinates outside the California grid).
 
 ## Rejection
 
@@ -87,23 +81,25 @@ def validate_plan(plan: Plan) -> list[str]: ...       # [] means valid
 def validate_plan_or_raise(plan: Plan) -> None: ...    # raises ValueError
 ```
 
-`validate_plan` returns human-readable messages (empty list = valid),
-mirroring the exact convention `query.schema.validate_structured_query`/
-`query.forecast_result.validate_forecast_request` already use.
-`validate_plan_or_raise` joins and raises, mirroring
-`run_analysis.run_analysis`'s `if errors: raise ValueError("; ".join(errors))` --
-this is what "invalid plans are rejected" concretely means: whoever
-executes a plan (the workflow engine) calls this before running anything.
+`validate_plan` returns readable messages (an empty list means valid),
+the same convention as `query.schema.validate_structured_query` and
+`query.forecast_result.validate_forecast_request`.
+`validate_plan_or_raise` joins the messages and raises, like
+`if errors: raise ValueError("; ".join(errors))` in
+`run_analysis.run_analysis`. This is what "invalid plans are rejected"
+means in practice: the code that runs a plan calls this before running
+anything.
 
-## What this document does not define
+## Limits
 
-No plan is ever produced by an LLM here -- that is the natural-language
-planner's job; this document only defines the shape a produced plan
-must have and rejects one that doesn't. `calculate_statistics`'s `output_fields` is a union across
-its three operations (`count`/`daily`/`weekly`), so a reference to a
-field that operation doesn't actually produce (e.g. `count` from a
-`weekly_aggregate` step) is not caught -- a real limitation, acceptable
-because the only field genuinely referenced across steps in this tool
-surface is `run_forecast`'s `forecast_id`. There is no retry/backoff
-concept here (that is a different, execution-time retry); a
-rejected plan is simply invalid, not retried.
+- The validator does not produce plans; the natural-language planner
+  does. This document only defines the shape a plan must have and
+  rejects plans that do not have it.
+- `output_fields` for `calculate_statistics` is the union over its three
+  operations (`count`, `daily` and `weekly`). A reference to a field
+  that the step's operation does not produce (for example `count` from a
+  `weekly_aggregate` step) is not caught. This is acceptable, because the
+  only field that is actually referenced across steps is the
+  `forecast_id` from `run_forecast`.
+- There is no retry here. Retries happen at execution time; a rejected
+  plan is simply invalid.

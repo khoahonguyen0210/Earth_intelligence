@@ -1,21 +1,17 @@
-# Unit Test Pass — LOCKED
+# Unit Test Pass
 
-This document records the unit test pass. It is not a brainstorming
-document.
-
-It asks for coverage of nine behaviors: data parsing, validation,
+This pass checks unit test coverage of nine behaviors: data parsing, validation,
 grid assignment, time windows, feature construction, API validation,
-workflow states, retry/idempotency, and metric calculations. Every one
-of those was already exercised by tests written alongside the feature
-that introduced it, across every earlier build phase; this document is
-the full-suite run that proves all three components -- the Python `ml` package, the Spring
-Boot backend, and the React frontend -- still pass together, not a
-one-off addition of new tests for previously uncovered behavior.
+workflow states, retry/idempotency, and metric calculations. Each one
+already had tests written together with the feature that introduced
+it. This document records a run of the full suite showing that all
+three components (the Python `ml` package, the Spring Boot backend and
+the React frontend) still pass together. It does not add new tests.
 
 ## How to run it
 
 ```bash
-# ml (from the repository root, not ml/ -- the distributed tests
+# ml (from the repository root, not ml/; the distributed tests
 # resolve their fixture data relative to cwd)
 uv run --project ml pytest ml/tests -q
 
@@ -53,10 +49,10 @@ frontend (vitest)    49 passed
 ```
 
 The two ml skips are `test_run_forecast.py::test_predict_uses_the_real_trained_model`
-and its sibling: both require the real trained model artifact
-(`ml/artifacts/...`) to be built first, which is a deliberate skip
-condition (`pytest.mark.skipif`), not a gap -- the same code path is
-exercised against a stub model everywhere else in that file.
+and its sibling: both need the trained model artifact
+(`ml/artifacts/...`) to be built first. This is an intended skip
+condition (`pytest.mark.skipif`), not a gap; the rest of that file
+tests the same code path with a stub model.
 
 ## Coverage by category
 
@@ -103,16 +99,14 @@ categories (the natural-language planner, query dispatch, distributed
 execution, Kubernetes benchmarks, map/result rendering) and are counted
 in the totals above but not broken out here.
 
-## What this task does not do
+## Out of scope
 
-- **No new tests were added.** Every named category
-  already had unit coverage from the phase that introduced it; this
-  document is the verification that the full suite still passes together,
-  matching the pattern of the earlier browser end-to-end verification.
-- **The integration test pass and the end-to-end tests are
-  separate efforts.** This pass exercises each component's own unit
-  tests, including the backend's `@SpringBootTest` classes that talk to
-  a real local Postgres/Redis (there is no mocked-datasource unit tier
-  left in this codebase, see `backend`'s test suite above) -- but it
-  does not stand up the full Docker Compose or Kubernetes stack the way
-  those other test passes do.
+- **No new tests were added.** Every category already had unit tests
+  from the work that introduced it. This pass only checks that the full
+  suite still passes together.
+- **The integration and end-to-end tests are separate.** This pass
+  runs each component's own tests, including the backend's
+  `@SpringBootTest` classes that use a local Postgres and Redis (the
+  backend has no unit tests with a mocked datasource left). It does not
+  start the full Docker Compose or Kubernetes stack, as those other
+  passes do.

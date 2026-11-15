@@ -36,7 +36,7 @@ prediction used (its early-stopping `best_iteration`).
 ## What it costs
 
 Measured on one statewide forecast (all 9,975 California cells, cutoff
-2024-08-15 10:00 UTC) with the real model and data:
+2024-08-15 10:00 UTC) with the trained model and full data:
 
 | | Without SHAP | With SHAP |
 |---|---|---|

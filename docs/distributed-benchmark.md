@@ -1,25 +1,20 @@
-# Final Distributed Benchmark — LOCKED
+# Final Distributed Benchmark
 
-This document records the final distributed benchmark. It is
-not a brainstorming document.
-
-This task asks for a final 1/2/4/8-worker comparison (runtime,
-throughput, speedup, efficiency, failure/recovery). Unlike the ML and
-ablation benchmarks, the underlying benchmarks here were never blocked on missing
-real data -- the scaling benchmark and the fault-injection
-test (`docs/multi-worker-scaling.md`, `docs/fault-injection-test.md`)
-already measure real computational cost against a real, fixed workload;
-they were never waiting on real fire history the way model accuracy
-was. This task re-runs both frozen scripts (`scripts/distributed/
-run_scaling_benchmark.py`, `run_fault_injection_test.py`, both on the
-`benchmark-v1` list) unchanged, to confirm the numbers still hold on
-the current code, and reports runtime/throughput/speedup/efficiency
-alongside failure/recovery in one place for the first time.
+This benchmark compares 1, 2, 4 and 8 workers on runtime, throughput,
+speedup, efficiency, and failure and recovery. Unlike the ML and
+ablation benchmarks, it never needed fire history. The scaling
+benchmark (`docs/multi-worker-scaling.md`) and the fault-injection test
+(`docs/fault-injection-test.md`) measure compute cost on a fixed
+workload. This run repeats both frozen scripts,
+`scripts/distributed/run_scaling_benchmark.py` and
+`run_fault_injection_test.py` (both on the `benchmark-v1` list), without
+changes, to confirm the numbers on the final code. It also reports all
+the measures in one place.
 
 ## Runtime, throughput, speedup, efficiency
 
-`data/processed/distributed/scaling_benchmark.json`, 500 real tiles,
-one shared fitted model and loaded data across every point:
+`data/processed/distributed/scaling_benchmark.json`, 500 tiles, with
+the same fitted model and loaded data for every row:
 
 ```text
 workers   actual   wall_s    throughput(tiles/s)  cpu_s    peak_mb   speedup   efficiency
@@ -29,23 +24,21 @@ workers   actual   wall_s    throughput(tiles/s)  cpu_s    peak_mb   speedup   e
       8        8   22.381                22.34     13.72      1.58      0.038       0.005
 ```
 
-**More workers made this workload slower at every step, monotonically
--- 1 worker processed 587 tiles/second; 8 workers processed 22.** This
-reproduces the scaling benchmark's own finding exactly (same monotonic pattern, same
-order of magnitude), not a regression: `multiprocessing` on Windows
-uses `spawn`, so every additional worker pays a real multi-second cost
-starting a fresh interpreter and re-importing `numpy`/`xgboost`/
-`scikit-learn`/`rasterio` before doing any of this workload's genuinely
-small amount of real compute (`total_cpu_seconds` stays under 14s even
-at 8 workers, while wall time reaches 22s). `docs/bottleneck-
-identification.md` already named this exact cost as the
-pipeline's real bottleneck; this run is further, independent
-confirmation of it, not a new finding.
+**Each added worker made this workload slower. One worker processed
+587 tiles per second; eight workers processed 22.** This repeats the
+earlier scaling result (the same steady decline, at the same order of
+magnitude), so it is not a regression. On Windows, `multiprocessing`
+uses `spawn`. Each extra worker spends several seconds starting a new
+interpreter and importing `numpy`, `xgboost`, `scikit-learn` and
+`rasterio` again before it does any of the small compute in this
+workload. `total_cpu_seconds` stays under 14 s even with 8 workers,
+while wall time reaches 22 s. `docs/bottleneck-identification.md`
+names this start-up cost as the bottleneck, and this run confirms it.
 
 ## Failure and recovery
 
 `data/processed/distributed/fault_injection_report.json`, 500 tiles, 4
-workers, one worker's process genuinely killed (`os._exit(1)`) mid-chunk:
+workers, one worker process killed (`os._exit(1)`) during its chunk:
 
 ```text
 any_failure_detected:            true
@@ -59,25 +52,24 @@ chunk 2:           attempts=1  failure_detected=false  result=OK
 chunk 3:           attempts=1  failure_detected=false  result=OK
 ```
 
-**A killed worker cost this workload 1.35 real seconds and zero lost
-tiles.** Detection, retry, and terminal-state correctness match the
-fault-injection test's original run exactly; recovery time (1.353s here vs 1.154s
-originally) varies run to run for the documented reason in
-`docs/fault-injection-test.md` -- the replacement worker pays the same
-real cold-start cost the scaling numbers above show, so recovery time
-is not a fixed constant.
+**A killed worker cost 1.35 seconds and no lost tiles.** Detection,
+retry and the final states match the first fault-injection run. The
+recovery time (1.353 s here, 1.154 s in the first run) changes from run
+to run for the reason given in `docs/fault-injection-test.md`: the
+replacement worker pays the same start-up cost shown in the scaling
+table, so recovery time is not a constant.
 
-**Achieved zero lost tiles after a real killed worker, recovering in
-1.35 seconds, at the same process-spawn cost that also makes adding
-workers slower on this platform.**
+In summary, no tiles were lost after a worker was killed, and recovery
+took 1.35 seconds. The cost of starting a process explains both the
+recovery time and the slowdown from adding workers on this platform.
 
-## What this task does not do
+## Out of scope
 
-- **Does not change `distributed/scaling.py`, `distributed/run.py`,
-  `distributed/fault_tolerance.py`, or either runner script.** All four
-  are on the `benchmark-v1` frozen list; this task only re-runs them.
-- **Does not investigate a fix for the spawn-overhead finding.**
-  `docs/multi-worker-scaling.md` already scopes that as a real, open
-  question (a persistent pool, threads, or a fork-based Linux target)
-  outside what this benchmark work's own job is: measuring and reporting the
-  real number honestly, not redesigning around it.
+- **The benchmark code is unchanged.** `distributed/scaling.py`,
+  `distributed/run.py`, `distributed/fault_tolerance.py` and both
+  runner scripts are on the `benchmark-v1` frozen list, and this run only
+  executes them.
+- **No fix for the start-up cost is tried here.**
+  `docs/multi-worker-scaling.md` lists the options (a persistent pool,
+  threads, or a Linux target with `fork`) as open work. This benchmark
+  measures and reports the numbers; it does not redesign the system.

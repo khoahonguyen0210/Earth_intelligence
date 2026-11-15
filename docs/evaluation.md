@@ -5,7 +5,7 @@ year. This document adds what a single number cannot show: how
 uncertain it is, whether the model beats a trivial rule, how it does in
 places it never trained on, and whether its inputs drift.
 
-Nothing here tunes the model on the test set. The locked config is
+Nothing here tunes the model on the test set. The fixed config is
 reused as is, and the four benchmarked models' saved test predictions
 are re-scored.
 
@@ -39,7 +39,7 @@ The served model is the calibrated one. Isotonic calibration makes its
 probabilities match observed frequencies, and costs 0.015 PR-AUC
 against uncalibrated XGBoost.
 
-## A trivial baseline is the real bar
+## A trivial baseline is the true test
 
 **Persistence** uses no model: a cell's risk score is its fire count in
 the last 24 hours (or 7 days), with ties broken by the 30-day count. It
@@ -57,10 +57,10 @@ Paired differences, same bootstrap:
 
 What this shows:
 
-- XGBoost's lead over climatology is large and clearly real.
+- XGBoost's lead over climatology is large and clear.
 - Against "fires yesterday", the lead is much smaller: about +0.07
   PR-AUC. It is still above zero across the whole interval, so the model
-  adds real value, but most of what a simple rule already knows is
+  adds value, but most of what a simple rule already knows is
   recent fire.
 - Logistic regression is not distinguishable from climatology and is
   worse than persistence.
@@ -105,7 +105,7 @@ What this shows:
 
 The grid is split into 1-degree blocks (10 x 10 cells), assigned to 5
 folds so that no two adjacent blocks share a fold. For each fold,
-XGBoost is retrained without that fold's blocks, using the same locked
+XGBoost is retrained without that fold's blocks, using the same fixed
 config, and scored on those blocks in the 2024 test year. Every test
 row thus gets a prediction from a model that never trained on its
 region.
@@ -163,7 +163,7 @@ terrain and land cover only, and returns the result in its evidence as
 `inputs.drift`. Weather drift is checked over a whole season with the
 script.
 
-The honest limit: a dead fire feed raises the per-forecast PSI only to
+The limit: a dead fire feed raises the per-forecast PSI only to
 0.187, a moderate shift, close to the 0.141 seen on one normal cutoff.
 Most training rows already have zero fire counts, so an all-zero
 forecast does not look very different. PSI alone is a weak detector of

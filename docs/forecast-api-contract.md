@@ -1,14 +1,12 @@
-# Forecast API Contract — LOCKED
+# Forecast API Contract
 
-This document freezes the forecast API contract. It is not a
-brainstorming document. Later work on the Java-to-Python worker, PostGIS
-persistence, and Redis async jobs builds against this contract rather
-than redefining it.
+This document defines the forecast API contract. The Java-to-Python
+worker, PostGIS persistence and the Redis async jobs use this contract
+and do not redefine it.
 
-This is a restatement, not a redefinition, of the
-"Java API" design — Java owns request/job/result control, Python owns the
-Earth-data/ML computation, exactly the boundary already
-established for the (non-forecast) Earth-analysis API.
+It restates the "Java API" design without changing it: Java controls
+requests, jobs and results, and Python does the Earth-data and ML
+computation. This is the same boundary as in the Earth-analysis API.
 
 ## Endpoints
 
@@ -30,7 +28,7 @@ region
 cutoff
 ```
 
-`region` reuses the exact `RegionSpec` contract already locked
+`region` reuses the existing `RegionSpec` contract
 (`ai_earth_intelligence_and_forecasting_engine.query.schema.RegionSpec`):
 a `kind` of `"bbox"`, `"coordinates"`, or `"named"` plus a `value` whose
 shape depends on `kind`. It is resolved with the same
@@ -63,9 +61,9 @@ PENDING | RUNNING | SUCCEEDED | FAILED | RETRYING | CANCELLED
 Until the Redis async worker/queue exists, the Java-to-Python bridge is
 a synchronous subprocess call (the same interim pattern
 `PythonAnalysisRunner` already uses for analysis), so a request only ever
-completes with a terminal `SUCCEEDED` or `FAILED` by the time it returns —
-`PENDING`/`RUNNING`/`RETRYING`/`CANCELLED` are reachable only once that
-work lands.
+ends in `SUCCEEDED` or `FAILED` by the time it returns.
+`PENDING`, `RUNNING`, `RETRYING` and `CANCELLED` can occur only once that
+work is in place.
 
 ## Result (`GET /forecasts/{id}/result`)
 
@@ -84,7 +82,7 @@ evidence
 (`data.grid.GridCell`/`cell_to_feature`), where each `Feature`'s
 `properties` carries that cell's predicted fire-risk probability alongside
 the existing `tile_id`/`lat_index`/`lon_index`/centroid properties. This
-mirrors the already-locked `query.map_result` GeoJSON pattern
+follows the existing `query.map_result` GeoJSON pattern
 rather than inventing a second spatial encoding.
 
 ```text
@@ -108,7 +106,7 @@ rather than inventing a second spatial encoding.
 }
 ```
 
-`probability` is a float in `[0, 1]` — the model's predicted probability
+`probability` is a float in `[0, 1]`: the model's predicted probability
 of at least one qualifying FIRMS active-fire observation in that cell
 during the forecast window, i.e. the same target `predict_*`/
 `predict_calibrated` already produce in `ml/src/.../models/`. "Risk" is
@@ -120,11 +118,11 @@ the original model and a registry version for any model promoted by the
 retraining loop (`docs/retraining.md`).
 
 `data_cutoff` echoes the request's `cutoff`, normalized to an ISO 8601 UTC
-datetime string — the result is self-describing without needing to join
-back to the original request.
+datetime string, so the result can be read without the original
+request.
 
 `forecast_window` states the window the probability applies to, derived
-from the locked `forecast.spec.FORECAST_WINDOW_HOURS` (`24`):
+from the fixed `forecast.spec.FORECAST_WINDOW_HOURS` (`24`):
 
 ```text
 { "start": "<data_cutoff>", "end": "<data_cutoff + 24h>", "hours": 24 }
@@ -137,7 +135,7 @@ already produced elsewhere (`models.calibration`):
 { "method": "isotonic", "table": [ {bin_index, predicted_mean, observed_frequency, count}, ... ] }
 ```
 
-`evidence` reuses the exact `Evidence` shape locked for the Earth-analysis
+`evidence` reuses the `Evidence` shape defined for the Earth-analysis
 API (`query.evidence.Evidence`/`evidence_to_dict`): `dataset`,
 `period_start`, `period_end`, `region_kind`, `region_label`,
 `region_bbox`, `query_parameters`, `processing_version`. `dataset` is
@@ -157,13 +155,12 @@ bridge) is:
 mirroring the Earth-analysis API's `ErrorResponse`, returned with an
 HTTP `422`.
 
-## What this document does not define
+## Out of scope
 
 The Java-side DTOs, controller, and the actual Java-to-Python process
-bridge are separate work, not this document's — exactly as the
-`StructuredEarthQuery` contract predates and is Java-agnostic from the
-`AnalysisController`. PostGIS persistence of forecast metadata is its
-own separate piece of work. The real async job lifecycle (Redis,
-retries, timeouts, idempotency) is later work still. This document
-only fixes the request, response, and result shapes that later work
-builds against.
+bridge are separate work, just as the `StructuredEarthQuery` contract
+came before `AnalysisController` and does not depend on Java. PostGIS persistence of forecast metadata is its
+own separate piece of work. The async job lifecycle (Redis,
+retries, timeouts, idempotency) came after that. This document only
+fixes the request, response and result shapes that the later work
+builds on.

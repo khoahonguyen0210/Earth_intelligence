@@ -15,9 +15,9 @@ cannot. It ranks cells worse than chance and far worse than climatology.
 - **Time:** the weather at the forecast cutoff, 10:00 UTC. The paper's
   daily value is the highest of 12, 18 and 00 UTC, but those hours come
   after the cutoff, so using them would leak future weather.
-- **Target and grid:** the locked target, a FIRMS fire in the 0.1° cell
+- **Target and grid:** the main benchmark's target, a FIRMS fire in the 0.1° cell
   in the 24 hours after the cutoff.
-- **Periods:** 2023 (validation year) and the 2025 season. The locked
+- **Periods:** 2023 (validation year) and the 2025 season. The held-out
   2024 test year is not used.
 - **Scores compared:**
   - climatology, fitted on 2019 to 2022;

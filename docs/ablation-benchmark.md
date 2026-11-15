@@ -1,20 +1,16 @@
-# Final Ablation Benchmark — LOCKED
+# Final Ablation Benchmark
 
-This document records the final ablation benchmark. It is not
-a brainstorming document.
-
-This task asks for a three-way feature-ablation comparison: fire
-history alone, fire history + weather, fire history + weather +
-geography. As with the final ML benchmark, the original ablation demo scripts
-(`scripts/models/run_weather_ablation.py` /
-`run_geography_ablation.py`) predate the real historical
-dataset and their own docstrings say so -- zero real positive examples
-in the sample data's train/validation splits. This task adds
-`scripts/models/run_ablation_benchmark.py`, which loads the real
-dataset (`data/processed/historical_dataset_v1.csv`) and calls the
-frozen, unmodified `models/ablation.py::run_weather_ablation` /
-`run_geography_ablation` (`benchmark-v1`) -- same protocol as before:
-the comparison logic is untouched, only the data changed.
+This benchmark compares three feature sets: fire history alone, fire
+history with weather, and fire history with weather and geography. The
+first ablation scripts (`scripts/models/run_weather_ablation.py` and
+`run_geography_ablation.py`) were written before the historical dataset
+existed, and their docstrings say that the sample data has no positive
+examples in its train and validation splits.
+`scripts/models/run_ablation_benchmark.py` loads the full dataset
+(`data/processed/historical_dataset_v1.csv`) and calls the frozen,
+unchanged `models/ablation.py::run_weather_ablation` and
+`run_geography_ablation` (`benchmark-v1`). The comparison logic is the
+same; only the data is new.
 
 ## Results
 
@@ -30,36 +26,32 @@ weather delta   (fire_history -> +weather):        PR-AUC +0.0144  ROC-AUC -0.01
 geography delta (+weather -> +weather+geography):  PR-AUC +0.0811  ROC-AUC +0.0667
 ```
 
-**Achieved a PR-AUC gain of +0.081 (0.370 -> 0.451) by adding
-elevation, slope, and land cover on top of fire history and weather --
-more than five times the gain weather features alone provided.**
+**Adding elevation, slope and land cover on top of fire history and
+weather raised PR-AUC by +0.081 (0.370 -> 0.451).** This is more than
+five times the gain from weather features alone.
 
-Weather's own contribution is small and mixed: a modest PR-AUC gain
-(+0.0144) alongside a small ROC-AUC *decrease* (-0.0117), on a fire-
-history-only baseline that is already strong (ROC-AUC 0.9119) -- wind,
-temperature, precipitation, and humidity mostly overlap with what
-recent fire counts nearby already signal, at this feature set and this
-real data volume. Geography is unambiguous: every metric improves,
-consistent with wildfire risk depending heavily on static terrain
-(steep, high-elevation, certain land-cover tiles burn differently than
-flat agricultural ones) in a way recent fire counts and short-term
-weather cannot substitute for.
+Weather's effect is small and mixed: PR-AUC rises a little (+0.0144),
+while ROC-AUC falls a little (-0.0117). The fire-history baseline is
+already strong (ROC-AUC 0.9119). With this feature set and this amount
+of data, wind, temperature, precipitation and humidity mostly repeat
+what recent nearby fire counts already show. Geography is clear: every
+metric improves. Wildfire risk depends strongly on fixed terrain. Steep,
+high or certain land-cover tiles burn differently from flat farmland,
+and recent fire counts and short-term weather cannot stand in for that.
 
-**Cross-check against the final ML benchmark.** The third row here
-(`fire_history_plus_weather_plus_geography`) uses the exact same
-feature columns, model config, and data as the final ML benchmark's `xgboost` row --
-and the two independently-run numbers match exactly (PR-AUC 0.4513,
-ROC-AUC 0.9669 in both), the same determinism
-`test_production_model.py` already proved for the fixed
-`random_state`.
+**Cross-check with the final ML benchmark.** The third row
+(`fire_history_plus_weather_plus_geography`) uses the same feature
+columns, model settings and data as the `xgboost` row of the final ML
+benchmark. The two separate runs give the same numbers (PR-AUC 0.4513
+and ROC-AUC 0.9669 in both). `test_production_model.py` already shows
+that the fixed `random_state` makes training deterministic.
 
-## What this task does not do
+## Out of scope
 
-- **Does not change `models/ablation.py`.** On the `benchmark-v1`
-  frozen list, used exactly as frozen; only a new data-loading script
-  was added, the same pattern as the final ML benchmark.
-- **Does not re-run `ml/tests/models/test_ablation.py`'s own synthetic,
-  separable-data proof** that weather/geography features measurably
-  help *when the signal is designed to be there* -- that test's job is
-  proving the ablation mechanism itself works, not measuring the real
-  effect size, which is what this task does instead.
+- **`models/ablation.py` is unchanged.** It is on the `benchmark-v1`
+  frozen list and is used as frozen. Only a new data-loading script was
+  added, as for the final ML benchmark.
+- **`ml/tests/models/test_ablation.py` is not repeated here.** That test
+  uses synthetic data in which weather and geography are built to help,
+  to prove that the ablation code works. This benchmark measures the
+  size of the effect on the full data.

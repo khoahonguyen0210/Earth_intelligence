@@ -1,9 +1,8 @@
-# Terraform Layout — LOCKED
+# Terraform Layout
 
-This document freezes the Terraform layout. It is not a
-brainstorming document. The code implements
-exactly the deployment `docs/cloud-deployment.md` locked;
-a later step runs `init`/`plan`/`apply` against it, and nothing here has
+This document describes the Terraform layout. The code implements the
+deployment defined in `docs/cloud-deployment.md`. Running
+`init`/`plan`/`apply` against it is a later step, and nothing here has
 been applied yet.
 
 ## Status: written and validated, not applied
@@ -11,13 +10,12 @@ been applied yet.
 Provisioning, deploying, and the cloud benchmark are **deferred, not
 done**. Running them needs a live AWS account and costs about
 $0.40/hour while the environment is up (`docs/cloud-deployment.md`,
-cost section), and the project owner chose not to take that on for now.
-So, stated plainly:
+cost section), so this cost was not taken on for now. In short:
 
 ```text
-done       Terraform for the full locked deployment; fmt/validate/lock pass;
+done       Terraform for the full planned deployment; fmt/validate/lock pass;
            Trivy static scan clean apart from one accepted finding
-not done   terraform plan/apply against a real account; the cloud-manifest
+not done   terraform plan/apply against an AWS account; the cloud-manifest
            code gaps (S3 client, frontend API base URL, Redis TLS); any cloud
            measurement
 ```
@@ -31,7 +29,7 @@ first.
 
 ## Layout
 
-The required tree, with one module per locked AWS concern:
+The tree has one module per AWS area:
 
 ```text
 infra/terraform/
@@ -48,16 +46,16 @@ infra/terraform/
     └── production/
         ├── versions.tf           Terraform/provider pins, S3 backend (partial)
         ├── providers.tf          aws (default tags), helm (exec token auth)
-        ├── variables.tf          locked values as defaults
+        ├── variables.tf          fixed values as defaults
         ├── main.tf               wires the eight modules together
         ├── outputs.tf            every value the cloud manifests need
-        ├── backend.hcl.example   state bucket name template (real file gitignored)
+        ├── backend.hcl.example   state bucket name template (the actual file is ignored by git)
         └── .terraform.lock.hcl   provider hashes for windows/linux/darwin
 ```
 
 `modules/` holds reusable pieces with no environment-specific values.
 `environments/production/` is the only root module and the only place
-the locked numbers (region, versions, sizes) appear. They are variable
+the fixed numbers (region, versions, sizes) appear. They are variable
 defaults, so there is no `terraform.tfvars` to keep in sync.
 
 ## Reused, not rebuilt
@@ -89,7 +87,7 @@ Terraform                     ~> 1.16   (validated on 1.16.4)
 hashicorp/aws                 ~> 6.66   (locked 6.66.0)
 hashicorp/helm                ~> 3.3    (locked 3.3.0)
 aws-load-balancer-controller  3.5.0     chart
-keda                          2.21.0    chart -- the only KEDA minor tested against
+keda                          2.21.0    chart; the only KEDA minor version tested against
                                         Kubernetes 1.36 (keda.sh compatibility matrix);
                                         the local kind cluster's 2.17.1 is not
 external-secrets              2.11.0    chart
@@ -101,8 +99,8 @@ EKS add-on versions (`vpc-cni`, `coredns`, `kube-proxy`,
 `amazon-cloudwatch-observability`) are **not** pinned: the EKS module's
 default `most_recent = true` resolves the newest version AWS publishes
 as compatible with the cluster's 1.36 at apply time. Pinning them would
-require querying `aws eks describe-addon-versions` against a real
-account, and a real account is not available until the environment is
+require querying `aws eks describe-addon-versions` against an AWS
+account, and an account is not available until the environment is
 actually provisioned. That is also where the CloudWatch add-on's
 >= v3.1.0 requirement for Pod Identity is confirmed, not assumed.
 
@@ -140,7 +138,7 @@ on "already exists". The control-plane log group gets the same 30 days.
 
 **ElastiCache replication group, not a plain cache cluster.** Redis OSS
 in-transit encryption requires a replication group. `num_cache_clusters
-= 1` keeps it the single node already locked. Snapshots are off,
+= 1` keeps it the single node chosen in the design. Snapshots are off,
 because the queue only holds in-flight job ids and job state lives in
 Postgres.
 
@@ -153,8 +151,8 @@ running deployment's image cannot change underneath it. The cloud
 manifests therefore tag each push with the git commit SHA, never a
 reused `latest`.
 
-**Teardown is a first-class operation.** The deployment design locked
-"bring up, measure, `terraform destroy`" because the EKS control plane
+**Teardown is a normal operation.** The deployment design is "bring
+up, measure, `terraform destroy`", because the EKS control plane
 and NAT gateway bill by the hour. So nothing blocks a destroy:
 
 ```text
@@ -175,7 +173,7 @@ It is not a production-data posture.
 Terraform is not installed natively on this machine (already noted in
 the deployment design's tooling check). Every check below ran in the
 official `hashicorp/terraform:1.16.4`
-container instead, against the real providers and modules downloaded
+container instead, against the actual providers and modules downloaded
 from the registry:
 
 ```text
@@ -190,9 +188,9 @@ A static security scan also ran (`aquasec/trivy config`, HIGH/CRITICAL,
 downloaded third-party modules excluded):
 
 ```text
-first run    3 findings -- AWS-0031 x2 (mutable ECR tags), AWS-0132 (S3 without CMK)
+first run    3 findings: AWS-0031 x2 (mutable ECR tags), AWS-0132 (S3 without CMK)
 fixed        AWS-0031: image_tag_mutability = "IMMUTABLE" (see above)
-accepted     AWS-0132: SSE-S3, as already locked. A customer-managed KMS
+accepted     AWS-0132: SSE-S3, as chosen in the design. A customer-managed KMS
              key would add a monthly key cost plus per-request KMS charges,
              and kms:Decrypt/GenerateDataKey on the backend role, for no
              requirement this project has (no key-policy or cross-account
@@ -203,19 +201,19 @@ final run    1 finding in this repository's code (the accepted AWS-0132)
 
 What `validate` cannot check without an AWS account (credentials,
 quotas, instance-type availability in `us-west-2`'s chosen AZs, the RDS
-engine minor resolved from `"16"`) is exactly what a reviewed
-`terraform plan` against a real account is for.
+engine minor resolved from `"16"`) is what a reviewed
+`terraform plan` against an AWS account is for.
 
-## Before the first real `terraform init`
+## Before the first `terraform init`
 
-Two one-time steps outside Terraform, both documented here so the
-first real run follows them rather than improvising:
+Two one-time steps happen outside Terraform. They are written down
+here so that the first run follows them instead of improvising:
 
 ```bash
 # 1. Install the AWS CLI and Terraform (or keep using the container), then
 #    configure credentials for the target account.
 
-# 2. Create the state bucket by hand -- it cannot live in the state it stores.
+# 2. Create the state bucket by hand; it cannot live in the state it stores.
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 aws s3api create-bucket --bucket ai-earth-tfstate-$ACCOUNT_ID --region us-west-2 \
   --create-bucket-configuration LocationConstraint=us-west-2
@@ -228,7 +226,7 @@ terraform init -backend-config=backend.hcl
 ```
 
 New S3 buckets are encrypted with SSE-S3 by default, and the backend
-block sets `encrypt = true`. The state bucket is deliberately **not**
+block sets `encrypt = true`. On purpose, the state bucket is **not**
 destroyed by `terraform destroy`, which is why it is created by hand.
 
 After the first apply, the FIRMS key's value is written out of band, so
@@ -236,7 +234,7 @@ it never enters Terraform variables or state:
 
 ```bash
 aws secretsmanager put-secret-value --secret-id ai-earth/firms \
-  --secret-string '{"map_key":"<real FIRMS map key>"}'
+  --secret-string '{"map_key":"<your FIRMS map key>"}'
 ```
 
 ## Outputs -> the cloud manifests
@@ -253,7 +251,7 @@ db_master_user_secret_arn,
 firms_secret_arn                       -> ExternalSecret remote refs
 ecr_repository_urls                    -> Deployment images
 backend_service_account                -> ServiceAccount the backend must run as
-                                          (default/backend -- the Pod Identity
+                                          (default/backend, the Pod Identity
                                           association already points at it)
 kubeconfig_command                     -> local kubectl access
 ```

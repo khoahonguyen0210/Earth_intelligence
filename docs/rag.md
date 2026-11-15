@@ -17,8 +17,9 @@ question  -> planner picks search_docs -> query embedding -> top 5 passages
 - **Chunking** (`rag/chunking.py`): each Markdown section becomes one
   chunk, and long sections are split on paragraph boundaries at about
   1,500 characters. Every chunk keeps its file path, document title and
-  section heading. Sentences about the private build plan are dropped,
-  so passages describe only the system. This file is left out of the
+  section heading. Sentences about the document itself, such as "This
+  document records...", are dropped, so passages describe only the
+  system. This file is left out of the
   index, because it quotes the evaluation questions and would let the
   index answer its own test set.
 - **Embeddings** (`rag/embeddings.py`): `gemini-embedding-001`, 3,072
@@ -27,7 +28,7 @@ question  -> planner picks search_docs -> query embedding -> top 5 passages
   questions as `RETRIEVAL_QUERY`. A rate-limited batch (HTTP 429) waits
   out the per-minute quota and is retried.
 - **Index** (`rag/index.py`): the vectors are a NumPy matrix on disk,
-  searched exactly. At 473 vectors an exact search takes milliseconds,
+  searched exactly. At 542 vectors an exact search takes milliseconds,
   so a vector database would add infrastructure without adding speed.
   The index also keeps a BM25 model of the same chunks.
 - **Answering** (`planner/generate_answer.py`): retrieved passages are a
@@ -43,21 +44,21 @@ question  -> planner picks search_docs -> query embedding -> top 5 passages
 `scripts/rag/evaluate_retrieval.py` runs 35 labelled questions
 (`rag/eval_set.py`) through three retrieval modes. Each question lists
 the docs that answer it. A retrieval is a hit when one of those docs is
-in the results. The questions are deliberately worded unlike the docs,
+in the results. The questions are worded unlike the docs on purpose,
 for example "Do users need to log in?" rather than "authentication".
 
 | Mode | Recall@1 | Recall@3 | Recall@5 | MRR |
 |---|---|---|---|---|
-| BM25 (keywords) | 0.371 | 0.543 | 0.686 | 0.474 |
-| Dense (Gemini embeddings) | **0.829** | **0.943** | **0.971** | **0.893** |
-| Hybrid (reciprocal rank fusion) | 0.600 | 0.857 | 0.914 | 0.727 |
+| BM25 (keywords) | 0.286 | 0.571 | 0.600 | 0.406 |
+| Dense (Gemini embeddings) | **0.886** | **0.943** | **0.971** | **0.921** |
+| Hybrid (reciprocal rank fusion) | 0.514 | 0.829 | 0.914 | 0.674 |
 
 What this shows:
 
 - Dense retrieval is clearly best. It misses only one question in the
   top 5 ("Where are large output files kept?", which needs the object
   storage doc).
-- Keyword search fails on paraphrases. It misses 11 of 35 in the top 5.
+- Keyword search fails on paraphrases. It misses 14 of 35 in the top 5.
 - Hybrid is worse than dense alone. Equal-weight fusion lets BM25's
   wrong matches displace correct dense results.
 
@@ -80,7 +81,7 @@ Limits of this measurement:
 
 ## End to end
 
-One live question, run through the real planner, retrieval and answer
+One live question, run through the planner, retrieval and answer
 generation:
 
 > Does the forecast model actually beat a simple rule that assumes
@@ -104,7 +105,7 @@ The index must be rebuilt whenever `docs/` changes. A rebuild reuses
 the stored vector of every chunk whose text is unchanged and embeds only
 new or edited chunks. Each embedded chunk is one request against the
 free tier's 1,000 a day, so adding a doc costs a few dozen requests,
-not the roughly 480 of a build from scratch. The manifest records a
+not the roughly 540 of a build from scratch. The manifest records a
 fingerprint of the chunk text, so a stale index can be spotted by
 comparing fingerprints. `--lexical-only` builds a BM25-only index
 without calling the API.

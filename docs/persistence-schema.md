@@ -1,32 +1,31 @@
-# Persistence Schema — LOCKED
+# Persistence Schema
 
-This document freezes the PostgreSQL/PostGIS persistence schema. It is
-not a brainstorming document. Later Redis async-job and retry/timeout/
-idempotency work builds against this schema rather than redefining it.
+This document defines the PostgreSQL/PostGIS schema. The Redis async
+jobs and the retry, timeout and idempotency work use this schema and do
+not redefine it.
 
-Infrastructure: `infra/docker/docker-compose.yml` runs `postgis/postgis`
-on the exact credentials already in `application.properties`
-(`ai_earth`/`ai_earth`/`ai_earth_dev`, port 5432). Run
-`docker compose up -d` from `infra/docker/` before running the backend or
-its tests — since this task, `BackendApplicationTests` genuinely needs a
-live datasource (the earlier `DataSourceAutoConfiguration` exclusion is
-gone; JPA repositories now exist and require it). Schema is applied by
-Flyway (`backend/src/main/resources/db/migration/V1__initial_schema.sql`)
-on startup, not by Hibernate `ddl-auto` (still `validate`).
+`infra/docker/docker-compose.yml` runs `postgis/postgis` with the
+credentials in `application.properties` (`ai_earth`/`ai_earth`/
+`ai_earth_dev`, port 5432). Run `docker compose up -d` from
+`infra/docker/` before running the backend or its tests.
+`BackendApplicationTests` needs a live datasource: the old
+`DataSourceAutoConfiguration` exclusion is gone, because JPA
+repositories now exist and require one. Flyway applies the schema at
+startup (`backend/src/main/resources/db/migration/V1__initial_schema.sql`);
+Hibernate `ddl-auto` stays at `validate`.
 
 ## The eight tables
 
-Eight things must be persisted. All eight exist as real,
-migrated tables with correct types and indexes. Three have a Java
-read/write path wired up today:
+Eight kinds of data must be stored. All eight tables exist, with correct
+types and indexes. Three have Java code that reads and writes them:
 
 ```text
-analyses    REAL  -- AnalysisEntity/AnalysisJpaRepository, backing
-                     AnalysisStore (a job/result flow)
-forecasts   REAL  -- ForecastEntity/ForecastJpaRepository, backing
-                     ForecastStore (a job/result flow)
-regions     REAL  -- RegionStore (com.example.backend.region), a plain
-                     JdbcTemplate upsert, not a JPA entity -- see below
+analyses    USED  AnalysisEntity/AnalysisJpaRepository, behind
+                  AnalysisStore (a job and result flow)
+forecasts   USED  ForecastEntity/ForecastJpaRepository, behind
+                  ForecastStore (a job and result flow)
+regions     USED  RegionStore (com.example.backend.region), a plain
+                  JdbcTemplate upsert, not a JPA entity (see below)
 
 jobs        schema only
 grid_cells  schema only
@@ -36,68 +35,67 @@ models      schema only
 evidence    schema only
 ```
 
-## Why only three are wired
+## Why only three are used
 
-`analyses`, `forecasts`, and now `regions` are the tables with a real,
-already-tested producer today. `AnalysisController` and
-`ForecastController`/`ForecastWorker` each create a genuine
-request/status/result record per HTTP call, and `RegionStore` records
-every region those (plus `EarthQueryController`) actually
-resolved: `query.evidence.build_evidence` already attaches
-`region_kind`/`region_label`/`region_bbox` to every analysis's evidence,
-every forecast's `result.evidence`, and every Ask Earth fact's own
-`evidence`; `RegionStore.recordFrom` reads that same shape off each
-success and upserts one row per distinct region (`ON CONFLICT (id) DO
-NOTHING`, keyed by kind+label, or kind+bbox when there is no label) --
-repeat requests for "california" never grow the table, they just confirm
-the same row. Geometry is a PostGIS rectangle built server-side with
-`ST_MakeEnvelope`, matching how `query.region.normalize_region` already
-turns every region kind into a bbox polygon on the Python side; no JTS/
-Hibernate Spatial dependency was added for this, since a plain
-`JdbcTemplate` upsert covers the one write path this table needs.
+`analyses`, `forecasts` and `regions` are the tables that tested code
+writes today. `AnalysisController`, and `ForecastController` with
+`ForecastWorker`, each create a request, status and result record per
+HTTP call. `RegionStore` records every region that these controllers
+(and `EarthQueryController`) resolved.
 
-The other five have no real caller yet:
+`query.evidence.build_evidence` already adds `region_kind`,
+`region_label` and `region_bbox` to the evidence of every analysis,
+the `result.evidence` of every forecast, and the `evidence` of every Ask
+Earth fact. `RegionStore.recordFrom` reads this from each successful
+result and upserts one row per distinct region (`ON CONFLICT (id) DO
+NOTHING`, keyed by kind and label, or by kind and bounding box when
+there is no label). Repeated requests for "california" do not grow the
+table; they find the same row. The geometry is a PostGIS rectangle
+built on the server with `ST_MakeEnvelope`, in the same way that
+`query.region.normalize_region` turns every region kind into a bounding
+box polygon in Python. No JTS or Hibernate Spatial dependency was added,
+because a plain `JdbcTemplate` upsert covers the one write this table
+needs.
 
-- `jobs` is the generic async-job envelope the Redis worker will
-  actually drive (`PENDING`/`RUNNING`/`SUCCEEDED`/`FAILED`/`RETRYING`/
-  `CANCELLED`, per `docs/forecast-api-contract.md`). `analyses`/
-  `forecasts` already carry their own id/status/error and are not rows in
-  this table.
-- `grid_cells` would back `data.grid.build_california_grid()`, but
-  nothing in Java reads or writes the grid; it is generated and consumed
-  entirely in Python today (`scripts/data/generate_grid.py`,
-  `data/processed/grid/` — gitignored and regenerated on demand per
+The other five have no caller yet:
+
+- `jobs` is the general async-job record for the Redis worker
+  (`PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `RETRYING`, `CANCELLED`,
+  see `docs/forecast-api-contract.md`). `analyses` and `forecasts`
+  already have their own id, status and error, and are not rows in this
+  table.
+- `grid_cells` would store `data.grid.build_california_grid()`, but no
+  Java code reads or writes the grid. Python creates and uses it
+  (`scripts/data/generate_grid.py`, `data/processed/grid/`, which git
+  ignores and which is rebuilt on demand, see
   `docs/california-grid-contract.md`).
-- `workflows`, `datasets`, `models` have no equivalent runtime object in
-  either codebase yet — `datasets`/`models` currently live as files under
-  `ml/artifacts/`, not database rows, and `workflows` names a concept
-  (a named orchestration pipeline) nothing in the project implements yet.
-- `evidence` already lives embedded in `analyses.evidence` and
-  `forecasts.result` (per `docs/forecast-api-contract.md`, evidence is
-  nested inside a forecast's result, not a sibling). The standalone table
-  exists for future direct evidence queries across both, not because
-  anything writes to it today.
+- `workflows`, `datasets` and `models` have no runtime object in either
+  codebase yet. Datasets and models are files under `ml/artifacts/`, not
+  database rows, and no part of the project implements a named workflow
+  pipeline yet.
+- Evidence is already stored inside `analyses.evidence` and
+  `forecasts.result` (see `docs/forecast-api-contract.md`; a forecast's
+  evidence is nested in its result). The separate table is for future
+  queries across both; nothing writes to it today.
 
-Building JPA entities/repositories/app code around a table nothing calls
-would be exactly the kind of speculative, untested abstraction this
-project avoids elsewhere ("Do not add speculative services").
-The schema for the remaining five is real and locked now, precisely so a
-later task can wire a real caller against each one without a migration
-change.
+Writing JPA entities, repositories and app code for tables that nothing
+calls would add untested code with no use, which the project avoids
+elsewhere too. The schema for the other five is fixed now, so later work
+can connect a caller to each one without a migration.
 
 ## Spatial indexes
 
-`regions.geometry` and `grid_cells.geometry`/`grid_cells.centroid` are
-native PostGIS `geometry` columns (SRID 4326, matching every bbox already
-used project-wide), each with a `GIST` index — the standard PostGIS index
-type for containment/intersection queries (`ST_Within`, `ST_Intersects`),
-which is the actual query pattern a future "which region/cell contains
-this point" lookup would use.
+`regions.geometry`, `grid_cells.geometry` and `grid_cells.centroid` are
+PostGIS `geometry` columns (SRID 4326, like every bounding box in the
+project), each with a `GIST` index. This is the standard PostGIS index
+for containment and intersection queries (`ST_Within`, `ST_Intersects`),
+which a future "which region or cell contains this point" lookup would
+use.
 
-## What this document does not define
+## Out of scope
 
-The Redis job-state machine is later work, not this one. Which Java
-code eventually reads/writes `regions`/`grid_cells`/`workflows`/
-`datasets`/`models`/`evidence`, and in what shape, is deferred to
-whichever future task gives each one its first real caller — this
-document only fixes the column-level contract those tasks build against.
+The Redis job states are covered in `docs/forecast-async-jobs.md`. Which
+Java code will read and write `regions`, `grid_cells`, `workflows`,
+`datasets`, `models` and `evidence`, and in what shape, is left to the
+work that gives each table its first caller. This document fixes only
+the column-level contract that such work builds on.

@@ -1,49 +1,41 @@
-# Bottleneck Identification — LOCKED
+# Bottleneck Identification
 
-This document freezes bottleneck identification. It is not a
-brainstorming document. It explains,
-with direct real measurements rather than inference, why
-`docs/multi-worker-scaling.md` found more workers making the
-workload monotonically slower.
+`docs/multi-worker-scaling.md` found that each added worker made the
+workload slower. This document measures each possible cause directly to
+find out why.
 
-## The implementation
+## Implementation
 
 ```text
 ml/src/ai_earth_intelligence_and_forecasting_engine/distributed/bottleneck.py
 scripts/distributed/run_bottleneck_report.py
 ```
 
-Those numbers alone only show *that* more workers were slower, not
-*which* of the six candidate factors (CPU, I/O, network,
-database, serialization, coordination) caused it. This task isolates
-each candidate with its own direct measurement rather than guessing from
-aggregate wall-clock numbers:
+The scaling numbers show that more workers were slower, but not which
+of six possible causes was responsible: CPU, I/O, network, database,
+serialization or coordination. Each cause gets its own measurement:
 
 ```text
-cpu           -- the real per-tile compute time
-                 (DistributedRunResult.total_cpu_seconds)
-i_o           -- the real data-loading stage time
-                 (RunContext.data_loading)
-serialization -- pickling one real ChunkTask directly (the exact object
-                 multiprocessing.Pool.map sends across the process
-                 boundary), not inferred from a Pool run
-coordination  -- starting a real Pool(n) whose workers do nothing at all
-                 (measure_spawn_overhead) -- isolates pure process-spawn
-                 cost with zero real work mixed in
-network       -- never reached: nothing in this pipeline makes a network
-                 call
-database      -- never reached: nothing in this pipeline makes a
-                 database call
+cpu            the per-tile compute time
+               (DistributedRunResult.total_cpu_seconds)
+i_o            the data-loading stage time
+               (RunContext.data_loading)
+serialization  pickling one ChunkTask directly (the same object that
+               multiprocessing.Pool.map sends to a worker process)
+coordination   starting a Pool(n) whose workers do nothing
+               (measure_spawn_overhead), which isolates the cost of
+               starting processes
+network        not measured: the pipeline makes no network calls
+database       not measured: the pipeline makes no database calls
 ```
 
-`network`/`database` are correctly absent from the real measurements,
-not candidates this task forgot to check -- the whole pipeline (data
-loading, feature building, model inference) is pure in-process Python
-plus local `multiprocessing`.
+Network and database are left out because the whole pipeline (data
+loading, feature building, model inference) runs in-process with local
+`multiprocessing`.
 
 ## Result
 
-A real run of `scripts/distributed/run_bottleneck_report.py`:
+A run of `scripts/distributed/run_bottleneck_report.py`:
 
 ```text
 real_compute_seconds:   1.078
@@ -57,53 +49,44 @@ spawn_overhead[8]:     24.882
 DOMINANT FACTOR: coordination
 ```
 
-**Coordination (process-spawn overhead) is the real bottleneck, proven
-directly, not inferred.** 8 *empty* workers -- doing zero real work --
-already cost 24.9 seconds just to start, which alone exceeds the
-entire real computational workload (1.08 seconds of CPU across all 500
-tiles) by more than 20x. This is the direct, isolated confirmation of
-what the aggregate scaling numbers already implied: adding workers adds
-this same fixed per-process startup cost (Windows' `spawn` start method
-re-launching a Python interpreter and re-importing the whole `ml`
-package -- numpy, xgboost, scikit-learn, rasterio -- from scratch for
-every single worker) far faster than it adds any usable parallel
-compute capacity, because there is so little real compute here to
-parallelize in the first place.
+**Coordination, the cost of starting worker processes, is the
+bottleneck.** Eight workers that do nothing take 24.9 seconds to start.
+That is more than 20 times the whole compute workload, which is 1.08
+seconds of CPU across all 500 tiles. On Windows, the `spawn` start
+method launches a new Python interpreter for every worker and imports
+the whole `ml` package again (numpy, xgboost, scikit-learn, rasterio).
+Each added worker adds this fixed cost, and there is too little compute
+to gain anything from running it in parallel.
 
-## A real secondary finding: serialization is not negligible either
+## Second finding: serialization also costs time
 
-5.2MB pickled per single-tile task is entirely the shared
-observations/era5_records/geography_cells/model every `ChunkTask`
-currently carries in full, regardless of how many tiles that chunk
-actually covers (`docs/one-worker-baseline.md`'s own documented design).
-At 8 workers, that is a real ~42MB moved across process boundaries
-before any of them does a single tile's worth of work -- a real,
-measured cost, and a concrete lead for anyone optimizing this pipeline
-later (shipping only each chunk's already-filtered relevant records,
-not the shared full dataset, to each worker).
+Each single-tile task pickles to 5.2 MB. Almost all of it is the shared
+data that every `ChunkTask` carries in full (observations,
+era5_records, geography_cells and the model), however few tiles the
+chunk covers. This design is described in
+`docs/one-worker-baseline.md`. With 8 workers, about 42 MB moves between
+processes before any tile is computed. Sending each worker only the
+records for its own chunk would reduce this.
 
-## Why this does not change the scaling numbers or conclusion
+## Effect on the scaling results
 
-This task explains the mechanism; it does not re-run or revise the
-scaling benchmark. The fix this measurement points to -- a persistent
-worker pool reused across many workloads (amortizing spawn cost over
-many calls instead of paying it once per benchmark run), or a
-Linux/fork-based deployment target where `fork` avoids re-importing the
-whole interpreter -- is real follow-up work, not something this
-diagnostic task does itself.
+This report explains the cause. It does not rerun or change the scaling
+benchmark. Two changes could reduce the cost: a worker pool that stays
+alive across many workloads, so the start-up cost is paid once, or a
+Linux deployment where `fork` avoids importing everything again. Both
+are follow-up work.
 
-## Result artifact
+## Result file
 
 ```text
 data/processed/distributed/bottleneck_report.json
 ```
 
-Gitignored, regenerable, like every other `data/processed/` artifact in
-this project.
+Like every file under `data/processed/`, it is ignored by git and can
+be rebuilt.
 
-## What this document does not define
+## Open question
 
-Whether a fork-based or persistent-pool redesign would actually change
-the scaling numbers is a real, open, untested question -- this
-task only names the cause on the current implementation and platform,
-it does not build or measure an alternative one.
+Whether a fork-based or persistent pool would change the scaling
+numbers has not been tested. This report names the cause for the
+current code on the current platform only.

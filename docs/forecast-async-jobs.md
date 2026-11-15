@@ -1,9 +1,8 @@
-# Forecast Async Jobs — LOCKED
+# Forecast Async Jobs
 
-This document freezes the Redis-backed async job design. It is not a
-brainstorming document. It builds on
-`docs/forecast-api-contract.md` and `docs/persistence-schema.md`
-rather than redefining either.
+This document describes the async forecast jobs that run through Redis.
+It builds on `docs/forecast-api-contract.md` and
+`docs/persistence-schema.md` and does not change either.
 
 Infrastructure: `infra/docker/docker-compose.yml` runs `redis:7-alpine` on
 port `6379`, no auth (matching the other local dev services). Run
@@ -27,8 +26,8 @@ POST /forecasts
      row currently says, same as before
 ```
 
-`ForecastController` no longer calls `ForecastRunner` at all -- it only
-writes the PENDING row and enqueues. `ForecastWorker` is the only caller
+`ForecastController` no longer calls `ForecastRunner`. It only writes
+the PENDING row and queues the job. `ForecastWorker` is the only caller
 of `ForecastRunner` now.
 
 ## The queue
@@ -49,9 +48,9 @@ empty, this is a continuous blocking-poll loop, not a busy-wait, and
 needs no dedicated worker thread.
 
 A worker that dies between popping an id and finishing the job loses that
-job today -- there is no redelivery or visibility timeout. That gap, and
-the resulting use of `RETRYING`, is explicitly the scope of later
-retry/timeout/idempotency work (see below), not this document's.
+job today -- there is no redelivery or visibility timeout. That gap and
+the use of `RETRYING` are handled later, in
+`docs/forecast-retry-and-idempotency.md` and `docs/reliability-tests.md`.
 
 ## States
 
@@ -60,20 +59,20 @@ PENDING | RUNNING | SUCCEEDED | FAILED | RETRYING | CANCELLED
 ```
 
 `Forecast.Status` now has all six, matching
-`docs/forecast-api-contract.md`. `PENDING` and `RUNNING` are real and
-reachable, driven by the flow above. `RETRYING` (retry a transiently
+`docs/forecast-api-contract.md`. The flow above produces `PENDING` and
+`RUNNING`. `RETRYING` (retry a transiently
 failed job) and `CANCELLED` (cancel a queued/running job) are defined so
-the state space is complete, but nothing produces either yet -- retry
-policy, timeouts, and idempotency are handled by later work. There is no cancel
-endpoint; adding one is out of scope here since
-`docs/forecast-api-contract.md` locks the three existing routes.
+the set of states is complete, but nothing produces either yet. Retry
+policy, timeouts and idempotency are added later. There is no cancel
+endpoint, because `docs/forecast-api-contract.md` defines only the
+three existing routes.
 
 ## Result endpoint behavior for a non-terminal forecast
 
 `docs/forecast-api-contract.md` only specifies
 `GET /forecasts/{id}/result` for a terminal (`SUCCEEDED`/`FAILED`)
-forecast, since before this task no other status was reachable. Now that
-`PENDING`/`RUNNING` are real, fetching a result before it exists returns
+forecast, because no other status could occur before this change. Now
+that `PENDING` and `RUNNING` occur, fetching a result before it exists returns
 `409 Conflict` with the same `{"error": "<message>"}` shape the `422`
 failure case already uses, rather than `200` with a null result:
 
@@ -81,11 +80,10 @@ failure case already uses, rather than `200` with a null result:
 { "error": "forecast <id> has not finished (status: RUNNING)" }
 ```
 
-## What this document does not define
+## Out of scope
 
-Retry-on-transient-failure, worker timeouts, and idempotency keys
-are not implemented here -- `RETRYING` exists as an enum value
-only. The generic `jobs` table `docs/persistence-schema.md` describes
+Retry after a temporary failure, worker timeouts and idempotency keys
+are not part of this step; `RETRYING` exists only as an enum value. The generic `jobs` table `docs/persistence-schema.md` describes
 stays schema-only: `forecasts` already is the durable job record for this
-flow (its own id/status/error), so this task does not add a second,
-parallel job row for the same request.
+flow (its own id, status and error), so no second job row is added for
+the same request.

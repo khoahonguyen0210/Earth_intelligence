@@ -1,59 +1,50 @@
-# Final Feature Set — LOCKED
+# Final Feature Set
 
-This document freezes the feature set for the main benchmark. It is not a
-brainstorming document. Do not alter
-this decision after looking at test-set numbers; a change here invalidates
-the honesty of every ablation and benchmark result built on top of it.
+This document fixes the feature set for the main benchmark. The
+decision must not change after looking at test-set numbers, because
+that would make every ablation and benchmark built on it unreliable.
 
-## The frozen decision
+## Decision
 
-The main benchmark uses the **complete** locked feature set already defined
-for this project — fire-history, weather, and
-static geography (including land-cover category) together. Nothing is
-dropped.
+The main benchmark uses the **complete** feature set defined for the
+project: fire history, weather and static geography (including the
+land-cover category) together. Nothing is dropped.
 
-In code, this is exactly the default behavior of `fit_preprocessor`,
-`fit_xgboost`, and `evaluate_xgboost`
-(`ml/src/ai_earth_intelligence_and_forecasting_engine/models/`): calling
-them with no `feature_columns`/`include_land_cover` override uses
-`NUMERIC_FEATURE_COLUMNS` (fire-history + weather + elevation + slope) plus
-the land-cover one-hot. The existing `run_baseline_benchmark` and every
-script under `scripts/models/` that does not explicitly restrict features
-(everything except the two ablation demos) already benchmark against this
-full set. No code change was needed to freeze this — the task is the
-decision not to shrink it.
+In code, this is the default behavior of `fit_preprocessor`,
+`fit_xgboost` and `evaluate_xgboost`
+(`ml/src/ai_earth_intelligence_and_forecasting_engine/models/`). Called
+without a `feature_columns` or `include_land_cover` override, they use
+`NUMERIC_FEATURE_COLUMNS` (fire history, weather, elevation and slope)
+plus the land-cover one-hot columns. `run_baseline_benchmark` and every
+script under `scripts/models/` that does not restrict features (all
+except the two ablation demos) already use this full set. No code
+change was needed. The decision is simply not to shrink the set.
 
-## Why this isn't a cherry-pick
+## Why this is not a selection made after the fact
 
-The weather ablation and the geography ablation exist to
-*measure* whether each feature group helps, using
+The weather and geography ablations measure whether each feature group
+helps, using
 `ml/src/ai_earth_intelligence_and_forecasting_engine/models/ablation.py`.
-As of this freeze, neither ablation has a real measured result: the
-project has only ingested real historical FIRMS data for one real day, so
-the real train/validation splits have zero real positive examples and
-every XGBoost-based variant (baseline and candidate alike, in both
-ablations) fails the same honest single-class check documented in
-`ml/tests/models/test_xgboost_model.py`. See
-`ml/artifacts/weather_ablation_v1/weather_ablation.json` and
-`ml/artifacts/geography_ablation_v1/geography_ablation.json` for the
-actual (null-delta) real runs, and `ml/tests/models/test_ablation.py` for
-proof the ablation code correctly measures a feature group's contribution
-once separable data is available.
+When this decision was made, neither ablation had a result. Only one
+day of historical FIRMS data had been loaded, so the train and
+validation splits had no positive examples. Every XGBoost variant, in
+both ablations, failed the single-class check documented in
+`ml/tests/models/test_xgboost_model.py`. The runs with no difference are
+in `ml/artifacts/weather_ablation_v1/weather_ablation.json` and
+`ml/artifacts/geography_ablation_v1/geography_ablation.json`, and
+`ml/tests/models/test_ablation.py` shows that the ablation code measures
+a feature group's effect correctly once the data has both classes.
 
-Because there is no real per-group signal to react to yet, freezing the
-full locked set is not a data-driven choice among several observed
-variants — it is simply using the feature set
-already specified, unchanged. This is deliberate: once real historical
-data is ingested and the ablations produce real deltas, this frozen
-decision is still not to be revisited by picking whichever subset scored
-best on that day's numbers. A future change to the main benchmark's
-feature set must be its own pre-registered decision (a new locked
-document, reasoned about before looking at test-set results), not a
-post-hoc reaction to one experiment.
+With no per-group result to react to, keeping the full set was not a
+choice among measured options. It was the feature set already
+specified. The rule still holds now that the full data is loaded and
+the ablations have results (`docs/ablation-benchmark.md`): the main
+benchmark does not switch to whichever subset scored best. Any future
+change to its feature set must be decided and written down before
+looking at test-set results.
 
-## What this document does not define
+## Out of scope
 
-The exact feature list, model ladder, and metrics are already locked
-elsewhere in the project. This document exists only to
-record the freeze decision and the reasoning behind it, not to
-restate or redefine the feature list itself.
+The feature list, the models and the metrics are defined elsewhere in
+the project. This document records only the decision to keep the full
+set and the reasons for it.

@@ -1,11 +1,10 @@
-# Metrics — LOCKED
+# Metrics
 
-This document freezes the metrics design. It is not a brainstorming
-document.
+This document describes the backend's metrics.
 
 ## Export: Micrometer -> Prometheus text at /actuator/prometheus
 
-The locked stack says "Prometheus-compatible metrics". Spring Boot's
+The stack uses Prometheus-compatible metrics. Spring Boot's
 actuator already runs Micrometer, so the only addition is the Prometheus
 registry (`io.micrometer:micrometer-registry-prometheus`, version
 managed by the Boot parent) and exposing the endpoint:
@@ -25,7 +24,7 @@ Service or ALB routes (`docs/security-baseline.md`). The backend pod
 template carries the conventional `prometheus.io/scrape|path|port`
 annotations, so a Prometheus-compatible scraper in the cluster finds it.
 
-A real scrape of the running backend (after one health check and one
+A scrape of the running backend (after one health check and one
 unknown-id lookup):
 
 ```text
@@ -64,7 +63,7 @@ Useful queries:
 HTTP error rate      sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m]))
 p95 HTTP latency     histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket[5m])))
 job failures         sum by (error_code) (increase(forecast_job_failures_total{terminal="true"}[1h]))
-worker utilization   avg(avg_over_time(forecast_worker_busy[5m]))       -- fraction of time busy, all replicas
+worker utilization   avg(avg_over_time(forecast_worker_busy[5m]))       fraction of time busy, all replicas
 mean inference time  rate(forecast_python_stage_duration_seconds_sum{stage="model_inference"}[15m])
                      / rate(forecast_python_stage_duration_seconds_count{stage="model_inference"}[15m])
 ```
@@ -110,8 +109,8 @@ observability, not part of the result.
 `outcome`, `error_code` (an already-fixed enum), `terminal`, `stage`
 (whitelisted to the four names Python reports), and Spring's templated
 `uri` (`/forecasts/{id}`, never the id). No request, id, or user text
-can mint a new time series. `analysis.operation` is deliberately
-**not** a tag, because a client controls it.
+can mint a new time series. `analysis.operation` is **not** a tag,
+on purpose, because a client controls it.
 
 **Failures are counted per attempt, split by `terminal`.** A transient
 failure that is retried counts `terminal="false"`. The attempt that ends
@@ -129,7 +128,7 @@ ForecastMetricsTest                 4  queue gauge reads the live queue; NaN (no
 PythonForecastRunnerTest            +2 timings_ms parsed (malformed entry dropped, result untouched);
                                        no timings -> empty, still success. Existing tests now also
                                        assert PYTHON_FAILED / PYTHON_TIMEOUT / PYTHON_START_FAILED
-PrometheusEndpointIntegrationTest   1  real app + live Redis: /actuator/prometheus is text/plain with
+PrometheusEndpointIntegrationTest   1  full app + live Redis: /actuator/prometheus is text/plain with
                                        HTTP count, latency buckets, outcome tag, queue depth, busy
 test_run_forecast.py                +2 compute_forecast fills model_fit/model_inference (inference <
                                        fit); timing does not change the result
@@ -141,15 +140,15 @@ tests: 8 passed.
 `PrometheusEndpointIntegrationTest` needs `@AutoConfigureMetrics`:
 Spring Boot disables metrics export in `@SpringBootTest` by default, so
 without it `/actuator/prometheus` is a 404 in tests while working in
-the real application (confirmed by running the app and scraping it,
+the running application (confirmed by running the app and scraping it,
 output above).
 
-## What this task does not do
+## Out of scope
 
-- **Run a Prometheus server or dashboards.** This task exports metrics
+- **A Prometheus server or dashboards.** The backend exports metrics
   and makes them discoverable. Storing and graphing them is the
   cluster's scraper's job: Prometheus, or the CloudWatch agent's
   Prometheus mode in the cloud (`docs/cloud-deployment.md`).
-- **Python-process metrics.** The pipeline is a short-lived subprocess
+- **Metrics from the Python process.** The pipeline is a short-lived subprocess
   per job, so it has nothing to scrape. Its numbers reach Prometheus
   through the backend, as above.

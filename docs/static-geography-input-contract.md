@@ -21,7 +21,7 @@ No second competing land-cover product is used.
 Both sources are Cloud-Optimized GeoTIFFs (COGs) on public, unauthenticated
 AWS S3 buckets. The adapter reads them via GDAL's `/vsicurl/` virtual
 filesystem through `rasterio`, using a windowed read so only the pixels
-covering the requested bounding box are downloaded — not the full tile.
+covering the requested bounding box are downloaded, not the full tile.
 
 No API key or account is required for either source.
 
@@ -73,7 +73,7 @@ covering the requested bounding box:
 - elevation and slope use average resampling.
 - land cover uses mode (majority) resampling.
 
-This 0.1 degree resolution matches the locked project grid. Assignment
+This 0.1 degree resolution matches the project grid. Assignment
 to the canonical grid's stable tile IDs happens once the grid artifact
 exists.
 

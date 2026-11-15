@@ -1,10 +1,9 @@
-# Workflow Persistence — LOCKED
+# Workflow Persistence
 
-This document freezes workflow persistence. It is not a
-brainstorming document. It gives `workflows`/`jobs`
-(`docs/persistence-schema.md`) their first real read/write
-path, and gives the workflow DAG schema's `Workflow`/`WorkflowNode`
-shape durable storage, rather than redefining either.
+This step gives the `workflows` and `jobs` tables
+(`docs/persistence-schema.md`) their first read and write path, and
+stores the `Workflow` and `WorkflowNode` shapes from the workflow DAG
+schema. It does not change either definition.
 
 ## Schema change
 
@@ -12,21 +11,22 @@ shape durable storage, rather than redefining either.
 backend/src/main/resources/db/migration/V3__workflow_persistence.sql
 ```
 
-`jobs` (previously `id, job_type, status, created_at,
-updated_at, error`) gains `task_id`, `workflow_id` (FK to `workflows`),
-`dependencies` (jsonb), `attempt`, `input_ref`, `output_ref`. A new
-`task_id` column, not a reuse of `id`, because a `WorkflowNode`'s
-`taskId` (e.g. `"get_data"`) is only unique *within* one workflow --
-the same shape's every run reuses the same task ids -- so `id` is
-synthesized instead as `workflow_id + ":" + task_id`, with a partial
-unique index on `(workflow_id, task_id)` enforcing the real constraint.
-`input_ref`/`output_ref` are `TEXT`, not `jsonb`: the workflow DAG
-schema's own docstring already calls these opaque reference strings
-(a JSON blob, an
-object-storage key, a `$step_id.field` reference), not guaranteed valid
-JSON on their own.
+`jobs` had `id, job_type, status, created_at, updated_at, error`. It
+gains `task_id`, `workflow_id` (a foreign key to `workflows`),
+`dependencies` (jsonb), `attempt`, `input_ref` and `output_ref`.
 
-## The two types
+`task_id` is a new column instead of a reuse of `id`, because a
+`WorkflowNode`'s `taskId` (for example `"get_data"`) is unique only
+within one workflow: every run of the same workflow uses the same task
+IDs. So `id` is built as `workflow_id + ":" + task_id`, and a partial
+unique index on `(workflow_id, task_id)` enforces the rule.
+
+`input_ref` and `output_ref` are `TEXT`, not `jsonb`. The workflow DAG
+schema describes them as opaque reference strings (a JSON blob, an
+object-storage key or a `$step_id.field` reference), which are not
+always valid JSON.
+
+## Types
 
 ```text
 backend/src/main/java/com/example/backend/workflow/WorkflowEntity.java
@@ -36,48 +36,43 @@ backend/src/main/java/com/example/backend/workflow/JobJpaRepository.java
 backend/src/main/java/com/example/backend/workflow/WorkflowStore.java
 ```
 
-`WorkflowStore.save`/`find` do the `Workflow`/`WorkflowNode` <-> entity
-conversion, the exact same shape `ForecastStore` already
-uses for `Forecast`/`ForecastEntity` -- nothing else in the workflow
-package needs to know these are Postgres rows.
+`WorkflowStore.save` and `find` convert between `Workflow`/`WorkflowNode`
+and the entities, in the same way that `ForecastStore` converts
+`Forecast` and `ForecastEntity`. Nothing else in the workflow package
+needs to know that these are Postgres rows.
 
-## What this task proves
+## Recovery after a restart
 
-The acceptance test for this task: "Restart a worker/
-controller during a controlled run and verify active state can be
-recovered." `WorkflowStoreTest` (a real `@SpringBootTest` against local
-Postgres -- `docker compose up -d` in `infra/docker/` first, same
-requirement `BackendApplicationTests` already has) proves this for
-real:
+The requirement: restart a worker or controller during a controlled run
+and check that the active state can be recovered. `WorkflowStoreTest`
+is a `@SpringBootTest` against local Postgres (run `docker compose up -d`
+in `infra/docker/` first, as for `BackendApplicationTests`). It does the
+following:
 
 ```text
-1. Save a workflow mid-run: one node SUCCEEDED, one RUNNING (as if a
-   process died while it was in flight), two still PENDING.
-2. Load it back through a brand-new WorkflowStore.find call -- no
-   shared in-memory state with whatever saved it.
-3. Hand the reloaded Workflow to a brand-new WorkflowExecutor --
-   standing in for a freshly started process after the restart.
-4. Assert every node reaches SUCCEEDED.
+1. Save a workflow in the middle of a run: one node SUCCEEDED, one
+   RUNNING (as if the process died while it ran), two still PENDING.
+2. Load it with a new WorkflowStore.find call, with no shared memory
+   with the code that saved it.
+3. Give the loaded Workflow to a new WorkflowExecutor, which stands in
+   for a process started after the restart.
+4. Check that every node reaches SUCCEEDED.
 ```
 
-Making step 4 possible required a real fix to `WorkflowExecutor`
-itself, found by writing this exact test: a node loaded back in
-`RUNNING` status has no legal way to re-enter `RUNNING` again (the
-state machine's table has no `RUNNING -> RUNNING` edge -- there is no such thing
-as "still running" across a restart, since nothing is actually running
-anymore). `WorkflowExecutor.advance` now treats a node found already
-`RUNNING` at the very start of `execute` as what it can only be -- a
-leftover from an interrupted attempt -- and moves it through the legal
-`RUNNING -> RETRYING -> RUNNING` path before re-dispatching, counting
-it as a real retry attempt. This is a genuine, load-bearing behavior
-change this task's own test discovered a need for, not a hypothetical.
+Writing this test showed that `WorkflowExecutor` needed a fix for step 4.
+A node loaded in `RUNNING` status had no allowed way to enter `RUNNING`
+again: the state machine has no `RUNNING -> RUNNING` transition, and
+after a restart nothing is running anymore. At the start of `execute`,
+`WorkflowExecutor.advance` now treats a node that is already `RUNNING`
+as left over from an interrupted attempt. It moves the node through the
+allowed `RUNNING -> RETRYING -> RUNNING` path before dispatching it
+again, and counts this as a retry attempt.
 
-## What this document does not define
+## Out of scope
 
-`save` is called explicitly by whatever runs a workflow; there is no
-scheduled/automatic checkpointing after every single node transition,
-and no caller yet that actually invokes `WorkflowStore`/`WorkflowExecutor`
-together in a real request path (a controller endpoint, a Redis-queued
-worker the way `ForecastWorker` already is for a single job). Wiring a
-real `WorkflowTaskDispatcher` and a real HTTP/queue entry point remains
-`docs/workflow-execution.md`'s documented gap, unchanged by this task.
+The code that runs a workflow calls `save` itself. There is no
+automatic checkpoint after every node transition. No request path uses
+`WorkflowStore` and `WorkflowExecutor` together yet, such as a
+controller endpoint or a Redis-queued worker like `ForecastWorker`.
+Connecting a `WorkflowTaskDispatcher` to an HTTP or queue entry point is
+still the open gap described in `docs/workflow-execution.md`.

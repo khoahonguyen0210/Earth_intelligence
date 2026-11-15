@@ -1,26 +1,24 @@
-# Final ML Benchmark — LOCKED
+# Final ML Benchmark
 
-This document records the final ML benchmark. It is
-not a brainstorming document.
+This benchmark compares the four models (climatology, logistic
+regression, XGBoost and calibrated XGBoost) on PR-AUC, ROC-AUC, Brier
+score, log loss, calibration and inference time.
 
-It asks for a real benchmark of the locked model ladder
-(Climatology, Logistic Regression, XGBoost, Calibrated XGBoost),
-producing PR-AUC, ROC-AUC, Brier score, log loss, calibration, and
-inference time. The earlier benchmark run's own script (`scripts/models/run_baseline_benchmark.py`,
-part of the `benchmark-v1` freeze) predates the real historical
-dataset entirely -- its docstring says outright that only climatology
-could succeed, since the sample data it used had zero real positive
-examples in the training/validation splits. The real dataset
+The first benchmark script, `scripts/models/run_baseline_benchmark.py`
+(part of the `benchmark-v1` freeze), was written before the historical
+dataset existed. Its docstring says that only climatology could
+succeed, because the sample data had no positive examples in the
+training and validation splits. The full dataset
 (`data/processed/historical_dataset_v1.csv`, built by
-`scripts/forecast/build_historical_dataset.py`, 1,316,700 rows) has
-since been built and already backs the production model. This task
-adds `scripts/models/run_ml_benchmark.py`, a new runner that
-loads the real dataset and calls the frozen, unmodified
-`models/benchmark.py::run_baseline_benchmark` -- the comparison logic
-itself is untouched; only what data it is run against changes,
-consistent with the `benchmark-v1` freeze (`docs/benchmark-freeze.md`)
-that new data doesn't require a new benchmark version, only a change to
-the harness code would.
+`scripts/forecast/build_historical_dataset.py`, 1,316,700 rows) now
+exists and is used by the production model.
+
+`scripts/models/run_ml_benchmark.py` is a new runner that loads the
+full dataset and calls the frozen, unchanged
+`models/benchmark.py::run_baseline_benchmark`. The comparison logic is
+the same; only the input data is new. Under the `benchmark-v1` freeze
+(`docs/benchmark-freeze.md`), new data does not need a new benchmark
+version; only a change to the benchmark code would.
 
 ## Setup
 
@@ -30,15 +28,15 @@ train split      877,800 rows, cutoffs 2019-06-01 -> 2022-10-26
 validation split 219,450 rows, cutoffs 2023-06-01 -> 2023-10-26
 test split       219,450 rows, cutoffs 2024-06-01 -> 2024-10-26
 model config     the one fixed, documented XGBoost config (n_estimators=500,
-                  max_depth=4, learning_rate=0.1, subsample=0.8,
-                  colsample_bytree=0.8, random_state=20240815) --
-                  unchanged since it was first locked
+                 max_depth=4, learning_rate=0.1, subsample=0.8,
+                 colsample_bytree=0.8, random_state=20240815),
+                 unchanged since it was first set
 ```
 
 ## Results
 
-All four models trained and evaluated successfully against real data
-for the first time (`ml/artifacts/final_ml_benchmark_v1/comparison.{json,csv}`):
+All four models trained and were evaluated on the full data for the
+first time (`ml/artifacts/final_ml_benchmark_v1/comparison.{json,csv}`):
 
 ```text
 Model                 Succeeded  PR-AUC    ROC-AUC   Brier     LogLoss   Train(s)  Infer(s)
@@ -48,25 +46,24 @@ xgboost               True       0.4513    0.9669    0.0022    0.0101    38.56  
 calibrated_xgboost    True       0.4361    0.9667    0.0022    0.0108    38.47     1.28
 ```
 
-**Achieved a PR-AUC of 0.45 with XGBoost, nearly double climatology's
-0.25 baseline, by fitting the locked feature set on the real 2019-2022
-fire history and weather record.**
+**XGBoost reached a PR-AUC of 0.45, nearly double the 0.25 of
+climatology**, using the full feature set on the 2019-2022 fire history
+and weather record.
 
-XGBoost (uncalibrated) has the single best PR-AUC; calibrated XGBoost
-trades a small amount of PR-AUC (0.4513 -> 0.4361) for the property
-that makes it the one actually served to users -- a predicted
-probability that means what it says. Both XGBoost variants dominate
-climatology and logistic regression on every metric except training
-time (climatology is a closed-form baseline; XGBoost early-stops
-around iteration 129, logistic regression's plain gradient solver is
-the slowest of the four on this row count).
+Uncalibrated XGBoost has the best PR-AUC. Calibrated XGBoost gives up a
+little PR-AUC (0.4513 -> 0.4361) in return for probabilities that mean
+what they say, which is why it is the model served to users. Both
+XGBoost models beat climatology and logistic regression on every metric
+except training time. Climatology has a closed-form fit, XGBoost stops
+early at about iteration 129, and logistic regression's plain gradient
+solver is the slowest of the four at this row count.
 
 ## Calibration
 
 `ml/artifacts/final_ml_benchmark_v1_calibrated_xgboost/plots/calibration_table.csv`
-(10 bins, isotonic-calibrated on the validation split, evaluated on the
-test split): predicted and observed frequency track closely across
-every populated bin --
+(10 bins, isotonic calibration on the validation split, evaluated on the
+test split). Predicted and observed frequency are close in every bin
+that has rows:
 
 ```text
 predicted_mean   observed_frequency   count
@@ -81,18 +78,17 @@ predicted_mean   observed_frequency   count
 0.9838           0.8667                    45
 ```
 
--- including the dominant near-zero bin (218,223 of 219,450 test rows,
-matching the real ~0.45% positive rate), where predicted and observed
-frequency agree to three decimal places. `reliability_diagram.png` in
-the same directory plots this visually.
+This includes the near-zero bin, which holds 218,223 of the 219,450 test
+rows (matching the positive rate of about 0.45%). There, predicted and
+observed frequency agree to three decimal places.
+`reliability_diagram.png` in the same folder plots the table.
 
-## What this task does not do
+## Out of scope
 
-- **Does not change `models/benchmark.py` or `models/harness.py`.**
-  Both are on the `benchmark-v1` frozen list and are used exactly as
-  frozen; only a new data-loading script was added.
-- **Does not delete or overwrite the original result**
-  (`ml/artifacts/final_baseline_benchmark_v1`), which stays as the
-  honest historical record of what running against sample-only data
-  produced -- kept, not archived over, the same way
-  `ml/artifacts/reliability_tests/before.json` was kept previously.
+- **`models/benchmark.py` and `models/harness.py` are unchanged.** Both
+  are on the `benchmark-v1` frozen list and are used as frozen. Only a
+  new data-loading script was added.
+- **The first result is kept.** `ml/artifacts/final_baseline_benchmark_v1`
+  stays as the record of what the sample-only data produced. It is not
+  overwritten, in the same way that
+  `ml/artifacts/reliability_tests/before.json` was kept.
