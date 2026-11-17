@@ -106,7 +106,7 @@ def environment() -> dict[str, str]:
         "gpu": torch.cuda.get_device_name(0),
         "driver": run(
             ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"]
-        ),
+        ).splitlines()[0],
         "torch": torch.__version__,
         "torch_cuda": str(torch.version.cuda),
         "triton": triton_version,

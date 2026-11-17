@@ -25,11 +25,13 @@ every edge case.
 
 | Check | Limit |
 |---|---|
-| Absolute error | 0.001 |
-| Relative error | 0.0001 |
+| Each value | \|error\| ≤ 0.001 + 0.0001 × \|reference value\| |
 | Missing values | NaN in exactly the same columns as the reference |
 
-A version that breaks any limit is not benchmarked.
+The two tolerances work together, as in `torch.allclose`: the absolute
+part covers values near zero, and the relative part covers large
+values. A version that breaks a limit is marked as failed in the
+results.
 
 ## Versions
 
@@ -117,6 +119,78 @@ and `percent_of_peak.png`.
 Without a local GPU, run `notebooks/gpu_kernels_on_t4.ipynb` on a free
 Kaggle T4 (see [notebooks/README.md](../notebooks/README.md)). It runs the
 tests, the benchmark and, if the container allows it, Nsight Compute.
+
+## Results on a T4
+
+Run on a free Kaggle T4 with `notebooks/gpu_kernels_on_t4.ipynb`
+(`ml/artifacts/gpu_perf/20261117T213631Z/`).
+
+### Environment
+
+| Item | Value |
+|---|---|
+| GPU | Tesla T4 (compute capability 7.5) |
+| Driver | 580.178.04 |
+| PyTorch | 2.11.0+cu130 (CUDA 13.0) |
+| `nvcc` | CUDA 13.0, the same release as PyTorch's CUDA |
+| Triton | 3.6.0; it compiles for compute capability 7.5 |
+| Python | 3.13.16 |
+| Nsight Compute | blocked: `ERR_NVGPUCTRPERM`, no access to hardware counters inside the Kaggle container |
+| Measured peak bandwidth | 231.5 GB/s (datasheet: 320 GB/s) |
+
+### Tests
+
+All 31 GPU tests pass (`tests/kernels`, 57.9 s). Every version also
+passes the edge cases inside the benchmark, and all 12 timed runs below
+are within the tolerance.
+
+### Benchmark
+
+Each grid has 1,038,240 columns and 13 levels. Times are the median and
+the 90th percentile of 50 runs. "Speedup" is against eager PyTorch at
+the same size.
+
+| Size | Version | Median (ms) | p90 (ms) | GB/s | % of peak | Speedup |
+|---|---|---:|---:|---:|---:|---:|
+| One global field | eager | 16.152 | 16.181 | 3.1 | 1.3 | 1.0× |
+| | `torch.compile` | 1.905 | 1.932 | 26.5 | 11.4 | 8.5× |
+| | Triton | 1.042 | 1.054 | 48.4 | 20.9 | 15.5× |
+| | CUDA C++ | **0.517** | 0.529 | **97.5** | **42.1** | **31.2×** |
+| 12 lead times | eager | 192.170 | 192.318 | 3.1 | 1.4 | 1.0× |
+| | `torch.compile` | 16.694 | 16.814 | 36.2 | 15.7 | 11.5× |
+| | Triton | 8.217 | 8.327 | 73.6 | 31.8 | 23.4× |
+| | CUDA C++ | **5.974** | 5.992 | **101.3** | **43.7** | **32.2×** |
+| 16 ensemble members | eager | 255.425 | 255.619 | 3.2 | 1.4 | 1.0× |
+| | `torch.compile` | 22.962 | 23.175 | 35.1 | 15.2 | 11.1× |
+| | Triton | 11.340 | 11.518 | 71.1 | 30.7 | 22.5× |
+| | CUDA C++ | **8.612** | 8.723 | **93.7** | **40.5** | **29.7×** |
+
+![Share of measured peak bandwidth by version and size](images/gpu-percent-of-peak.png)
+
+What this shows:
+
+- **The CUDA kernel is the fastest at every size.** It reaches 40% to
+  44% of the measured bandwidth and runs about 30 times faster than
+  eager PyTorch.
+- **Triton comes second** at 31% to 32% on the two larger sizes.
+- **`torch.compile` helps, but less.** It is 8 to 12 times faster than
+  eager, at 11% to 16% of peak. It fuses operations but still splits
+  the work into several kernels.
+- **Eager PyTorch is far from the limit** (about 1.4%), because each of
+  its many small operations writes a full-size result back to memory.
+  Its real memory traffic is much larger than the minimum bytes used
+  here.
+- **No version is close to the peak.** Nsight Compute could not read
+  hardware counters on Kaggle, so the cause of the remaining gap was not
+  measured.
+
+An earlier run in the same session
+(`ml/artifacts/gpu_perf/20261117T212220Z/`) gave nearly the same numbers
+for the two larger sizes and for CUDA at every size. On the single
+global field, Triton took 0.641 ms (33.8% of peak) and `torch.compile`
+1.546 ms (14.0%) in that run, against 1.042 ms and 1.905 ms here. At
+this small size, a run of about 1 ms is sensitive to the state of the
+shared GPU, so the table reports the run in which the tests also ran.
 
 ## Kernel speed is not pipeline speed
 

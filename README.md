@@ -95,6 +95,7 @@ The forecast model is scored on how well it ranks the places that actually burne
 | A worker killed mid-run | **0 grid cells lost**, recovered in **1.35 s** |
 | AI planner on 22 real questions | **100%** correct intent and region, **6 of 6** off-topic or malicious requests blocked |
 | Hot-Dry-Windy fire-weather index alone (2025) | **0.372** ROC-AUC, worse than chance and far below each cell's fire rate (0.852) |
+| Fire-weather index as a CUDA kernel (NVIDIA T4) | **40% to 44%** of measured memory bandwidth, about **30×** faster than plain PyTorch |
 
 More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-baseline.md`](docs/neural-baseline.md), [`docs/retraining.md`](docs/retraining.md), and [`docs/fire-weather-index-validation.md`](docs/fire-weather-index-validation.md). Mixed and negative results are in [`docs/headline-results.md`](docs/headline-results.md).
 
@@ -190,11 +191,11 @@ Seasons that were already processed are skipped, so the command is safe to run o
 This part adds NVIDIA Earth-2 weather forecasts. It sits beside the main 24-hour forecast and does not change it.
 
 - **Fire-weather index** — The Hot-Dry-Windy Index (Srock et al., 2018) in plain PyTorch, checked against the paper's worked examples. On its own it does not predict new fires, so it is used as one input next to fire history. See [`fire-weather-index-validation.md`](docs/fire-weather-index-validation.md).
-- **GPU kernels** — The index is also written as a fused Triton kernel and a CUDA C++ kernel, next to `torch.compile`. All versions share one set of tests against a float64 reference, and the benchmark reports each one as a share of the GPU's measured memory bandwidth. See [`gpu-performance.md`](docs/gpu-performance.md).
+- **GPU kernels** — The index is also written as a fused Triton kernel and a CUDA C++ kernel, next to `torch.compile`. All versions share one set of tests against a float64 reference, and the benchmark reports each one as a share of the GPU's measured memory bandwidth. On a T4, the CUDA kernel reaches 40% to 44% of the measured 231.5 GB/s and runs about 30 times faster than plain PyTorch; Triton reaches about 31% on the larger inputs. See [`gpu-performance.md`](docs/gpu-performance.md).
 - **Risk 1 to 3 days ahead** — An Earth-2 weather model (SFNO) forecasts three days. The daily index values join fire history and terrain in a calibrated XGBoost model for each day. The experiment was specified before it was run. See [`multi-day-risk.md`](docs/multi-day-risk.md).
 - **Free daily map** — Every day, GitHub Actions starts a GPU run on Kaggle, scores every cell, and publishes a static map to Cloudflare Pages. See [`daily-risk-map.md`](docs/daily-risk-map.md).
 
-GPU work runs on a free Kaggle T4 with the notebooks in [`notebooks/`](notebooks/README.md). Results for the kernels, the 3-day model, and the map are added here when their GPU runs are complete.
+GPU work runs on a free Kaggle T4 with the notebooks in [`notebooks/`](notebooks/README.md). Results for the 3-day model and the map are added here when their GPU runs are complete.
 
 ## Getting Started
 
