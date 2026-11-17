@@ -24,7 +24,7 @@ change the main benchmark, its splits or its results.
 | Cutoffs | The main dataset's cutoffs: 10:00 UTC, every 7 days from June 1 to late October, 22 per year |
 | Years | 2019 to 2023 and 2025. The 2024 held-out test year is not used. |
 | Split | Train 2019 to 2022, validation 2023, test 2025 season |
-| Weather model | SFNO from Earth2Studio, default package, if the T4 table shows it fits. Otherwise this page is changed before any run. |
+| Weather model | SFNO from Earth2Studio, default package. As released, it runs out of memory on a T4 ([T4 table](earth2-models-on-t4.md)), so its per-pixel layers run in blocks of 64 latitude rows. The model and its weights do not change. |
 | Initial conditions | ERA5 from ARCO at 06:00 UTC on the cutoff day, the latest 6-hour time at or before the cutoff |
 | Forecast steps | 11 steps of 6 hours, to 00:00 UTC three days later |
 | Features | Fire history (5 counts), elevation, slope, land cover, and four forecast values for the lead day |
@@ -74,9 +74,11 @@ likely an upper bound for live use.
 
 132 forecasts of 11 steps each. The estimate is about 5 GPU-hours,
 mostly for downloading initial conditions, and the cap is 15 GPU-hours.
-Kaggle gives about 30 free GPU-hours per week. If the T4 table shows
-more than 20 seconds per step, every other cutoff is dropped and that
-change is written here before the run.
+Kaggle gives about 30 free GPU-hours per week, and one run may last
+up to 12 hours. The notebook first runs one cutoff as a short check. If
+that cutoff takes more than 5 minutes, all 132 would not finish in one
+run, so the notebook keeps every other cutoff. The choice is saved in
+`metadata.json` and reported with the results.
 
 ## How to run
 

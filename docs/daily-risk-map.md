@@ -99,8 +99,9 @@ run summary.
 | `index_kernel` | The index computation alone (part of `index`) |
 | `writing_output` | Saving the result |
 
-To profile a fixed past date, so that runs can be compared, run on a
-Kaggle T4:
+To profile a fixed past date, so that runs can be compared, run
+`notebooks/daily_pipeline_on_t4.ipynb` on a Kaggle T4. It runs this
+command once for each index version:
 
 ```bash
 PYTHONPATH=ml/src python scripts/map/run_daily_forecast.py \
@@ -109,7 +110,10 @@ PYTHONPATH=ml/src python scripts/map/run_daily_forecast.py \
 
 `--implementation` selects `eager`, `torch_compile`, `triton` or `cuda`
 for the index. `--profile` adds a second run under `torch.profiler` and
-saves its operator table to `profile_table.txt`.
+saves its operator table to `profile_table.txt`. `--rows-per-chunk`
+sets how many latitude rows SFNO's per-pixel layers process at once
+(64 by default, 0 for the whole grid; see
+[Earth-2 Models on a T4](earth2-models-on-t4.md#fitting-sfno-on-a-t4)).
 
 ## Cost
 

@@ -16,18 +16,24 @@ from ai_earth_intelligence_and_forecasting_engine.earth2.forecast import (
     APPROXIMATE_INDEX_VERSION,
     INDEX_VERSION,
 )
+from ai_earth_intelligence_and_forecasting_engine.earth2.memory import (
+    ROWS_PER_CHUNK,
+    chunk_pixel_layers,
+)
 from ai_earth_intelligence_and_forecasting_engine.earth2.store import (
     save_cutoff_forecast,
 )
 from ai_earth_intelligence_and_forecasting_engine.earth2.timing import daily_cutoff
 
 
-def load(model_name: str, source: str):
+def load(model_name: str, source: str, rows: int):
     from earth2studio.data import ARCO, GFS
     from earth2studio.models import px
 
     model_class = getattr(px, model_name)
     model = model_class.load_model(model_class.load_default_package())
+    if rows:
+        chunk_pixel_layers(model, rows)
     return model.to("cuda").eval(), GFS() if source == "gfs" else ARCO()
 
 
@@ -41,6 +47,12 @@ def main() -> None:
         "--implementation", choices=sorted(INDEX_IMPLEMENTATIONS), default="eager"
     )
     parser.add_argument("--profile", action="store_true")
+    parser.add_argument(
+        "--rows-per-chunk",
+        type=int,
+        default=ROWS_PER_CHUNK,
+        help="0 runs the per-pixel layers on the whole grid at once",
+    )
     arguments = parser.parse_args()
 
     cutoff = (
@@ -55,7 +67,9 @@ def main() -> None:
     timer = StageTimer()
     torch.cuda.reset_peak_memory_stats()
     with timer.stage("model_load"):
-        model, data = load(arguments.model, arguments.source)
+        model, data = load(
+            arguments.model, arguments.source, arguments.rows_per_chunk
+        )
         index = index_function(arguments.implementation)
     forecast = run_daily(model, data, cutoff, index, timer)
     with timer.stage("writing_output"):
@@ -73,6 +87,7 @@ def main() -> None:
             APPROXIMATE_INDEX_VERSION if forecast.approximate else INDEX_VERSION
         ),
         "index_implementation": arguments.implementation,
+        "rows_per_chunk": arguments.rows_per_chunk,
         "gpu": torch.cuda.get_device_name(0),
         "torch": torch.__version__,
         "earth2studio": earth2studio.__version__,

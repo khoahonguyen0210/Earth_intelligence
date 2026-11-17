@@ -14,6 +14,10 @@ from ai_earth_intelligence_and_forecasting_engine.earth2.forecast import (
     INDEX_VERSION,
     forecast_cutoff,
 )
+from ai_earth_intelligence_and_forecasting_engine.earth2.memory import (
+    ROWS_PER_CHUNK,
+    chunk_pixel_layers,
+)
 from ai_earth_intelligence_and_forecasting_engine.earth2.store import (
     cutoff_file_name,
     save_cutoff_forecast,
@@ -33,6 +37,7 @@ def main() -> None:
     parser.add_argument("--model", default="SFNO")
     parser.add_argument("--output", type=Path, default=OUTPUT_DIR)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--every", type=int, default=1)
     arguments = parser.parse_args()
 
     import earth2studio
@@ -41,6 +46,7 @@ def main() -> None:
 
     model_class = getattr(px, arguments.model)
     model = model_class.load_model(model_class.load_default_package())
+    chunked_layers = chunk_pixel_layers(model)
     model = model.to("cuda").eval()
     data = ARCO()
 
@@ -60,9 +66,12 @@ def main() -> None:
         data_source="ERA5 from ARCO (Google Cloud)",
         initialization="latest 6-hour analysis time at or before the cutoff",
         levels_hpa=list(INDEX_LEVELS_HPA),
+        layers_in_row_chunks=chunked_layers,
+        rows_per_chunk=ROWS_PER_CHUNK,
+        every_nth_cutoff=arguments.every,
     )
 
-    cutoffs = e7_cutoffs()[: arguments.limit]
+    cutoffs = e7_cutoffs()[:: arguments.every][: arguments.limit]
     for number, cutoff in enumerate(cutoffs, start=1):
         if (output / cutoff_file_name(cutoff)).exists():
             continue
