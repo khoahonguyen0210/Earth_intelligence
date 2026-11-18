@@ -41,6 +41,7 @@ results.
 | `torch.compile` | `kernels/hdwi_compiled.py` | The reference compiled with mode `max-autotune-no-cudagraphs`. PyTorch generates its own fused Triton kernels. |
 | Triton | `kernels/hdwi_triton.py` | One program handles 256 columns and loops over the levels inside the kernel. |
 | CUDA C++ | `kernels/hdwi_cuda.cu`, `hdwi_cuda.cpp`, `hdwi_cuda.py` | One thread per column, built with `torch.utils.cpp_extension.load`. Bounds are checked, and launch errors are raised as Python errors. |
+| CUDA C++, ranged (`cuda_ranged`) | The same files | Like the CUDA kernel, but it first finds the levels a column needs from the level pressures, then loads up to 4 levels at once. See [The gap to peak bandwidth](#the-gap-to-peak-bandwidth). |
 
 The hand-written kernels follow the reference exactly:
 
@@ -73,7 +74,7 @@ float32 inputs that are already contiguous, packing makes no copy.
 
 ## Tests
 
-`tests/kernels/test_hdwi_gpu.py` runs all four versions against the
+`tests/kernels/test_hdwi_gpu.py` runs every version against the
 float64 reference:
 
 - every edge case: calm wind, saturated air, missing values in used and
@@ -82,6 +83,7 @@ float64 reference:
   dense set of 12 levels between 1000 and 700 hPa;
 - surfaces that sit exactly on a level, or exactly 50 hPa below one.
 
+It also checks that the two CUDA kernels give bit-identical results.
 The tests skip on a machine without a CUDA GPU.
 
 ## Benchmark method
@@ -180,9 +182,9 @@ What this shows:
   its many small operations writes a full-size result back to memory.
   Its real memory traffic is much larger than the minimum bytes used
   here.
-- **No version is close to the peak.** Nsight Compute could not read
-  hardware counters on Kaggle, so the cause of the remaining gap was not
-  measured.
+- **No version is close to the peak on this input.** Nsight Compute
+  could not read hardware counters on Kaggle. The next section shows
+  that the random input causes most of the gap.
 
 An earlier run in the same session
 (`ml/artifacts/gpu_perf/20261117T212220Z/`) gave nearly the same numbers
@@ -191,6 +193,93 @@ global field, Triton took 0.641 ms (33.8% of peak) and `torch.compile`
 1.546 ms (14.0%) in that run, against 1.042 ms and 1.905 ms here. At
 this small size, a run of about 1 ms is sensitive to the state of the
 shared GPU, so the table reports the run in which the tests also ran.
+
+## The gap to peak bandwidth
+
+The CUDA kernel reaches 40% to 44% of the measured peak. A kernel that
+reads each value once, like this one, can usually get much closer. Two
+causes were found before any new run.
+
+**The benchmark input.** The random columns draw the surface pressure
+of each column independently, between 600 and 1,030 hPa. Neighboring
+columns, which neighboring threads handle, then need different levels.
+The GPU reads memory in 32-byte sectors of 8 values, so a level that one
+column needs is read for its 7 neighbors too. Counting the sectors
+touched (`sector_bytes` in `kernels/bench.py`), one random global field
+needs 105.7 MB, 2.10 times the 50.4 MB minimum. At that traffic, the
+measured 42.1% of peak becomes 88.2%. On real weather data, the surface
+pressure changes smoothly from one cell to the next, so neighbors
+mostly need the same levels.
+
+**Waiting between levels.** In the loop over levels, the condition to
+go on depends on the values loaded for the level before (a missing value
+stops the loop). So a thread waits for each level's loads to arrive
+before it starts the next ones.
+
+### Changes and success criteria
+
+Written before the runs:
+
+| # | Change | Success criterion |
+|---|---|---|
+| 1 | Benchmark a real field: ERA5 at 2025-08-03 06:00 UTC on the 13 FCN3 levels, from ARCO. The batched sizes repeat this field. | The sectors touched are at most 1.2 times the minimum bytes, and the CUDA kernel reaches at least 65% of the measured peak at every size |
+| 2 | A second CUDA kernel (`cuda_ranged`) first finds the levels a column needs from the level pressures alone, then loads up to 4 levels at once before computing them | Its median time is at least 10% lower than the current kernel's at every size on the ERA5 field, its output is bit-identical to the current kernel's, and it passes every GPU test |
+
+Run `notebooks/kernel_bandwidth_on_t4.ipynb` on a Kaggle T4. It runs the
+GPU tests, then the benchmark on the random input and on the ERA5 field.
+
+### Results
+
+Run on a Kaggle T4 (`ml/artifacts/gpu_perf/20261118T210447Z/` and
+`20261118T210600Z_era5/`), with the same versions as above. The measured
+peak was 231.1 GB/s before the random input and 232.9 GB/s before the
+ERA5 field. All 42 GPU tests passed, and the second CUDA kernel's output
+was bit-identical to the first kernel's at every size on both inputs.
+
+"Sectors" is the share of peak when the bytes are counted in the 32-byte
+sectors that the columns touch.
+
+ERA5 field (sectors touched: 1.04 times the minimum bytes):
+
+| Size | `cuda` (ms) | Share of peak | Sectors | `cuda_ranged` (ms) | Share of peak | Change in time |
+|---|---:|---:|---:|---:|---:|---:|
+| One global field | 0.279 | **83.0%** | 86.2% | 0.268 | 86.3% | −3.8% |
+| 12 lead times | 4.032 | 68.8% | 71.4% | 3.923 | 70.7% | −2.7% |
+| 16 ensemble members | 6.146 | 60.2% | 62.5% | 6.318 | 58.6% | +2.8% |
+
+Random input (sectors touched: 2.10 times the minimum bytes):
+
+| Size | `cuda` (ms) | Share of peak | Sectors | `cuda_ranged` (ms) | Share of peak | Sectors | Change in time |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| One global field | 0.513 | 42.5% | 89.0% | 0.501 | 43.5% | 91.2% | −2.4% |
+| 12 lead times | 6.791 | 38.5% | 80.7% | 5.666 | 46.2% | 96.8% | −16.6% |
+| 16 ensemble members | 10.498 | 33.2% | 69.6% | 7.531 | 46.3% | **97.1%** | −28.3% |
+
+What this shows:
+
+- **On real data, the CUDA kernel reaches 83.0% of the measured peak**
+  for one global field, about twice the 42.5% on the random input. On the ERA5
+  field, neighboring columns mostly need the same levels, so the sectors
+  touched are only 4% more than the minimum. The random input explains
+  most of the gap for one field.
+- **Change 1 did not fully meet its criterion.** The sectors were within
+  1.2 times the minimum, but on the ERA5 field the share of peak falls
+  with the batch size, to 68.8% for 12 fields and 60.2% for 16, below the
+  65% criterion. The cause of this fall was not measured.
+- **Change 2 was not kept.** On the ERA5 field, the second kernel was
+  3.8% and 2.7% faster on two sizes and 2.8% slower on the third, far
+  from the 10% criterion.
+- **On the random input, the second kernel was much faster** at the two
+  larger sizes: 16.6% and 28.3% less time, and 96.8% to 97.1% of peak
+  counted in sectors. There, the 32 threads of a warp need different
+  levels, so the first kernel waits for many rounds of loads. When
+  neighbors need the same levels, as in real data, there are few rounds
+  to save. This likely explains why the change helps one input and not
+  the other, but it was not measured directly.
+- **Runs differ on the shared T4.** In this run, the first CUDA kernel
+  took 6.791 and 10.498 ms at the two larger random sizes, against
+  5.974 and 8.612 ms in the first benchmark. The second kernel's 5.666
+  and 7.531 ms are faster than both.
 
 ## Kernel speed is not pipeline speed
 

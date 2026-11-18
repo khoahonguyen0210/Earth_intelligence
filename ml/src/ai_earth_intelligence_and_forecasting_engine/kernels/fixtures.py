@@ -23,6 +23,32 @@ EDGE_CASES = (
 )
 
 
+def era5_variables(levels: tuple[int, ...] = FCN3_LEVELS) -> list[str]:
+    surface = ["t2m", "d2m", "u10m", "v10m", "sp"]
+    return surface + [f"{name}{level}" for name in "tquv" for level in levels]
+
+
+def columns_from_fields(
+    fields: dict[str, torch.Tensor], levels: tuple[int, ...] = FCN3_LEVELS
+) -> ColumnFields:
+    def stack(prefix: str) -> torch.Tensor:
+        return torch.stack([fields[f"{prefix}{level}"] for level in levels], dim=-3)
+
+    t2m = fields["t2m"]
+    return ColumnFields(
+        t2m=t2m,
+        d2m=fields["d2m"],
+        u10=fields["u10m"],
+        v10=fields["v10m"],
+        surface_pressure=fields["sp"],
+        temperature=stack("t"),
+        specific_humidity=stack("q"),
+        u=stack("u"),
+        v=stack("v"),
+        pressure=torch.tensor(levels, dtype=t2m.dtype, device=t2m.device),
+    )
+
+
 def random_columns(
     batch: tuple[int, ...],
     height: int,

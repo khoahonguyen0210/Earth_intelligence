@@ -13,6 +13,7 @@ import torch
 
 from ai_earth_intelligence_and_forecasting_engine.kernels.fixtures import (
     FCN3_LEVELS,
+    columns_from_fields,
     edge_case_columns,
     random_columns,
 )
@@ -29,9 +30,11 @@ WARMUP_RUNS = 10
 TIMED_RUNS = 50
 GLOBAL_GRID = (721, 1440)
 DATASHEET_BANDWIDTH_GBPS = 320.0
+SECTOR_BYTES = 32
 
 Prepared = Callable[[], torch.Tensor]
 Preparer = Callable[[ColumnFields], Prepared]
+Source = Callable[[int], ColumnFields]
 
 
 @dataclass(frozen=True)
@@ -53,6 +56,8 @@ class Measurement:
     bytes_moved: int
     effective_gbps: float
     percent_of_peak: float
+    sector_bytes: int
+    percent_of_peak_sectors: float
     max_absolute_error: float
     max_relative_error: float
     within_tolerance: bool
@@ -83,7 +88,17 @@ def preparers() -> dict[str, Preparer]:
         packed = pack(columns)
         return lambda: hdwi_cuda.launch(packed)
 
-    return {"eager": eager, "torch_compile": compiled, "triton": triton, "cuda": cuda}
+    def cuda_ranged(columns: ColumnFields) -> Prepared:
+        packed = pack(columns)
+        return lambda: hdwi_cuda.launch(packed, ranged=True)
+
+    return {
+        "eager": eager,
+        "torch_compile": compiled,
+        "triton": triton,
+        "cuda": cuda,
+        "cuda_ranged": cuda_ranged,
+    }
 
 
 def environment() -> dict[str, str]:
@@ -172,6 +187,48 @@ def bytes_moved(columns: ColumnFields) -> int:
     return 4 * (6 * cells + 4 * used)
 
 
+def sector_bytes(columns: ColumnFields, sector: int = SECTOR_BYTES) -> int:
+    group = sector // 4
+    touched = 0
+    for index in range(columns.t2m.shape[0]):
+        part = member(columns, index)
+        mask = layer_mask(part.pressure, part.surface_pressure / 100.0)[0]
+        flat = mask.reshape(mask.shape[0], -1)
+        padding = -flat.shape[1] % group
+        if padding:
+            flat = torch.nn.functional.pad(flat, (0, padding))
+        touched += int(flat.reshape(flat.shape[0], -1, group).any(-1).sum())
+    return 4 * 6 * columns.t2m.numel() + 4 * sector * touched
+
+
+def repeated(columns: ColumnFields, batch: int) -> ColumnFields:
+    return ColumnFields(
+        **{
+            item.name: getattr(columns, item.name)
+            if item.name == "pressure"
+            else getattr(columns, item.name)
+            .unsqueeze(0)
+            .expand(batch, *getattr(columns, item.name).shape)
+            .contiguous()
+            for item in fields(columns)
+        }
+    )
+
+
+def saved_source(path: Path) -> Source:
+    saved = torch.load(path, weights_only=False)
+    base = columns_from_fields(
+        {name: value.to("cuda") for name, value in saved["fields"].items()},
+        tuple(saved["levels"]),
+    )
+    return lambda batch: repeated(base, batch)
+
+
+def random_source(batch: int) -> ColumnFields:
+    height, width = GLOBAL_GRID
+    return random_columns((batch,), height, width, FCN3_LEVELS, seed=11, device="cuda")
+
+
 def errors(result: torch.Tensor, exact: torch.Tensor) -> tuple[float, float, bool]:
     result = result.double()
     if not torch.equal(torch.isnan(result), torch.isnan(exact)):
@@ -205,6 +262,7 @@ def measure(
     columns: ColumnFields,
     exact: torch.Tensor,
     moved: int,
+    sectors: int,
     size: Size,
     peak: float,
 ) -> Measurement:
@@ -220,6 +278,8 @@ def measure(
         bytes_moved=moved,
         effective_gbps=float("nan"),
         percent_of_peak=float("nan"),
+        sector_bytes=sectors,
+        percent_of_peak_sectors=float("nan"),
         max_absolute_error=float("nan"),
         max_relative_error=float("nan"),
         within_tolerance=False,
@@ -240,6 +300,7 @@ def measure(
         p90_ms=round(float(np.percentile(times, 90)), 4),
         effective_gbps=round(gbps, 2),
         percent_of_peak=round(100 * gbps / peak, 1),
+        percent_of_peak_sectors=round(100 * sectors / (median * 1e-3) / 1e9 / peak, 1),
         max_absolute_error=absolute,
         max_relative_error=relative,
         within_tolerance=passed,
@@ -278,7 +339,24 @@ def plot(measurements: list[Measurement], path: Path) -> None:
     plt.close(figure)
 
 
-def run(sizes: list[Size], output_dir: Path) -> list[Measurement]:
+def cuda_versions_match(columns: ColumnFields) -> bool:
+    from ai_earth_intelligence_and_forecasting_engine.kernels import hdwi_cuda
+    from ai_earth_intelligence_and_forecasting_engine.kernels.layout import pack
+
+    packed = pack(columns)
+    plain = hdwi_cuda.launch(packed)
+    ranged = hdwi_cuda.launch(packed, ranged=True)
+    same_missing = torch.equal(torch.isnan(plain), torch.isnan(ranged))
+    finite = ~torch.isnan(plain)
+    return same_missing and torch.equal(plain[finite], ranged[finite])
+
+
+def run(
+    sizes: list[Size],
+    output_dir: Path,
+    source: Source = random_source,
+    input_name: str = "random",
+) -> list[Measurement]:
     output_dir.mkdir(parents=True, exist_ok=True)
     peak = peak_bandwidth_gbps()
     torch.cuda.empty_cache()
@@ -288,17 +366,17 @@ def run(sizes: list[Size], output_dir: Path) -> list[Measurement]:
     }
 
     measurements = []
-    height, width = GLOBAL_GRID
+    matches = {}
     for size in sizes:
-        columns = random_columns(
-            (size.batch,), height, width, FCN3_LEVELS, seed=11, device="cuda"
-        )
+        columns = source(size.batch)
         exact = exact_index(columns)
         moved = bytes_moved(columns)
+        sectors = sector_bytes(columns)
+        matches[size.name] = cuda_versions_match(columns)
         for name, prepare in candidates.items():
             if edge_cases[name]:
                 measurements.append(
-                    measure(name, prepare, columns, exact, moved, size, peak)
+                    measure(name, prepare, columns, exact, moved, sectors, size, peak)
                 )
             torch.cuda.empty_cache()
         del columns, exact
@@ -311,10 +389,12 @@ def run(sizes: list[Size], output_dir: Path) -> list[Measurement]:
         writer.writeheader()
         writer.writerows(asdict(item) for item in measurements)
     summary = {
+        "input": input_name,
         "environment": environment(),
         "peak_bandwidth_gbps": round(peak, 2),
         "datasheet_bandwidth_gbps": DATASHEET_BANDWIDTH_GBPS,
         "edge_cases_passed": edge_cases,
+        "cuda_ranged_identical_to_cuda": matches,
         "tolerance": {"absolute": ABSOLUTE_TOLERANCE, "relative": RELATIVE_TOLERANCE},
         "warmup_runs": WARMUP_RUNS,
         "timed_runs": TIMED_RUNS,

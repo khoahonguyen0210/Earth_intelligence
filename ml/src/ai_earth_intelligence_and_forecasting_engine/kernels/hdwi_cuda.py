@@ -35,6 +35,12 @@ def cuda_hot_dry_windy_index(columns: ColumnFields) -> torch.Tensor:
     return launch(pack(columns))
 
 
-def launch(packed: PackedColumns) -> torch.Tensor:
-    out = extension().hdwi(*packed.surface, *packed.levels, packed.pressure)
+def cuda_ranged_hot_dry_windy_index(columns: ColumnFields) -> torch.Tensor:
+    return launch(pack(columns), ranged=True)
+
+
+def launch(packed: PackedColumns, ranged: bool = False) -> torch.Tensor:
+    module = extension()
+    function = module.hdwi_ranged if ranged else module.hdwi
+    out = function(*packed.surface, *packed.levels, packed.pressure)
     return out.view(packed.grid)

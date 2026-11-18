@@ -1,6 +1,12 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <torch/extension.h>
 
+using Launcher = cudaError_t (*)(const float*, const float*, const float*,
+                                 const float*, const float*, const float*,
+                                 const float*, const float*, const float*,
+                                 const float*, float*, int, int, int,
+                                 cudaStream_t);
+
 extern "C" cudaError_t launch_hdwi(const float* t2m, const float* d2m,
                                    const float* u10, const float* v10,
                                    const float* surface_pressure,
@@ -10,6 +16,13 @@ extern "C" cudaError_t launch_hdwi(const float* t2m, const float* d2m,
                                    float* out, int batch, int columns,
                                    int levels, cudaStream_t stream);
 
+extern "C" cudaError_t launch_hdwi_ranged(
+    const float* t2m, const float* d2m, const float* u10, const float* v10,
+    const float* surface_pressure, const float* temperature,
+    const float* humidity, const float* u, const float* v,
+    const float* pressure, float* out, int batch, int columns, int levels,
+    cudaStream_t stream);
+
 namespace {
 
 void check(const torch::Tensor& tensor, const char* name) {
@@ -18,10 +31,11 @@ void check(const torch::Tensor& tensor, const char* name) {
   TORCH_CHECK(tensor.is_contiguous(), name, " must be contiguous");
 }
 
-torch::Tensor hdwi(torch::Tensor t2m, torch::Tensor d2m, torch::Tensor u10,
-                   torch::Tensor v10, torch::Tensor surface_pressure,
-                   torch::Tensor temperature, torch::Tensor humidity,
-                   torch::Tensor u, torch::Tensor v, torch::Tensor pressure) {
+torch::Tensor run(Launcher launcher, torch::Tensor t2m, torch::Tensor d2m,
+                  torch::Tensor u10, torch::Tensor v10,
+                  torch::Tensor surface_pressure, torch::Tensor temperature,
+                  torch::Tensor humidity, torch::Tensor u, torch::Tensor v,
+                  torch::Tensor pressure) {
   check(t2m, "t2m");
   check(d2m, "d2m");
   check(u10, "u10");
@@ -40,7 +54,7 @@ torch::Tensor hdwi(torch::Tensor t2m, torch::Tensor d2m, torch::Tensor u10,
   const int levels = static_cast<int>(pressure.size(0));
   auto out = torch::empty_like(t2m);
 
-  const cudaError_t status = launch_hdwi(
+  const cudaError_t status = launcher(
       t2m.data_ptr<float>(), d2m.data_ptr<float>(), u10.data_ptr<float>(),
       v10.data_ptr<float>(), surface_pressure.data_ptr<float>(),
       temperature.data_ptr<float>(), humidity.data_ptr<float>(),
@@ -51,8 +65,28 @@ torch::Tensor hdwi(torch::Tensor t2m, torch::Tensor d2m, torch::Tensor u10,
   return out;
 }
 
+torch::Tensor hdwi(torch::Tensor t2m, torch::Tensor d2m, torch::Tensor u10,
+                   torch::Tensor v10, torch::Tensor surface_pressure,
+                   torch::Tensor temperature, torch::Tensor humidity,
+                   torch::Tensor u, torch::Tensor v, torch::Tensor pressure) {
+  return run(launch_hdwi, t2m, d2m, u10, v10, surface_pressure, temperature,
+             humidity, u, v, pressure);
+}
+
+torch::Tensor hdwi_ranged(torch::Tensor t2m, torch::Tensor d2m,
+                          torch::Tensor u10, torch::Tensor v10,
+                          torch::Tensor surface_pressure,
+                          torch::Tensor temperature, torch::Tensor humidity,
+                          torch::Tensor u, torch::Tensor v,
+                          torch::Tensor pressure) {
+  return run(launch_hdwi_ranged, t2m, d2m, u10, v10, surface_pressure,
+             temperature, humidity, u, v, pressure);
+}
+
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, module) {
   module.def("hdwi", &hdwi, "Hot-Dry-Windy Index on CUDA");
+  module.def("hdwi_ranged", &hdwi_ranged,
+             "Hot-Dry-Windy Index on CUDA, loading only the needed levels");
 }

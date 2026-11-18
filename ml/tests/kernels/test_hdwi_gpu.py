@@ -22,6 +22,7 @@ from ai_earth_intelligence_and_forecasting_engine.kernels.hdwi_compiled import (
 )
 from ai_earth_intelligence_and_forecasting_engine.kernels.hdwi_cuda import (  # noqa: E402
     cuda_hot_dry_windy_index,
+    cuda_ranged_hot_dry_windy_index,
 )
 from ai_earth_intelligence_and_forecasting_engine.kernels.hdwi_reference import (  # noqa: E402
     ColumnFields,
@@ -36,6 +37,7 @@ IMPLEMENTATIONS = {
     "torch_compile": compiled_hot_dry_windy_index,
     "triton": triton_hot_dry_windy_index,
     "cuda": cuda_hot_dry_windy_index,
+    "cuda_ranged": cuda_ranged_hot_dry_windy_index,
 }
 
 
@@ -63,3 +65,13 @@ def test_surface_on_a_level_boundary_matches_reference(name: str) -> None:
     pressure.view(-1)[: len(boundaries)] = torch.tensor(boundaries, device="cuda")
     columns = ColumnFields(**{**columns.__dict__, "surface_pressure": pressure})
     assert within_tolerance(IMPLEMENTATIONS[name](columns), exact_index(columns))
+
+
+@pytest.mark.parametrize("levels", [FCN3_LEVELS, DENSE_LEVELS])
+def test_ranged_cuda_kernel_gives_the_same_bits(levels) -> None:
+    columns = random_columns((2,), 53, 97, levels, seed=13, device="cuda")
+    plain = cuda_hot_dry_windy_index(columns)
+    ranged = cuda_ranged_hot_dry_windy_index(columns)
+    assert torch.equal(torch.isnan(plain), torch.isnan(ranged))
+    finite = ~torch.isnan(plain)
+    assert torch.equal(plain[finite], ranged[finite])
