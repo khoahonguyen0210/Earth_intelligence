@@ -198,4 +198,21 @@ The index is one small step after a weather model that runs for many
 seconds. A faster index kernel only matters as much as the index's share
 of the full run. Kernel results are always shown next to that share,
 which comes from the stage times of the daily run (see
-[Daily Risk Map](daily-risk-map.md#pipeline-profile)).
+[Daily Risk Map](daily-risk-map.md#profile-results-on-a-t4)).
+
+In one daily run on the same T4, the index computation with eager
+PyTorch took 0.30 s of 114.4 s, or 0.3% of the run. It runs for 9
+forecast times, so the CUDA kernel's saving of about 15.6 ms per global
+field would save about 0.14 s, or about 0.1% of the run. In a new
+process, the first call of each compiled version also includes its
+compile time, so in the daily run each was slower than eager PyTorch:
+
+| Version | Index time in one daily run (s) | Share of the run |
+|---|---:|---:|
+| Eager PyTorch | 0.30 | 0.3% |
+| Triton | 1.31 | 1.3% |
+| `torch.compile` | 7.67 | 7.1% |
+| CUDA C++ (built during the run) | 23.75 | 19.2% |
+
+The kernels pay off when one process computes the index many times,
+for example for many forecasts or ensemble members.

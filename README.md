@@ -95,9 +95,13 @@ The forecast model is scored on how well it ranks the places that actually burne
 | A worker killed mid-run | **0 grid cells lost**, recovered in **1.35 s** |
 | AI planner on 22 real questions | **100%** correct intent and region, **6 of 6** off-topic or malicious requests blocked |
 | Hot-Dry-Windy fire-weather index alone (2025) | **0.372** ROC-AUC, worse than chance and far below each cell's fire rate (0.852) |
-| Fire-weather index as a CUDA kernel (NVIDIA T4) | **40% to 44%** of measured memory bandwidth, about **30×** faster than plain PyTorch |
+| Fire-weather index as a CUDA kernel (NVIDIA T4) | **40% to 44%** of measured memory bandwidth, about **30×** faster than plain PyTorch, but the index is only **0.3%** of a daily run |
+| Wildfire risk 1 to 3 days ahead with Earth-2 forecast weather (2025) | PR-AUC **0.458**, **0.357** and **0.233** for day +1, +2 and +3 |
+| What the forecast weather adds | **+0.148** and **+0.088** PR-AUC on day +1 and +2, nothing on day +3; the 24-hour model with observed weather does as well or better |
+| SFNO weather model on a 16 GB T4 | Out of memory as released; runs at **12.76 GB** peak after its largest layers run in blocks |
+| Daily GPU run, importing only the modules it uses | **39% to 47%** faster (96.8 to 105.5 s down to 55.6 to 59.0 s), with the same results |
 
-More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-baseline.md`](docs/neural-baseline.md), [`docs/retraining.md`](docs/retraining.md), and [`docs/fire-weather-index-validation.md`](docs/fire-weather-index-validation.md). Mixed and negative results are in [`docs/headline-results.md`](docs/headline-results.md).
+More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-baseline.md`](docs/neural-baseline.md), [`docs/retraining.md`](docs/retraining.md), [`docs/fire-weather-index-validation.md`](docs/fire-weather-index-validation.md), and [`docs/multi-day-risk.md`](docs/multi-day-risk.md). Mixed and negative results are in [`docs/headline-results.md`](docs/headline-results.md).
 
 ## Technology Stack
 
@@ -114,7 +118,7 @@ More detail is in [`docs/evaluation.md`](docs/evaluation.md), [`docs/neural-base
 | Object storage | Amazon S3, MinIO | Datasets, model versions, and large results |
 | Monitoring | Prometheus, OpenTelemetry, Jaeger | Metrics and request traces |
 | Infrastructure | Docker Compose, Kubernetes, Helm, KEDA, Terraform | Run locally, on Kubernetes, and on AWS |
-| Daily map | GitHub Actions, Kaggle, Cloudflare Pages | A free public risk map, updated every day |
+| Daily map | GitHub Actions, Kaggle, Cloudflare Pages | A free public risk map that can be updated every day |
 | Quality | GitHub Actions, JUnit, pytest, Vitest, go test, Ruff, mypy, Trivy | Tests, linting, and security scans on every push |
 
 ## Data
@@ -192,10 +196,11 @@ This part adds NVIDIA Earth-2 weather forecasts. It sits beside the main 24-hour
 
 - **Fire-weather index** — The Hot-Dry-Windy Index (Srock et al., 2018) in plain PyTorch, checked against the paper's worked examples. On its own it does not predict new fires, so it is used as one input next to fire history. See [`fire-weather-index-validation.md`](docs/fire-weather-index-validation.md).
 - **GPU kernels** — The index is also written as a fused Triton kernel and a CUDA C++ kernel, next to `torch.compile`. All versions share one set of tests against a float64 reference, and the benchmark reports each one as a share of the GPU's measured memory bandwidth. On a T4, the CUDA kernel reaches 40% to 44% of the measured 231.5 GB/s and runs about 30 times faster than plain PyTorch; Triton reaches about 31% on the larger inputs. See [`gpu-performance.md`](docs/gpu-performance.md).
-- **Risk 1 to 3 days ahead** — An Earth-2 weather model (SFNO) forecasts three days. The daily index values join fire history and terrain in a calibrated XGBoost model for each day. The experiment was specified before it was run. See [`multi-day-risk.md`](docs/multi-day-risk.md).
-- **Free daily map** — Every day, GitHub Actions starts a GPU run on Kaggle, scores every cell, and publishes a static map to Cloudflare Pages. See [`daily-risk-map.md`](docs/daily-risk-map.md).
+- **Risk 1 to 3 days ahead** — An Earth-2 weather model (SFNO) forecasts three days. The daily index values join fire history and terrain in a calibrated XGBoost model for each day. The experiment was specified before it was run. On the 2025 season, the forecast weather raised PR-AUC by 0.148 on day +1 and 0.088 on day +2, and added nothing on day +3. The 24-hour model, which uses the weather observed up to the cutoff, does as well on day +1 and +2 and better on day +3. See [`multi-day-risk.md`](docs/multi-day-risk.md).
+- **Faster daily run** — Each stage of the GPU run is timed. The weather model now runs its largest layers in blocks, so it fits in the T4's memory without any change to the model or its weights. Seven speed changes were written down with a success rule before any of them ran, and five were tested. Only one met its rule: importing only the modules the run uses cut the run time by 39% to 47%. Float16 made the forecast steps faster but failed the accuracy check, so the forecast stays in float32. See [`earth2-models-on-t4.md`](docs/earth2-models-on-t4.md) and [`daily-risk-map.md`](docs/daily-risk-map.md#pipeline-changes).
+- **Free daily map** — Once its free accounts are set up, GitHub Actions starts a GPU run on Kaggle every day, scores every cell, and publishes a static map to Cloudflare Pages. The map is not online yet. See [`daily-risk-map.md`](docs/daily-risk-map.md).
 
-GPU work runs on a free Kaggle T4 with the notebooks in [`notebooks/`](notebooks/README.md). Results for the 3-day model and the map are added here when their GPU runs are complete.
+GPU work runs on a free Kaggle T4 with the notebooks in [`notebooks/`](notebooks/README.md). The 132 forecasts for the 3-day experiment took 1.25 GPU-hours.
 
 ## Getting Started
 
