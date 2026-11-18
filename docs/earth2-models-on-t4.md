@@ -60,34 +60,52 @@ here.
 
 ## Fitting SFNO on a T4
 
-SFNO does most of its work on a coarser internal grid. Its first layers
-(the encoder), the last block's MLP and its last layers (the decoder)
-work on the full 721 × 1440 grid, one point at a time: each is a 1 × 1
-convolution with an activation, so an output point depends only on the
-same input point. On the full grid, one float32 channel takes 4.2 MB
-(721 × 1440 × 4 bytes), so a hidden tensor with hundreds of channels
-takes gigabytes. These tensors are the most likely cause of the
-failure.
+In the table above, SFNO ran with PyTorch's default memory settings and
+failed with 11.57 GB in use. With
+`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`, which lets PyTorch
+reuse freed GPU memory with less fragmentation, it still failed: the
+GELU activation of an MLP needed 2.97 GiB more while 11.59 GiB were in
+use (the "as released" run below).
 
-`earth2/memory.py` changes how these layers run, not what they compute:
+SFNO works on the full 721 × 1440 grid. One float32 channel of that grid
+takes 4.2 MB, so a tensor with hundreds of channels takes gigabytes.
+`earth2/memory.py` makes these tensors smaller. It changes how two kinds
+of layers run, not what they compute:
 
-- Each per-pixel layer runs on blocks of 64 latitude rows, and each
-  block's result is written into one output tensor. Only one block's
-  temporary tensors exist at a time.
-- A layer is changed only if every part of it is a 1 × 1 convolution or
-  an element-wise activation. Layers that mix neighboring points are left
-  as they are.
-- The model and its weights do not change. The results match the
-  unchanged layers up to floating-point rounding.
+- **Per-pixel layers in row blocks.** The encoder, the MLPs and the
+  decoder are 1 × 1 convolutions with activations: each output point
+  depends only on the same input point. They now run on blocks of 64
+  latitude rows. A layer is changed only if every part of it is a
+  1 × 1 convolution or an element-wise activation.
+- **Spherical harmonic transforms in channel blocks.** The forward and
+  inverse transforms treat each channel on its own. They now run on
+  blocks of 32 channels.
 
-The GPU runs also set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`,
-so that PyTorch can reuse freed GPU memory with less fragmentation.
+In both cases, each block's result is written into one output tensor, so
+only one block's temporary tensors exist at a time. The model and its
+weights do not change.
 
-`ml/tests/earth2/test_memory.py` checks that a network gives the same
-output before and after the change, that no block has more than the
-given number of rows, and that layers that mix neighboring points are
-not changed.
+`ml/tests/earth2/test_memory.py` checks that a small network gives the
+same output before and after the changes, that blocks have the given
+size, and that layers that mix neighboring points are not changed.
 
-The daily pipeline notebook (`notebooks/daily_pipeline_on_t4.ipynb`)
-measures SFNO with and without this change on the same date. Its results
-are in [Daily Risk Map](daily-risk-map.md#pipeline-profile).
+### Result
+
+Measured in the daily pipeline runs (`ml/artifacts/daily_pipeline/`),
+all with `expandable_segments`:
+
+| SFNO setting | Result | Peak memory (GB) |
+|---|---|---:|
+| As released | Out of memory in an MLP (needed 2.97 GiB more, 11.59 GiB in use) | – |
+| Row blocks only | Ran | 15.07 |
+| Row blocks and channel blocks | Ran | 12.76 |
+
+With row blocks only, the run fits with about 0.5 GB to spare on the
+15.6 GB T4. The first daily runs with row blocks only failed, because
+the run also kept full-grid fields from the index step. The channel
+blocks lower the peak by 2.3 GB more, so the default uses both.
+
+The run with row blocks only and the runs with both gave exactly the
+same daily features. One SFNO step takes about 3 s on the T4 (31 to 37 s
+for 11 steps). See [Daily Risk Map](daily-risk-map.md#pipeline-profile)
+for the full stage times.

@@ -6,7 +6,9 @@ torch = pytest.importorskip("torch")
 
 from ai_earth_intelligence_and_forecasting_engine.earth2.memory import (  # noqa: E402
     chunk_pixel_layers,
+    chunk_spectral_transforms,
     is_pixel_layer,
+    reduce_peak_memory,
 )
 
 
@@ -37,16 +39,43 @@ def smoothing_mlp() -> torch.nn.Module:
     return MLP()
 
 
+class RealSHT(torch.nn.Module):
+    def __init__(self, height: int, modes: int):
+        super().__init__()
+        self.register_buffer("weights", torch.randn(modes, height))
+        self.calls: list[int] = []
+
+    def forward(self, x):
+        self.calls.append(x.shape[1])
+        spectrum = torch.fft.rfft(x, dim=-1)
+        return torch.einsum("lh,bchm->bclm", self.weights.to(spectrum.dtype), spectrum)
+
+
+class InverseRealSHT(torch.nn.Module):
+    def __init__(self, height: int, modes: int, width: int):
+        super().__init__()
+        self.register_buffer("weights", torch.randn(height, modes))
+        self.width = width
+
+    def forward(self, x):
+        grid = torch.einsum("hl,bclm->bchm", self.weights.to(x.dtype), x)
+        return torch.fft.irfft(grid, n=self.width, dim=-1)
+
+
 class Network(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.encoder = EncoderDecoder(5, 8)
         self.norm = torch.nn.InstanceNorm2d(5)
         self.mlp = MLP(5, 16)
+        self.transform = RealSHT(23, 6)
+        self.inverse = InverseRealSHT(23, 6, 12)
         self.decoder = EncoderDecoder(5, 4)
 
     def forward(self, x):
-        return self.decoder(self.mlp(self.norm(self.encoder(x))))
+        x = self.mlp(self.norm(self.encoder(x)))
+        x = x + self.inverse(self.transform(x))
+        return self.decoder(x)
 
 
 def test_chunked_network_gives_the_same_output():
@@ -55,9 +84,22 @@ def test_chunked_network_gives_the_same_output():
     x = torch.randn(2, 5, 23, 12)
     with torch.inference_mode():
         expected = network(x)
-        assert chunk_pixel_layers(network, rows=4) == 3
+        counts = reduce_peak_memory(network, rows=4, channels=2)
         result = network(x)
-    torch.testing.assert_close(result, expected, rtol=1e-6, atol=1e-6)
+    assert counts == {"pixel_layers": 3, "spectral_transforms": 2}
+    torch.testing.assert_close(result, expected, rtol=1e-5, atol=1e-5)
+
+
+def test_spectral_transforms_run_in_channel_chunks():
+    transform = RealSHT(9, 4)
+    x = torch.randn(1, 7, 9, 10)
+    with torch.inference_mode():
+        expected = transform(x)
+        assert chunk_spectral_transforms(transform, channels=3) == 1
+        transform.calls.clear()
+        result = transform(x)
+    assert transform.calls == [3, 3, 1]
+    torch.testing.assert_close(result, expected)
 
 
 def test_each_chunk_has_at_most_the_given_rows():
@@ -86,6 +128,8 @@ def test_layers_that_mix_neighbors_are_left_alone():
     assert chunk_pixel_layers(smoother, rows=2) == 0
 
 
-def test_rows_must_be_positive():
+def test_chunk_sizes_must_be_positive():
     with pytest.raises(ValueError):
         chunk_pixel_layers(MLP(2, 2), rows=0)
+    with pytest.raises(ValueError):
+        chunk_spectral_transforms(RealSHT(3, 2), channels=0)

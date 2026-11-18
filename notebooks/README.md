@@ -10,6 +10,7 @@ Download them and copy them to the path in the table.
 | `gpu_kernels_on_t4.ipynb` | GPU tests and the kernel benchmark | `ml/artifacts/gpu_perf/` |
 | `e7_forecasts_on_t4.ipynb` | Weather forecasts and daily index values for the [multi-day experiment](../docs/multi-day-risk.md) | `ml/artifacts/e7_forecasts/` |
 | `daily_pipeline_on_t4.ipynb` | Stage times and peak memory of one [daily map](../docs/daily-risk-map.md) run, for each index version | `ml/artifacts/daily_pipeline/` |
+| `pipeline_changes_on_t4.ipynb` | Before and after times of each [pipeline change](../docs/daily-risk-map.md#pipeline-changes) | `ml/artifacts/pipeline_changes/` |
 
 To run one on Kaggle:
 

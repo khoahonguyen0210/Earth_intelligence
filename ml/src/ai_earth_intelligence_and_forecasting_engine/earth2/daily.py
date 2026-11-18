@@ -4,7 +4,8 @@ import importlib
 import time
 from collections import defaultdict
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from concurrent.futures import Future
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -42,6 +43,9 @@ INDEX_IMPLEMENTATIONS = {
 }
 STAGES = (
     "model_load",
+    "imports",
+    "model_weights",
+    "data_source",
     "data_loading",
     "host_to_device",
     "model_forward",
@@ -96,6 +100,47 @@ def crop_columns(
     )
 
 
+def index_step(
+    output: torch.Tensor,
+    output_coords: dict[str, np.ndarray],
+    index_function: IndexFunction,
+    timer: StageTimer,
+) -> tuple[ColumnFields, np.ndarray, np.ndarray, bool]:
+    everywhere = (
+        np.arange(len(output_coords["lat"])),
+        np.arange(len(output_coords["lon"])),
+    )
+    names = required_variables() + ["d2m"]
+    fields = select_fields(output, output_coords, names, *everywhere)
+    columns, approximate = build_columns(fields)
+    with timer.stage("index_kernel"):
+        index_function(columns)
+    rows, cols = crop_indices(output_coords["lat"], output_coords["lon"])
+    cropped = crop_columns(columns, rows, cols)
+    return (
+        cropped,
+        output_coords["lat"][rows],
+        output_coords["lon"][cols],
+        approximate,
+    )
+
+
+def fetch_initial_state(
+    data: Any, cutoff: datetime, variables: np.ndarray, lead_time: np.ndarray
+) -> tuple[torch.Tensor, Any]:
+    from earth2studio.data import fetch_data
+    from earth2studio.utils.time import to_time_array
+
+    start = initialization_time(cutoff).replace(tzinfo=None)
+    return fetch_data(
+        data,
+        to_time_array([start]),
+        variables,
+        lead_time,
+        device=torch.device("cpu"),
+    )
+
+
 def run_daily(
     model: Any,
     data: Any,
@@ -103,10 +148,9 @@ def run_daily(
     index_function: IndexFunction,
     timer: StageTimer,
     device: str = "cuda",
+    prefetched: Future[tuple[torch.Tensor, Any]] | None = None,
+    half_precision: bool = False,
 ) -> CutoffForecast:
-    from earth2studio.data import fetch_data
-    from earth2studio.utils.time import to_time_array
-
     initialization = initialization_time(cutoff)
     lead_by_time = {
         valid: lead for lead in LEAD_DAYS for valid in daily_valid_times(cutoff, lead)
@@ -114,42 +158,38 @@ def run_daily(
     steps = forecast_steps(cutoff)
     coords = model.input_coords()
     with timer.stage("data_loading"):
-        x, x_coords = fetch_data(
-            data,
-            to_time_array([initialization.replace(tzinfo=None)]),
-            coords["variable"],
-            coords["lead_time"],
-            device=torch.device("cpu"),
-        )
+        ready = prefetched.result() if prefetched else None
+        if ready and list(ready[1]["variable"]) == list(coords["variable"]):
+            x, x_coords = ready
+        else:
+            x, x_coords = fetch_initial_state(
+                data, cutoff, coords["variable"], coords["lead_time"]
+            )
+        del ready
     with timer.stage("host_to_device"):
         x = x.to(device)
 
-    names = required_variables() + ["d2m"]
     snapshots: dict[int, list[ColumnFields]] = {lead: [] for lead in LEAD_DAYS}
     approximate = False
     latitude = longitude = np.empty(0)
     iterator = model.create_iterator(x, x_coords)
+    del x
+    precision = (
+        torch.autocast("cuda", dtype=torch.float16) if half_precision else nullcontext()
+    )
     with torch.inference_mode():
         for step in range(steps + 1):
-            with timer.stage("model_forward"):
+            with timer.stage("model_forward"), precision:
                 output, output_coords = next(iterator)
             hours = int(output_coords["lead_time"][-1] / np.timedelta64(1, "h"))
             valid = initialization + timedelta(hours=hours)
-            if valid not in lead_by_time:
-                continue
-            with timer.stage("index"):
-                everywhere = (
-                    np.arange(len(output_coords["lat"])),
-                    np.arange(len(output_coords["lon"])),
-                )
-                fields = select_fields(output, output_coords, names, *everywhere)
-                columns, approximate = build_columns(fields)
-                with timer.stage("index_kernel"):
-                    index_function(columns)
-                rows, cols = crop_indices(output_coords["lat"], output_coords["lon"])
-                latitude = output_coords["lat"][rows]
-                longitude = output_coords["lon"][cols]
-                snapshots[lead_by_time[valid]].append(crop_columns(columns, rows, cols))
+            if valid in lead_by_time:
+                with timer.stage("index"):
+                    cropped, latitude, longitude, approximate = index_step(
+                        output, output_coords, index_function, timer
+                    )
+                snapshots[lead_by_time[valid]].append(cropped)
+            del output
 
     with timer.stage("index"):
         by_lead = [daily_features(snapshots[lead]) for lead in LEAD_DAYS]
