@@ -11,6 +11,7 @@ Download them and copy them to the path in the table.
 | `e7_forecasts_on_t4.ipynb` | Weather forecasts and daily index values for the [multi-day experiment](../docs/multi-day-risk.md) | `ml/artifacts/e7_forecasts/` |
 | `daily_pipeline_on_t4.ipynb` | Stage times and peak memory of one [daily map](../docs/daily-risk-map.md) run, for each index version | `ml/artifacts/daily_pipeline/` |
 | `pipeline_changes_on_t4.ipynb` | Before and after times of each [pipeline change](../docs/daily-risk-map.md#pipeline-changes) | `ml/artifacts/pipeline_changes/` |
+| `import_times_on_t4.ipynb` | Import times of the daily run, and default against [lean imports](../docs/daily-risk-map.md#imports) | `ml/artifacts/import_times/`, `ml/artifacts/lean_imports/` |
 
 To run one on Kaggle:
 

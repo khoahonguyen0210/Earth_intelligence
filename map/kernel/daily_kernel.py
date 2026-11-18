@@ -35,6 +35,7 @@ run(
     CUTOFF,
     "--output",
     OUTPUT,
+    "--lean-imports",
     env={
         **os.environ,
         "PYTHONPATH": "project/ml/src",

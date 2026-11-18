@@ -249,6 +249,51 @@ The new sub-stages show where `model_load` goes: importing Earth2Studio
 takes 43.5 to 45.2 s, about 40% of the whole run, and building SFNO and
 moving it to the GPU takes 17.7 to 18.6 s.
 
+### Imports
+
+`scripts/map/measure_imports.py` runs each import in a new Python
+process with `-X importtime` and adds up the time of each module
+(`ml/artifacts/import_times/`). On the T4 machine, the imports of the
+daily run (`earth2studio.data` and `earth2studio.models.px`) took 48.9
+and 49.4 s in two runs. Importing `torch` alone took 2.0 s once its
+files were cached.
+
+The time is spread over many small modules. Earth2Studio's own modules
+take 28.6 to 28.9 s of it. `earth2studio.models.px` imports every
+weather model in Earth2Studio, and through it every diagnostic model.
+`earth2studio.data` imports every data source. No single module takes
+more than 1.4 s. The daily run uses only SFNO, ARCO or GFS, and
+`fetch_data`.
+
+This gives one more change, written before it was run:
+
+| # | Stage and measured cost | Change | Success criterion |
+|---|---|---|---|
+| 7 | `imports`: 43.5 to 45.2 s, about 40% of the run | Import only the modules the run uses: register the `earth2studio.data` and `earth2studio.models.px` packages without running their `__init__` files, then import `sfno`, `arco`, `gfs` and `utils` from them (`--lean-imports`) | `imports` at least 50% lower and total time at least 15 s lower; features identical |
+
+### Result of lean imports
+
+Run with `notebooks/import_times_on_t4.ipynb`
+(`ml/artifacts/lean_imports/`, same cutoff and settings as above). The
+default and lean runs took turns.
+
+| Run | Total (s) | `imports` | `model_load` | `model_forward` | Peak memory (GB) | Features | Kept |
+|---|---:|---:|---:|---:|---:|---|---|
+| Baseline 1 | 105.5 | 43.6 | 61.9 | 40.1 | 12.76 | – | – |
+| Lean imports 1 | 55.6 | 7.0 | 23.4 | 29.6 | 12.76 | Identical | Yes |
+| Baseline 2 | 96.8 | 44.5 | 62.5 | 31.8 | 12.76 | Identical | – |
+| Lean imports 2 | 59.0 | 6.4 | 23.0 | 33.4 | 12.76 | Identical | Yes |
+
+- **Lean imports met the criterion against both baselines.** `imports`
+  fell by 84% to 86%, and the total fell by 37.8 to 49.9 s (39% to
+  47%). The daily features did not change.
+- The daily run now uses lean imports (`map/kernel/daily_kernel.py`).
+- With the change, the forecast steps take 53% to 57% of the run, and
+  `imports` takes 11% to 13%.
+
+The same notebook measured the imports again. The daily run's imports
+took 50.5 and 51.1 s, close to the first measurement.
+
 ## Cost
 
 | Item | Cost |

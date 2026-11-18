@@ -20,6 +20,9 @@ from ai_earth_intelligence_and_forecasting_engine.earth2.forecast import (
     APPROXIMATE_INDEX_VERSION,
     INDEX_VERSION,
 )
+from ai_earth_intelligence_and_forecasting_engine.earth2.imports import (
+    lean_earth2studio,
+)
 from ai_earth_intelligence_and_forecasting_engine.earth2.memory import (
     CHANNELS_PER_CHUNK,
     ROWS_PER_CHUNK,
@@ -46,9 +49,12 @@ def prefetch(source: str, cutoff: datetime, model_class) -> tuple[torch.Tensor, 
 
 def load(arguments, cutoff: datetime, timer: StageTimer, pool: ThreadPoolExecutor):
     with timer.stage("imports"):
-        importlib.import_module("earth2studio.data")
-        px = importlib.import_module("earth2studio.models.px")
-        model_class = getattr(px, arguments.model)
+        if arguments.lean_imports:
+            model_class = lean_earth2studio(arguments.model)
+        else:
+            importlib.import_module("earth2studio.data")
+            px = importlib.import_module("earth2studio.models.px")
+            model_class = getattr(px, arguments.model)
     prefetched: Future | None = None
     if arguments.overlap_loading:
         prefetched = pool.submit(prefetch, arguments.source, cutoff, model_class)
@@ -89,6 +95,7 @@ def main() -> None:
     parser.add_argument("--overlap-loading", action="store_true")
     parser.add_argument("--cudnn-benchmark", action="store_true")
     parser.add_argument("--half-precision", action="store_true")
+    parser.add_argument("--lean-imports", action="store_true")
     arguments = parser.parse_args()
     torch.backends.cudnn.benchmark = arguments.cudnn_benchmark
 
@@ -137,6 +144,7 @@ def main() -> None:
         "overlap_loading": arguments.overlap_loading,
         "cudnn_benchmark": arguments.cudnn_benchmark,
         "half_precision": arguments.half_precision,
+        "lean_imports": arguments.lean_imports,
         "gpu": torch.cuda.get_device_name(0),
         "torch": torch.__version__,
         "earth2studio": earth2studio.__version__,

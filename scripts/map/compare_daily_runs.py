@@ -32,6 +32,12 @@ CRITERIA = {
         "features": "identical",
         "maximum_peak_gb": 14.0,
     },
+    "lean_imports": {
+        "stage": "imports",
+        "minimum_share": 0.50,
+        "minimum_total_seconds": 15.0,
+        "features": "identical",
+    },
 }
 
 
@@ -73,6 +79,9 @@ def meets(name: str, run: dict, baseline: dict, features: dict) -> bool:
     rule = CRITERIA[change_name(name)]
     stage = rule["stage"]
     saved = baseline["stages"][stage] - run["stages"][stage]
+    total_saved = baseline["stages"]["total"] - run["stages"]["total"]
+    if total_saved < rule.get("minimum_total_seconds", float("-inf")):
+        return False
     if "minimum_seconds" in rule and saved < rule["minimum_seconds"]:
         return False
     if "minimum_share" in rule:
