@@ -1,8 +1,12 @@
 # Daily Risk Map
 
 A public map of wildfire risk in California for the next three days,
-updated once a day at no cost. It uses the models from the
-[multi-day experiment](multi-day-risk.md).
+which a GitHub Actions workflow can update once a day at no cost. It
+uses the models from the [multi-day experiment](multi-day-risk.md).
+
+The map is not online yet. The workflow needs the free accounts in
+[Setup](#setup). Until their secrets are added, each scheduled run
+skips the map and says so in its summary.
 
 The map is labeled as experimental. It shows its data cutoff and model
 version, and links to the National Weather Service and CAL FIRE. It is
@@ -60,15 +64,13 @@ Actions**, add:
 | `PAGES_PROJECT` | Variable | Pages project name |
 | `PAGES_URL` | Variable | The site address, for example `https://name.pages.dev` |
 
-Then copy the trained models into the repository:
+The trained models are already in `map/models/` (`lead_1.json` to
+`lead_3.json` and `metadata.json`). After the models are trained again,
+copy the new ones there:
 
 ```bash
 python scripts/map/export_models.py
 ```
-
-This writes `map/models/lead_1.json` to `lead_3.json` and
-`metadata.json`. The workflow stops with a clear message until these
-files exist.
 
 To run it once by hand, open **Actions → Daily risk map → Run workflow**.
 
@@ -81,6 +83,7 @@ To run it once by hand, open **Actions → Daily risk map → Run workflow**.
 | `scripts/map/run_daily_forecast.py` | Runs on the GPU: forecast, index, stage times |
 | `scripts/map/build_daily_map.py` | Runs on GitHub: fire history, scores, site files |
 | `map/cells.csv` | Elevation, slope and land cover per cell (from `scripts/map/export_cells.py`) |
+| `map/models/` | The three calibrated models as JSON (from `scripts/map/export_models.py`) |
 | `map/site/` | The static page |
 
 ## Pipeline profile

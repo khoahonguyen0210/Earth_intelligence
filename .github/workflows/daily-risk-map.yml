@@ -13,7 +13,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$KAGGLE_USERNAME" ] && [ -n "$KAGGLE_KEY" ] && [ -n "$FIRMS_MAP_KEY" ] \
+            && [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "The map secrets are not set, so the map was not built." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   map:
+    needs: setup
+    if: needs.setup.outputs.ready == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -25,9 +49,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check setup
+      - name: Check models
         run: |
-          test -n "$KAGGLE_USERNAME" && test -n "$KAGGLE_KEY" || { echo "Kaggle secrets are missing"; exit 1; }
           for lead in 1 2 3; do
             test -f "map/models/lead_$lead.json" || { echo "map/models has no trained models"; exit 1; }
           done

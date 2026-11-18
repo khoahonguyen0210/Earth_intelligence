@@ -80,6 +80,113 @@ that cutoff takes more than 5 minutes, all 132 would not finish in one
 run, so the notebook keeps every other cutoff. The choice is saved in
 `metadata.json` and reported with the results.
 
+## Results
+
+All 132 forecasts ran on a Kaggle T4 (`ml/artifacts/e7_forecasts/`).
+The short check took 45.8 s, well under 5 minutes, so no cutoff was
+dropped. One forecast took 32.9 to 45.8 s, or 1.25 GPU-hours in all,
+against the estimate of 5 and the cap of 15. Peak GPU memory was
+15.07 GB. The scores are in `ml/artifacts/e7_multi_day_v1/`.
+
+The day +1 labels rebuilt from FIRMS matched the main target in every
+row. The 2025 test season has 219,450 rows per lead day (22 cutoffs ×
+9,975 cells).
+
+### PR-AUC on the 2025 season
+
+The ranges are 95% intervals.
+
+| Score | Day +1 | Day +2 | Day +3 |
+|---|---|---|---|
+| Climatology | 0.321 (0.265 to 0.380) | 0.275 (0.223 to 0.332) | 0.240 (0.199 to 0.286) |
+| Persistence | 0.395 (0.307 to 0.479) | 0.260 (0.198 to 0.324) | 0.210 (0.154 to 0.272) |
+| Production 24-hour model, unchanged | 0.464 (0.386 to 0.539) | 0.356 (0.280 to 0.428) | 0.283 (0.228 to 0.343) |
+| XGBoost without forecast values | 0.309 (0.248 to 0.372) | 0.269 (0.212 to 0.330) | 0.233 (0.185 to 0.284) |
+| XGBoost with forecast values | **0.458** (0.384 to 0.532) | **0.357** (0.290 to 0.426) | 0.233 (0.185 to 0.284) |
+| Fires (share of rows) | 614 (0.28%) | 747 (0.34%) | 867 (0.40%) |
+
+### ROC-AUC on the 2025 season
+
+| Score | Day +1 | Day +2 | Day +3 |
+|---|---|---|---|
+| Climatology | 0.868 (0.835 to 0.897) | 0.846 (0.820 to 0.870) | 0.836 (0.810 to 0.862) |
+| Persistence | 0.906 (0.880 to 0.925) | 0.878 (0.855 to 0.899) | 0.822 (0.800 to 0.842) |
+| Production 24-hour model, unchanged | 0.972 (0.964 to 0.980) | 0.952 (0.931 to 0.969) | 0.935 (0.915 to 0.952) |
+| XGBoost without forecast values | 0.913 (0.887 to 0.934) | 0.868 (0.839 to 0.894) | 0.829 (0.806 to 0.854) |
+| XGBoost with forecast values | 0.971 (0.961 to 0.980) | 0.955 (0.938 to 0.969) | 0.829 (0.806 to 0.854) |
+
+### Brier score and log loss
+
+Lower is better. Persistence gives counts, not probabilities, so it has
+no Brier score or log loss.
+
+| Score | Brier, day +1 | Brier, day +2 | Brier, day +3 | Log loss, day +1 | Log loss, day +2 | Log loss, day +3 |
+|---|---:|---:|---:|---:|---:|---:|
+| Climatology | 0.00223 | 0.00278 | 0.00333 | 0.0296 | 0.0399 | 0.0476 |
+| Production 24-hour model, unchanged | 0.00191 | 0.00262 | 0.00323 | 0.0095 | 0.0128 | 0.0175 |
+| XGBoost without forecast values | 0.00212 | 0.00271 | 0.00325 | 0.0101 | 0.0133 | 0.0170 |
+| XGBoost with forecast values | 0.00192 | 0.00258 | 0.00325 | 0.0091 | 0.0125 | 0.0170 |
+
+### What forecast values add
+
+XGBoost with forecast values minus XGBoost without them:
+
+| Difference | Day +1 | Day +2 | Day +3 |
+|---|---|---|---|
+| PR-AUC | **+0.148** (0.120 to 0.180) | **+0.088** (0.061 to 0.113) | 0.000 (0.000 to 0.000) |
+| ROC-AUC | +0.058 (0.043 to 0.077) | +0.087 (0.071 to 0.105) | 0.000 (0.000 to 0.000) |
+| Brier score | −0.0002 (−0.0003 to −0.0001) | −0.0001 (−0.0002 to −0.0001) | 0.0000 (0.0000 to 0.0000) |
+| Log loss | −0.0010 (−0.0012 to −0.0008) | −0.0008 (−0.0014 to −0.0002) | 0.0000 (0.0000 to 0.0000) |
+| Adds value by the decision rule | Yes | Yes | No |
+
+What this shows:
+
+- **RQ7. Forecast weather adds value on day +1 and day +2.** On both
+  days, the interval of the PR-AUC difference is entirely above zero,
+  and the Brier score and log loss are lower.
+- **On day +3, the two models are the same.** Early stopping on the
+  2023 validation season kept only the first tree of each model:
+  validation PR-AUC was highest after one tree and did not improve over
+  the next 10. That tree splits only on fire counts, so both models give
+  the same predictions. By the decision rule, forecast weather adds no
+  value on day +3. This does not show that the day +3 forecast values
+  hold no information. It shows that the fixed training settings did
+  not use them.
+- **RQ8. Skill falls with lead time.** With forecast values, PR-AUC falls
+  from 0.458 to 0.357 to 0.233, and ROC-AUC from 0.971 to 0.955 to
+  0.829. ROC-AUC does not depend on the share of rows with a fire, which
+  rises from 0.28% to 0.40% over the same days.
+- **Against persistence**, the model with forecast values is better on
+  day +1 (+0.063, 0.036 to 0.094) and day +2 (+0.096, 0.057 to 0.136),
+  but not on day +3 (+0.023, −0.017 to 0.055).
+- **The production 24-hour model does as well without forecast
+  weather.** Used unchanged for every lead day, with the weather
+  observed up to the cutoff, it scores 0.464, 0.356 and 0.283. On days
+  +1 and +2 this is about the same as the model with forecast values
+  (0.458 and 0.357), and on day +3 it is higher. So most of the gain on
+  days +1 and +2 comes from having weather at all, not from forecast
+  weather in particular. This comparison is not part of the decision
+  rule, and the interval of the difference between these two models was
+  not computed.
+- **Calibration.** On day +1, the lowest bin holds 218,269 of the
+  219,450 test rows, with a predicted rate of 0.0019 and an observed
+  rate of 0.0010. The reliability plots are in
+  `ml/artifacts/e7_multi_day_v1/plots/`.
+
+## Limits
+
+- Backtests start from ERA5 reanalysis, which is more accurate than the
+  operational analysis a live forecast would start from. The results
+  are likely an upper bound for live use.
+- One weather model (SFNO) and one index version (the approximation
+  without 2 m dew point) were tested.
+- The test is one season with 22 forecast dates, so the intervals are
+  wide.
+- The specification fixed the XGBoost settings, so no other settings
+  were tried for day +3.
+- Forecast weather was not compared directly with the observed weather
+  that the production model uses.
+
 ## How to run
 
 1. Run `notebooks/e7_forecasts_on_t4.ipynb` on Kaggle and copy the

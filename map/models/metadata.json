@@ -1,0 +1,36 @@
+{
+  "version": "e7_v1",
+  "trained_on": {
+    "train": [
+      2019,
+      2020,
+      2021,
+      2022
+    ],
+    "validation": [
+      2023
+    ],
+    "test": [
+      2025
+    ]
+  },
+  "weather_model": "SFNO",
+  "index_version": "hdwi_approx_v1",
+  "test_pr_auc": {
+    "1": {
+      "estimate": 0.4579,
+      "low": 0.3842,
+      "high": 0.5324
+    },
+    "2": {
+      "estimate": 0.3566,
+      "low": 0.2903,
+      "high": 0.4262
+    },
+    "3": {
+      "estimate": 0.2328,
+      "low": 0.1848,
+      "high": 0.2843
+    }
+  }
+}
