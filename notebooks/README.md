@@ -11,6 +11,7 @@ Download them and copy them to the path in the table.
 | `e7_forecasts_on_t4.ipynb` | Weather forecasts and daily index values for the [multi-day experiment](../docs/multi-day-risk.md) | `ml/artifacts/e7_forecasts/` |
 | `daily_pipeline_on_t4.ipynb` | Stage times and peak memory of one [daily map](../docs/daily-risk-map.md) run, for each index version | `ml/artifacts/daily_pipeline/` |
 | `pipeline_changes_on_t4.ipynb` | Before and after times of each [pipeline change](../docs/daily-risk-map.md#pipeline-changes) | `ml/artifacts/pipeline_changes/` |
+| `serving_on_t4.ipynb` | Load test of the forecast model on the CPU and the GPU, with and without batching | `ml/artifacts/serving/` |
 | `kernel_bandwidth_on_t4.ipynb` | GPU tests and the kernel benchmark on random input and on a real ERA5 field, with the second CUDA kernel | `ml/artifacts/gpu_perf/` |
 | `ensemble_on_t4.ipynb` | Ensemble throughput on one and two T4 GPUs, with 1, 2 or 4 members per batch | `ml/artifacts/ensemble_on_t4/` |
 | `import_times_on_t4.ipynb` | Import times of the daily run, and default against [lean imports](../docs/daily-risk-map.md#imports) | `ml/artifacts/import_times/`, `ml/artifacts/lean_imports/` |
