@@ -59,10 +59,12 @@ class ForecastWorkerLoggingTest {
         }
     };
     private ForecastStore store;
+    private String testThread;
     private final ForecastMetrics metrics = new ForecastMetrics(new SimpleMeterRegistry(), queue);
 
     @BeforeEach
     void setUp() {
+        testThread = Thread.currentThread().getName();
         appender.start();
         logger.addAppender(appender);
 
@@ -81,12 +83,17 @@ class ForecastWorkerLoggingTest {
                 queue, store, request -> outcome, maxAttempts, SecretRedactor.of(SECRET), metrics, Spans.noop(), 0, RegionStore.noop());
     }
 
+    private List<ILoggingEvent> captured() {
+        return appender.list.stream().filter(event -> testThread.equals(event.getThreadName())).toList();
+    }
+
     private List<String> events() {
-        return appender.list.stream().map(event -> (String) keyValues(event).get("event")).toList();
+        return captured().stream().map(event -> (String) keyValues(event).get("event")).toList();
     }
 
     private ILoggingEvent last() {
-        return appender.list.get(appender.list.size() - 1);
+        List<ILoggingEvent> events = captured();
+        return events.get(events.size() - 1);
     }
 
     private static Map<String, Object> keyValues(ILoggingEvent event) {
@@ -100,7 +107,7 @@ class ForecastWorkerLoggingTest {
         workerReturning(ForecastOutcome.success(Map.of("model_version", "v1")), 3).pollOnce();
 
         assertEquals(List.of("job_started", "job_succeeded"), events());
-        appender.list.forEach(event -> assertEquals("job-1", event.getMDCPropertyMap().get(ForecastWorker.MDC_JOB_ID)));
+        captured().forEach(event -> assertEquals("job-1", event.getMDCPropertyMap().get(ForecastWorker.MDC_JOB_ID)));
         Map<String, Object> fields = keyValues(last());
         assertEquals(1, fields.get("attempt"));
         assertTrue(((Long) fields.get("duration_ms")) >= 0);
